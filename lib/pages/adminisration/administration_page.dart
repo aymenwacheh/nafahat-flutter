@@ -7,10 +7,13 @@ import 'package:nafahat/pages/adminisration/edit_categorie.dart';
 import 'package:nafahat/pages/adminisration/add_formateur.dart';
 import 'package:nafahat/pages/adminisration/add_video_fav_page.dart';
 import 'package:nafahat/pages/adminisration/edit_formation.dart';
+import 'package:nafahat/pages/users/edit_profile_page.dart';
 import 'package:nafahat/services/training_service.dart';
 import 'package:nafahat/services/video_service.dart';
+import 'package:nafahat/services/adherent_service.dart';
 import 'package:nafahat/models/training_model.dart';
 import 'package:nafahat/models/video_model.dart';
+import 'package:nafahat/models/adherent.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
@@ -23,7 +26,6 @@ class AdministrationPage extends StatefulWidget {
 
 class _AdministrationPageState extends State<AdministrationPage> {
   int _selectedIndex = 0;
-  bool _isMenuCollapsed = false;
 
   final List<Widget> _pages = [
     const DashboardPage(),
@@ -31,6 +33,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     const CategoriesManagementPage(),
     const FormateursManagementPage(),
     const VideosManagementPage(),
+    const AdherentsManagementPage(), // ✅ Nouvelle page Adhérents
   ];
 
   final List<String> _titles = [
@@ -39,6 +42,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     'Catégories',
     'Formateurs',
     'Vidéos',
+    'Adhérents',
   ];
 
   final List<Map<String, dynamic>> _menuItems = [
@@ -47,6 +51,12 @@ class _AdministrationPageState extends State<AdministrationPage> {
     {'icon': Icons.category_outlined, 'title': 'Catégories', 'page': 2},
     {'icon': Icons.person_outline, 'title': 'Formateurs', 'page': 3},
     {'icon': Icons.video_library_outlined, 'title': 'Vidéos', 'page': 4},
+    {
+      'icon': Icons.people_outline,
+      'title': 'Adhérents',
+      'page': 5,
+      'badge': true,
+    },
   ];
 
   @override
@@ -95,6 +105,9 @@ class _AdministrationPageState extends State<AdministrationPage> {
     );
   }
 
+  // ============================================================
+  // SIDE MENU
+  // ============================================================
   Widget _buildSideMenu(bool isMobile, bool isTablet) {
     final screenWidth = MediaQuery.of(context).size.width;
     final bool isCollapsed = screenWidth < 900;
@@ -113,6 +126,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
       ),
       child: Column(
         children: [
+          // ---- Logo ----
           Container(
             height: 80,
             padding: EdgeInsets.symmetric(horizontal: isCollapsed ? 8 : 20),
@@ -161,6 +175,8 @@ class _AdministrationPageState extends State<AdministrationPage> {
               ],
             ),
           ),
+
+          // ---- Menu Items ----
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(vertical: 16),
@@ -168,11 +184,13 @@ class _AdministrationPageState extends State<AdministrationPage> {
               itemBuilder: (context, index) {
                 final item = _menuItems[index];
                 final isSelected = _selectedIndex == item['page'];
+                final hasBadge = item['badge'] ?? false;
                 return _buildMenuItem(
                   icon: item['icon'],
                   title: item['title'],
                   isSelected: isSelected,
                   isCollapsed: isCollapsed,
+                  hasBadge: hasBadge,
                   onTap: () {
                     setState(() {
                       _selectedIndex = item['page'];
@@ -182,6 +200,8 @@ class _AdministrationPageState extends State<AdministrationPage> {
               },
             ),
           ),
+
+          // ---- Footer (Déconnexion) ----
           Container(
             padding: EdgeInsets.all(isCollapsed ? 8 : 16),
             decoration: const BoxDecoration(
@@ -237,6 +257,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     required bool isSelected,
     required bool isCollapsed,
     required VoidCallback onTap,
+    bool hasBadge = false,
   }) {
     return InkWell(
       onTap: onTap,
@@ -265,21 +286,66 @@ class _AdministrationPageState extends State<AdministrationPage> {
           mainAxisAlignment:
               isCollapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
           children: [
-            Icon(
-              icon,
-              color: isSelected ? const Color(0xffd57653) : Colors.white70,
-              size: 24,
+            Stack(
+              children: [
+                Icon(
+                  icon,
+                  color: isSelected ? const Color(0xffd57653) : Colors.white70,
+                  size: 24,
+                ),
+                if (hasBadge && !isCollapsed)
+                  Positioned(
+                    right: -8,
+                    top: -8,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        '!',
+                        style: GoogleFonts.poppins(
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
             if (!isCollapsed) ...[
               const SizedBox(width: 16),
-              Text(
-                title,
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color: isSelected ? Colors.white : Colors.white70,
+              Expanded(
+                child: Text(
+                  title,
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                    color: isSelected ? Colors.white : Colors.white70,
+                  ),
                 ),
               ),
+              if (hasBadge)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    'Nouveau',
+                    style: GoogleFonts.poppins(
+                      fontSize: 8,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
             ],
           ],
         ),
@@ -287,6 +353,9 @@ class _AdministrationPageState extends State<AdministrationPage> {
     );
   }
 
+  // ============================================================
+  // DRAWER (Mobile)
+  // ============================================================
   Widget _buildDrawer(bool isMobile) {
     return Drawer(
       backgroundColor: const Color(0xff0D443E),
@@ -329,11 +398,38 @@ class _AdministrationPageState extends State<AdministrationPage> {
               itemBuilder: (context, index) {
                 final item = _menuItems[index];
                 final isSelected = _selectedIndex == item['page'];
+                final hasBadge = item['badge'] ?? false;
                 return ListTile(
-                  leading: Icon(
-                    item['icon'],
-                    color:
-                        isSelected ? const Color(0xffd57653) : Colors.white70,
+                  leading: Stack(
+                    children: [
+                      Icon(
+                        item['icon'],
+                        color:
+                            isSelected
+                                ? const Color(0xffd57653)
+                                : Colors.white70,
+                      ),
+                      if (hasBadge)
+                        Positioned(
+                          right: -4,
+                          top: -4,
+                          child: Container(
+                            padding: const EdgeInsets.all(3),
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              '!',
+                              style: GoogleFonts.poppins(
+                                fontSize: 6,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                   title: Text(
                     item['title'],
@@ -343,6 +439,27 @@ class _AdministrationPageState extends State<AdministrationPage> {
                           isSelected ? FontWeight.w600 : FontWeight.w400,
                     ),
                   ),
+                  trailing:
+                      hasBadge
+                          ? Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              'Nouveau',
+                              style: GoogleFonts.poppins(
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          )
+                          : null,
                   selected: isSelected,
                   selectedTileColor: const Color(0xffd57653).withOpacity(0.2),
                   onTap: () {
@@ -376,6 +493,9 @@ class _AdministrationPageState extends State<AdministrationPage> {
     );
   }
 
+  // ============================================================
+  // HEADER
+  // ============================================================
   Widget _buildHeader() {
     return Container(
       height: 70,
@@ -417,7 +537,9 @@ class _AdministrationPageState extends State<AdministrationPage> {
   }
 }
 
-// --- DASHBOARD ---
+// ============================================================
+// DASHBOARD PAGE
+// ============================================================
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
 
@@ -438,7 +560,7 @@ class DashboardPage extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Gérez vos formations, catégories, formateurs et vidéos',
+            'Gérez vos formations, catégories, formateurs, vidéos et adhérents',
             style: GoogleFonts.poppins(color: const Color(0xff7c6e68)),
           ),
           const SizedBox(height: 32),
@@ -467,6 +589,12 @@ class DashboardPage extends StatelessWidget {
                 title: 'Vidéos',
                 count: '6',
                 color: Colors.purple[700]!,
+              ),
+              _buildStatCard(
+                icon: Icons.people,
+                title: 'Adhérents',
+                count: '0',
+                color: Colors.green[700]!,
               ),
             ],
           ),
@@ -535,7 +663,9 @@ class DashboardPage extends StatelessWidget {
   }
 }
 
-// --- GESTION FORMATIONS ---
+// ============================================================
+// FORMATIONS MANAGEMENT PAGE
+// ============================================================
 class FormationsManagementPage extends StatefulWidget {
   const FormationsManagementPage({super.key});
 
@@ -766,7 +896,6 @@ class _FormationsManagementPageState extends State<FormationsManagementPage> {
                         itemCount: _formations.length,
                         itemBuilder: (context, index) {
                           final formation = _formations[index];
-                          // ✅ Nouveaux champs (typeFormation, typeDuree)
                           final typeDisplay =
                               formation.typeFormation.isNotEmpty
                                   ? formation.typeFormation
@@ -844,7 +973,9 @@ class _FormationsManagementPageState extends State<FormationsManagementPage> {
   }
 }
 
-// --- GESTION CATÉGORIES ---
+// ============================================================
+// CATEGORIES MANAGEMENT PAGE
+// ============================================================
 class CategoriesManagementPage extends StatefulWidget {
   const CategoriesManagementPage({super.key});
 
@@ -1017,7 +1148,9 @@ class _CategoriesManagementPageState extends State<CategoriesManagementPage> {
   }
 }
 
-// --- GESTION FORMATEURS ---
+// ============================================================
+// FORMATEURS MANAGEMENT PAGE
+// ============================================================
 class FormateursManagementPage extends StatefulWidget {
   const FormateursManagementPage({super.key});
 
@@ -1179,7 +1312,9 @@ class _FormateursManagementPageState extends State<FormateursManagementPage> {
   }
 }
 
-// --- GESTION VIDÉOS ---
+// ============================================================
+// VIDEOS MANAGEMENT PAGE
+// ============================================================
 class VideosManagementPage extends StatefulWidget {
   const VideosManagementPage({super.key});
 
@@ -1317,6 +1452,305 @@ class _VideosManagementPageState extends State<VideosManagementPage> {
                                   ),
                                   onPressed: () {
                                     // TODO: Implémenter modification vidéo
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    color: Colors.red,
+                                    size: 20,
+                                  ),
+                                  onPressed: () {
+                                    // TODO: Implémenter suppression
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================
+// ADHERENTS MANAGEMENT PAGE (NOUVEAU)
+// ============================================================
+class AdherentsManagementPage extends StatefulWidget {
+  const AdherentsManagementPage({super.key});
+
+  @override
+  State<AdherentsManagementPage> createState() =>
+      _AdherentsManagementPageState();
+}
+
+class _AdherentsManagementPageState extends State<AdherentsManagementPage> {
+  List<Adherent> _adherents = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAdherents();
+  }
+
+  Future<void> _loadAdherents() async {
+    setState(() => _isLoading = true);
+    try {
+      final adherents = await AdherentService.getAdherents();
+      setState(() {
+        _adherents = adherents;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur chargement adhérents: $e')),
+      );
+    }
+  }
+
+  void _showEditAdherentDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            'Modifier un adhérent',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Sélectionnez un adhérent dans la liste ci-dessous',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                ),
+                const SizedBox(height: 16),
+                if (_isLoading)
+                  const Center(child: CircularProgressIndicator())
+                else if (_adherents.isEmpty)
+                  Text(
+                    'Aucun adhérent disponible',
+                    style: TextStyle(color: Colors.grey.shade600),
+                  )
+                else
+                  Container(
+                    height: 200,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade200),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: _adherents.length,
+                      itemBuilder: (context, index) {
+                        final adherent = _adherents[index];
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: const Color(
+                              0xff0D443E,
+                            ).withOpacity(0.1),
+                            child: Text(
+                              '${index + 1}',
+                              style: TextStyle(
+                                color: const Color(0xff0D443E),
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          title: Text(
+                            adherent.nomPrenom,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          subtitle: Text(
+                            adherent.email,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                          trailing: Icon(
+                            Icons.chevron_right,
+                            color: const Color(0xff0D443E),
+                          ),
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => EditProfilePage(
+                                      adherentId: adherent.id.toString(),
+                                      adherentData: adherent,
+                                    ),
+                              ),
+                            ).then((_) => _loadAdherents());
+                          },
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Annuler',
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Gestion des adhérents',
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xff2c221e),
+                ),
+              ),
+              Row(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      // TODO: Rediriger vers InscriptionAdherentPage
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Redirection vers inscription...'),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.add),
+                    label: const Text('Ajouter'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xff0D443E),
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      _showEditAdherentDialog(context);
+                    },
+                    icon: const Icon(Icons.edit),
+                    label: const Text('Modifier'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xffd57653),
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child:
+                _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _adherents.isEmpty
+                    ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.people_outline,
+                            size: 80,
+                            color: Colors.grey[300],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Aucun adhérent trouvé',
+                            style: GoogleFonts.poppins(color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                    )
+                    : Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey[200]!),
+                      ),
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(8),
+                        itemCount: _adherents.length,
+                        itemBuilder: (context, index) {
+                          final adherent = _adherents[index];
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: const Color(
+                                0xff0D443E,
+                              ).withOpacity(0.1),
+                              child: Text(
+                                '${index + 1}',
+                                style: TextStyle(
+                                  color: const Color(0xff0D443E),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            title: Text(
+                              adherent.nomPrenom,
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '${adherent.whatsapp} | ${adherent.email}',
+                              style: TextStyle(color: Colors.grey.shade600),
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.edit,
+                                    color: Color(0xffd57653),
+                                    size: 20,
+                                  ),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (context) => EditProfilePage(
+                                              adherentId:
+                                                  adherent.id.toString(),
+                                              adherentData: adherent,
+                                            ),
+                                      ),
+                                    ).then((_) => _loadAdherents());
                                   },
                                 ),
                                 IconButton(

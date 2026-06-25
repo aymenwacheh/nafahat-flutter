@@ -1,8 +1,13 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/src/features/landing/presentation/landing_page.dart';
-import '../../../src/features/landing/presentation/widgets/navbar.dart'; // Import exact selon ton arborescence
+import '../../../src/features/landing/presentation/widgets/navbar.dart';
 import 'profile_dashboard_page.dart';
+import 'inscription_adherent.dart';
+import '../../providers/language_provider.dart';
+import '../../services/adherent_service.dart';
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
@@ -12,43 +17,116 @@ class AuthPage extends StatefulWidget {
 }
 
 class _AuthPageState extends State<AuthPage> {
-  bool isArabic = false;
-  bool isSignUp = true;
+  bool _isLoading = false;
 
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _whatsappController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   final _formKey = GlobalKey<FormState>();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // --- NOUVELLE CHARTE GRAPHIQUE NAFAHAT ---
-  static const Color nafahatGreenDark = Color(
-    0xff092E2A,
-  ); // Vert très sombre pour le contraste
-  static const Color nafahatGreen = Color(0xff0D443E); // Vert émeraude du logo
-  static const Color nafahatGold = Color(0xffC4A46C); // Doré textuel du logo
+  // --- COULEURS ---
+  static const Color nafahatGreenDark = Color(0xff092E2A);
+  static const Color nafahatGreen = Color(0xff0D443E);
+  static const Color nafahatGold = Color(0xffC4A46C);
 
+  // Méthode toggle qui appelle le provider
   void toggleLanguage() {
-    setState(() {
-      isArabic = !isArabic;
-    });
+    final provider = Provider.of<LanguageProvider>(context, listen: false);
+    provider.toggleLanguage();
   }
 
-  void _submitForm() {
+  // ---- AUTHENTIFICATION ----
+  Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const ProfileDashboardPage()),
-      );
+      setState(() => _isLoading = true);
+
+      try {
+        final userData = await AdherentService.login(
+          _whatsappController.text.trim(),
+          _passwordController.text.trim(),
+        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                Provider.of<LanguageProvider>(context, listen: false).isArabic
+                    ? "✅ تم تسجيل الدخول بنجاح"
+                    : "✅ Connexion réussie !",
+              ),
+              backgroundColor: nafahatGreen,
+            ),
+          );
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ProfileDashboardPage(),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          final isArabic =
+              Provider.of<LanguageProvider>(context, listen: false).isArabic;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                isArabic
+                    ? "❌ ${e.toString().replaceFirst('Exception: ', '')}"
+                    : "❌ ${e.toString().replaceFirst('Exception: ', '')}",
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
     }
+  }
+
+  // ---- RÉINITIALISATION DU MOT DE PASSE ----
+  Future<void> _resetPassword() async {
+    final whatsapp = _whatsappController.text.trim();
+    if (whatsapp.isEmpty) {
+      final isArabic =
+          Provider.of<LanguageProvider>(context, listen: false).isArabic;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isArabic
+                ? "يرجى إدخال رقم WhatsApp pour réinitialiser"
+                : "Veuillez entrer votre numéro WhatsApp",
+          ),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // TODO: Implémenter la réinitialisation du mot de passe
+    // Pour l'instant, on affiche un message
+    final isArabic =
+        Provider.of<LanguageProvider>(context, listen: false).isArabic;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          isArabic
+              ? "📧 Un lien de réinitialisation sera envoyé sur votre WhatsApp"
+              : "📧 Un lien de réinitialisation vous sera envoyé sur WhatsApp",
+        ),
+        backgroundColor: nafahatGold,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    double screenWidth = MediaQuery.of(context).size.width;
-    bool isMobile = screenWidth < 950;
+    final isArabic = Provider.of<LanguageProvider>(context).isArabic;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 950;
 
     return Directionality(
       textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
@@ -61,7 +139,7 @@ class _AuthPageState extends State<AuthPage> {
             children: [
               Row(
                 children: [
-                  // 1. PANNEAU VISUEL RECORRIGÉ AUX COULEURS DE NAFAHAT
+                  // --- PANNEAU VISUEL ---
                   if (!isMobile)
                     Expanded(
                       flex: 5,
@@ -75,7 +153,6 @@ class _AuthPageState extends State<AuthPage> {
                         ),
                         child: Stack(
                           children: [
-                            // Motifs orientaux / cercles discrets rappelant l'univers de Nafahat
                             Positioned(
                               top: -80,
                               left: -80,
@@ -98,7 +175,6 @@ class _AuthPageState extends State<AuthPage> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // Petit badge élégant
                                   Container(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 12,
@@ -113,7 +189,7 @@ class _AuthPageState extends State<AuthPage> {
                                     ),
                                     child: Text(
                                       isArabic ? "مرحباً بكم" : "Bienvenue",
-                                      style: const TextStyle(
+                                      style: GoogleFonts.cairo(
                                         color: nafahatGold,
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
@@ -125,7 +201,7 @@ class _AuthPageState extends State<AuthPage> {
                                     isArabic
                                         ? "منصة نفحات"
                                         : "Plateforme Nafahat",
-                                    style: const TextStyle(
+                                    style: GoogleFonts.cairo(
                                       color: Colors.white,
                                       fontSize: 42,
                                       fontWeight: FontWeight.bold,
@@ -137,7 +213,7 @@ class _AuthPageState extends State<AuthPage> {
                                     isArabic
                                         ? "طريقك نحو التميز والتطوير المستمر من خلال دورات تدريبية متكاملة."
                                         : "Votre chemin vers l'excellence et le développement continu à travers des cycles de formation complets.",
-                                    style: TextStyle(
+                                    style: GoogleFonts.cairo(
                                       color: Colors.white.withOpacity(0.75),
                                       fontSize: 16,
                                       height: 1.6,
@@ -151,7 +227,7 @@ class _AuthPageState extends State<AuthPage> {
                       ),
                     ),
 
-                  // 2. ZONE FORMULAIRE CONTENU
+                  // --- ZONE FORMULAIRE DE CONNEXION ---
                   Expanded(
                     flex: 6,
                     child: Container(
@@ -188,92 +264,100 @@ class _AuthPageState extends State<AuthPage> {
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
+                                  // --- TITRE ---
                                   Text(
-                                    isSignUp
-                                        ? (isArabic
-                                            ? "إنشاء حساب جديد"
-                                            : "Rejoignez Nafahat")
-                                        : (isArabic
-                                            ? "تسجيل الدخول"
-                                            : "Bienvenue à nouveau"),
-                                    style: const TextStyle(
+                                    isArabic
+                                        ? "تسجيل الدخول"
+                                        : "Bienvenue à nouveau",
+                                    style: GoogleFonts.cairo(
                                       fontSize: 24,
                                       fontWeight: FontWeight.bold,
                                       color: AppColors.textDark,
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
-                                  const SizedBox(height: 25),
-                                  _buildAuthToggle(),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    isArabic
+                                        ? "أدخل بياناتك للدخول إلى حسابك"
+                                        : "Entrez vos identifiants pour accéder à votre compte",
+                                    style: GoogleFonts.cairo(
+                                      color: AppColors.textMuted,
+                                      fontSize: 14,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
                                   const SizedBox(height: 30),
-                                  if (isSignUp) ...[
-                                    _buildTextField(
-                                      controller: _nameController,
-                                      labelFr: "Nom et Prénom",
-                                      labelAr: "الاسم واللقب",
-                                      icon: Icons.person_outline_rounded,
-                                      validator:
-                                          (value) =>
-                                              value!.isEmpty
-                                                  ? (isArabic
-                                                      ? "يرجى إدخال الاسم"
-                                                      : "Veuillez entrer votre nom")
-                                                  : null,
-                                    ),
-                                    const SizedBox(height: 18),
-                                  ],
-                                  if (isSignUp) ...[
-                                    _buildTextField(
-                                      controller: _phoneController,
-                                      labelFr: "Numéro de téléphone",
-                                      labelAr: "رقم الهاتف",
-                                      icon: Icons.phone_android_rounded,
-                                      keyboardType: TextInputType.phone,
-                                      validator:
-                                          (value) =>
-                                              value!.isEmpty
-                                                  ? (isArabic
-                                                      ? "يرجى إدخال رقم الهاتف"
-                                                      : "Veuillez entrer votre numéro")
-                                                  : null,
-                                    ),
-                                    const SizedBox(height: 18),
-                                  ],
+
+                                  // --- CHAMP WHATSAPP (identifiant) ---
                                   _buildTextField(
-                                    controller: _emailController,
-                                    labelFr: "Adresse E-mail",
-                                    labelAr: "البريد الإلكتروني",
-                                    icon: Icons.alternate_email_rounded,
-                                    keyboardType: TextInputType.emailAddress,
-                                    validator:
-                                        (value) =>
-                                            !value!.contains('@')
-                                                ? (isArabic
-                                                    ? "بريد إلكتروني غير صالح"
-                                                    : "E-mail invalide")
-                                                : null,
+                                    controller: _whatsappController,
+                                    labelFr: "Numéro WhatsApp",
+                                    labelAr: "رقم الواتساب",
+                                    icon: Icons.phone_android_rounded,
+                                    isArabic: isArabic,
+                                    keyboardType: TextInputType.phone,
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return isArabic
+                                            ? "يرجى إدخال رقم الواتساب"
+                                            : "Veuillez entrer votre numéro WhatsApp";
+                                      }
+                                      return null;
+                                    },
                                   ),
                                   const SizedBox(height: 18),
+
+                                  // --- CHAMP MOT DE PASSE ---
                                   _buildTextField(
                                     controller: _passwordController,
                                     labelFr: "Mot de passe",
                                     labelAr: "كلمة المرور",
                                     icon: Icons.lock_outline_rounded,
+                                    isArabic: isArabic,
                                     isPassword: true,
-                                    validator:
-                                        (value) =>
-                                            value!.length < 6
-                                                ? (isArabic
-                                                    ? "كلمة المرور قصيرة جداً"
-                                                    : "6 caractères minimum")
-                                                : null,
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return isArabic
+                                            ? "يرجى إدخال كلمة المرور"
+                                            : "Veuillez entrer votre mot de passe";
+                                      }
+                                      if (value.length < 6) {
+                                        return isArabic
+                                            ? "كلمة المرور قصيرة جداً (6 أحرف على الأقل)"
+                                            : "6 caractères minimum";
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(height: 12),
+
+                                  // --- LIEN "MOT DE PASSE OUBLIÉ" ---
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: TextButton(
+                                      onPressed: _resetPassword,
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: nafahatGreen,
+                                      ),
+                                      child: Text(
+                                        isArabic
+                                            ? "نسيت كلمة المرور؟"
+                                            : "Mot de passe oublié ?",
+                                        style: GoogleFonts.cairo(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                   const SizedBox(height: 30),
+
+                                  // --- BOUTON SE CONNECTER ---
                                   ElevatedButton(
-                                    onPressed: _submitForm,
+                                    onPressed: _isLoading ? null : _login,
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor:
-                                          nafahatGreen, // Application du bouton vert Nafahat
+                                      backgroundColor: nafahatGreen,
                                       foregroundColor: Colors.white,
                                       padding: const EdgeInsets.symmetric(
                                         vertical: 16,
@@ -283,19 +367,69 @@ class _AuthPageState extends State<AuthPage> {
                                       ),
                                       elevation: 0,
                                     ),
-                                    child: Text(
-                                      isSignUp
-                                          ? (isArabic
-                                              ? "إنشاء حساب"
-                                              : "S'inscrire")
-                                          : (isArabic
-                                              ? "تسجيل الدخول"
-                                              : "Se connecter"),
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
+                                    child:
+                                        _isLoading
+                                            ? const SizedBox(
+                                              height: 20,
+                                              width: 20,
+                                              child: CircularProgressIndicator(
+                                                color: Colors.white,
+                                                strokeWidth: 2,
+                                              ),
+                                            )
+                                            : Text(
+                                              isArabic
+                                                  ? "تسجيل الدخول"
+                                                  : "Se connecter",
+                                              style: GoogleFonts.cairo(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                  ),
+                                  const SizedBox(height: 20),
+
+                                  // --- LIEN "CRÉER UN COMPTE" ---
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        isArabic
+                                            ? "ليس لديك حساب؟"
+                                            : "Vous n'avez pas de compte ?",
+                                        style: GoogleFonts.cairo(
+                                          color: AppColors.textMuted,
+                                          fontSize: 14,
+                                        ),
                                       ),
-                                    ),
+                                      TextButton(
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder:
+                                                  (context) =>
+                                                      const InscriptionAdherentPage(),
+                                            ),
+                                          );
+                                        },
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: nafahatGreen,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          isArabic
+                                              ? "إنشاء حساب"
+                                              : "Créer un compte",
+                                          style: GoogleFonts.cairo(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -307,6 +441,8 @@ class _AuthPageState extends State<AuthPage> {
                   ),
                 ],
               ),
+
+              // --- NAVBAR ---
               Positioned(
                 top: 0,
                 left: 0,
@@ -325,86 +461,13 @@ class _AuthPageState extends State<AuthPage> {
     );
   }
 
-  Widget _buildAuthToggle() {
-    return Container(
-      height: 48,
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: nafahatGreen.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => isSignUp = true),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                decoration: BoxDecoration(
-                  color: isSignUp ? Colors.white : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow:
-                      isSignUp
-                          ? [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.04),
-                              blurRadius: 4,
-                            ),
-                          ]
-                          : [],
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  isArabic ? "تسجيل جديد" : "Inscription",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: isSignUp ? nafahatGreenDark : AppColors.textMuted,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => isSignUp = false),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                decoration: BoxDecoration(
-                  color: !isSignUp ? Colors.white : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow:
-                      !isSignUp
-                          ? [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.04),
-                              blurRadius: 4,
-                            ),
-                          ]
-                          : [],
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  isArabic ? "دخول" : "Connexion",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: !isSignUp ? nafahatGreenDark : AppColors.textMuted,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
+  // --- WIDGET CHAMP DE TEXTE ---
   Widget _buildTextField({
     required TextEditingController controller,
     required String labelFr,
     required String labelAr,
     required IconData icon,
+    required bool isArabic,
     bool isPassword = false,
     TextInputType keyboardType = TextInputType.text,
     required String? Function(String?)? validator,
@@ -414,10 +477,10 @@ class _AuthPageState extends State<AuthPage> {
       obscureText: isPassword,
       keyboardType: keyboardType,
       validator: validator,
-      style: const TextStyle(color: AppColors.textDark, fontSize: 14),
+      style: GoogleFonts.cairo(color: AppColors.textDark, fontSize: 14),
       decoration: InputDecoration(
         labelText: isArabic ? labelAr : labelFr,
-        labelStyle: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+        labelStyle: GoogleFonts.cairo(color: AppColors.textMuted, fontSize: 13),
         prefixIcon: Icon(icon, color: nafahatGreen.withOpacity(0.6), size: 18),
         filled: true,
         fillColor: nafahatGreen.withOpacity(0.01),

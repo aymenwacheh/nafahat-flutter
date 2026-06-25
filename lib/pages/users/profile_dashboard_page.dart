@@ -1,11 +1,11 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:nafahat/pages/users/edit_profile_page.dart';
 import 'package:nafahat/src/features/landing/presentation/landing_page.dart';
 import 'package:nafahat/src/features/landing/presentation/widgets/navbar.dart'
     show Navbar;
-// Import de ta Navbar globale
-// Pour récupérer tes AppColors
+import 'package:nafahat/providers/language_provider.dart';
 
 class ProfileDashboardPage extends StatefulWidget {
   const ProfileDashboardPage({super.key});
@@ -15,15 +15,13 @@ class ProfileDashboardPage extends StatefulWidget {
 }
 
 class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
-  bool isArabic = false;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   // Simulation des données de l'utilisateur connecté
   final Map<String, dynamic> userData = {
     "name": "Amine Ben Ali",
     "email": "amine.ba@ertiqa.com",
-    "avatar":
-        "assets/images/user_avatar.png", // Optionnel (ou icône par défaut)
+    "avatar": "assets/images/user_avatar.png",
   };
 
   // Liste des cycles payés par cet utilisateur
@@ -31,27 +29,27 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
     {
       "titleFr": "Excellence Executive MBA",
       "titleAr": "الماجستير التنفيذي المتميز",
-      "progress": "0.65", // 65% de progression
+      "progress": "0.65",
       "nextLessonFr": "Module 4 : Leadership Stratégique",
       "nextLessonAr": "الوحدة ٤: القيادة الاستراتيجية",
     },
     {
       "titleFr": "Tech & Intelligence Artificielle",
       "titleAr": "التكنولوجيا والذكاء الاصطناعي",
-      "progress": "0.20", // 20% de progression
+      "progress": "0.20",
       "nextLessonFr": "Module 1 : Introduction au Machine Learning",
       "nextLessonAr": "الوحدة ١: مقدمة في تعلم الآلة",
     },
   ];
 
   void toggleLanguage() {
-    setState(() {
-      isArabic = !isArabic;
-    });
+    final provider = Provider.of<LanguageProvider>(context, listen: false);
+    provider.toggleLanguage();
   }
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = Provider.of<LanguageProvider>(context).isArabic;
     bool isMobile = MediaQuery.of(context).size.width < 850;
 
     return Directionality(
@@ -71,24 +69,24 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 120), // Espace sous la Navbar fixe
+                      const SizedBox(height: 120),
                       // 1. BLOC PROFIL / BIENVENUE
-                      _buildHeaderSection(isMobile),
+                      _buildHeaderSection(isArabic, isMobile),
                       const SizedBox(height: 40),
 
                       // 2. SECTION MES CYCLES PAYÉS
-                      _buildPaidCyclesSection(),
+                      _buildPaidCyclesSection(isArabic),
                       const SizedBox(height: 40),
 
                       // 3. SECTION AUTRES SERVICES
-                      _buildOtherServicesSection(),
+                      _buildOtherServicesSection(isArabic),
                       const SizedBox(height: 60),
                     ],
                   ),
                 ),
               ),
 
-              // Ta Navbar réutilisée à l'identique !
+              // Navbar réutilisée
               Positioned(
                 top: 0,
                 left: 0,
@@ -108,7 +106,7 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
   }
 
   // --- WIDGET : EN-TÊTE DU COMPTE ---
-  Widget _buildHeaderSection(bool isMobile) {
+  Widget _buildHeaderSection(bool isArabic, bool isMobile) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -163,7 +161,7 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => EditProfilePage(isArabic: isArabic),
+                  builder: (context) => const EditProfilePage(), // ✅ corrigé
                 ),
               );
             },
@@ -174,7 +172,7 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
   }
 
   // --- WIDGET : LES CYCLES ACHETÉS ---
-  Widget _buildPaidCyclesSection() {
+  Widget _buildPaidCyclesSection(bool isArabic) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -265,8 +263,8 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
     );
   }
 
-  // --- WIDGET : AUTRES SERVICES (Attestations, Factures, Support) ---
-  Widget _buildOtherServicesSection() {
+  // --- WIDGET : AUTRES SERVICES ---
+  Widget _buildOtherServicesSection(bool isArabic) {
     final List<Map<String, dynamic>> services = [
       {
         "icon": Icons.verified_rounded,
@@ -317,7 +315,7 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
               ),
               child: InkWell(
                 borderRadius: BorderRadius.circular(16),
-                onTap: () {}, // Action au clic sur le service
+                onTap: () {},
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Row(

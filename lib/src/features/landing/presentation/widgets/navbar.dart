@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'package:nafahat/pages/adminisration/add_training_card.dart';
 import 'package:nafahat/pages/adminisration/administration_page.dart';
 import 'package:nafahat/pages/adminisration/edit_formation.dart';
@@ -13,8 +14,10 @@ import 'package:nafahat/pages/adminisration/add_formateur.dart';
 import 'package:nafahat/pages/adminisration/add_video_fav_page.dart';
 import 'package:nafahat/pages/users/auth_page.dart';
 import 'package:nafahat/pages/users/profile_dashboard_page.dart';
+import 'package:nafahat/pages/users/edit_profile_page.dart';
 import 'package:nafahat/src/features/landing/presentation/landing_page.dart';
 import 'package:nafahat/services/training_service.dart';
+import 'package:nafahat/providers/language_provider.dart';
 
 class Navbar extends StatelessWidget {
   final bool isArabic;
@@ -22,10 +25,11 @@ class Navbar extends StatelessWidget {
   final VoidCallback onLanguageToggle;
   final GlobalKey<ScaffoldState> scaffoldKey;
 
-  final bool isUserLoggedIn = false;
+  final bool isUserLoggedIn = true; // ✅ Mis à true pour tester
   final bool isAdmin = true;
 
   static const Color nafahatGreen = Color(0xff0D443E);
+  static const Color nafahatGold = Color(0xffC4A46C);
 
   const Navbar({
     super.key,
@@ -58,7 +62,7 @@ class Navbar extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Logo
+              // ---- Logo ----
               Row(
                 children: [
                   Container(
@@ -75,7 +79,7 @@ class Navbar extends StatelessWidget {
                   const SizedBox(width: 14),
                   Text(
                     isArabic ? "نفحات" : "Nafahat",
-                    style: const TextStyle(
+                    style: GoogleFonts.cairo(
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
                       color: nafahatGreen,
@@ -85,6 +89,7 @@ class Navbar extends StatelessWidget {
                 ],
               ),
 
+              // ---- Menu Mobile (Drawer) ----
               if (isMobile)
                 IconButton(
                   icon: const Icon(
@@ -95,6 +100,7 @@ class Navbar extends StatelessWidget {
                   onPressed: () => scaffoldKey.currentState?.openDrawer(),
                 )
               else
+                // ---- Menu Desktop ----
                 Row(
                   children: [
                     _navLink(
@@ -123,7 +129,7 @@ class Navbar extends StatelessWidget {
 
                     const SizedBox(width: 15),
 
-                    // Bouton langue
+                    // ---- Bouton Langue ----
                     IconButton(
                       icon: const Icon(
                         Icons.language,
@@ -135,7 +141,7 @@ class Navbar extends StatelessWidget {
                     ),
                     const SizedBox(width: 15),
 
-                    // ✅ MENU ADMINISTRATION
+                    // ---- MENU ADMINISTRATION ----
                     if (isAdmin)
                       PopupMenuButton<String>(
                         child: Container(
@@ -157,7 +163,7 @@ class Navbar extends StatelessWidget {
                               const SizedBox(width: 6),
                               Text(
                                 isArabic ? "الإدارة" : "Admin",
-                                style: const TextStyle(
+                                style: GoogleFonts.cairo(
                                   color: nafahatGreen,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 13,
@@ -169,59 +175,73 @@ class Navbar extends StatelessWidget {
                         tooltip: isArabic ? "لوحة التحكم" : "Administration",
                         offset: const Offset(0, 50),
                         onSelected: (value) {
-                          if (value == 'go_to_admin') {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (context) => const AdministrationPage(),
-                              ),
-                            );
-                          } else if (value == 'add_training') {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (context) => const AddTrainingCardPage(),
-                              ),
-                            );
-                          } else if (value == 'edit_training') {
-                            _showEditTrainingDialog(context);
-                          } else if (value == 'add_categorie') {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const AddCategoriePage(),
-                              ),
-                            );
-                          } else if (value == 'edit_categorie') {
-                            _showEditCategorieDialog(context);
-                          } else if (value == 'add_formateur') {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const AddFormateurPage(),
-                              ),
-                            );
-                          } else if (value == 'add_video') {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const AddVideoFavPage(),
-                              ),
-                            );
-                          } else if (value == 'manage_trainings') {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Gestion des formations - Bientôt disponible',
+                          switch (value) {
+                            case 'go_to_admin':
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => const AdministrationPage(),
                                 ),
-                              ),
-                            );
+                              );
+                              break;
+                            case 'add_training':
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => const AddTrainingCardPage(),
+                                ),
+                              );
+                              break;
+                            case 'edit_training':
+                              _showEditTrainingDialog(context);
+                              break;
+                            case 'add_categorie':
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => const AddCategoriePage(),
+                                ),
+                              );
+                              break;
+                            case 'edit_categorie':
+                              _showEditCategorieDialog(context);
+                              break;
+                            case 'add_formateur':
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => const AddFormateurPage(),
+                                ),
+                              );
+                              break;
+                            case 'add_video':
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const AddVideoFavPage(),
+                                ),
+                              );
+                              break;
+                            case 'manage_trainings':
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    isArabic
+                                        ? 'إدارة التكوينات - قريباً'
+                                        : 'Gestion des formations - Bientôt disponible',
+                                  ),
+                                ),
+                              );
+                              break;
                           }
                         },
                         itemBuilder:
                             (context) => [
+                              // Dashboard
                               PopupMenuItem<String>(
                                 value: 'go_to_admin',
                                 child: Row(
@@ -248,7 +268,7 @@ class Navbar extends StatelessWidget {
                                             isArabic
                                                 ? "🖥️ لوحة الإدارة الكاملة"
                                                 : "🖥️ Administration complète",
-                                            style: const TextStyle(
+                                            style: GoogleFonts.cairo(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 14,
                                               color: nafahatGreen,
@@ -258,7 +278,7 @@ class Navbar extends StatelessWidget {
                                             isArabic
                                                 ? "Accéder à toutes les fonctionnalités"
                                                 : "Accéder à toutes les fonctionnalités",
-                                            style: TextStyle(
+                                            style: GoogleFonts.cairo(
                                               fontSize: 11,
                                               color: Colors.grey[600],
                                             ),
@@ -270,6 +290,8 @@ class Navbar extends StatelessWidget {
                                 ),
                               ),
                               const PopupMenuDivider(),
+
+                              // Formations
                               PopupMenuItem<String>(
                                 value: 'add_training',
                                 child: Row(
@@ -284,6 +306,7 @@ class Navbar extends StatelessWidget {
                                       isArabic
                                           ? "إضافة تكوين"
                                           : "Ajouter une formation",
+                                      style: GoogleFonts.cairo(),
                                     ),
                                   ],
                                 ),
@@ -302,10 +325,13 @@ class Navbar extends StatelessWidget {
                                       isArabic
                                           ? "تعديل تكوين"
                                           : "Modifier une formation",
+                                      style: GoogleFonts.cairo(),
                                     ),
                                   ],
                                 ),
                               ),
+
+                              // Catégories
                               PopupMenuItem<String>(
                                 value: 'add_categorie',
                                 child: Row(
@@ -320,6 +346,7 @@ class Navbar extends StatelessWidget {
                                       isArabic
                                           ? "إضافة تصنيف"
                                           : "Ajouter une catégorie",
+                                      style: GoogleFonts.cairo(),
                                     ),
                                   ],
                                 ),
@@ -338,10 +365,13 @@ class Navbar extends StatelessWidget {
                                       isArabic
                                           ? "تعديل تصنيف"
                                           : "Modifier une catégorie",
+                                      style: GoogleFonts.cairo(),
                                     ),
                                   ],
                                 ),
                               ),
+
+                              // Formateurs
                               PopupMenuItem<String>(
                                 value: 'add_formateur',
                                 child: Row(
@@ -356,10 +386,13 @@ class Navbar extends StatelessWidget {
                                       isArabic
                                           ? "إضافة مكون"
                                           : "Ajouter un formateur",
+                                      style: GoogleFonts.cairo(),
                                     ),
                                   ],
                                 ),
                               ),
+
+                              // Vidéos
                               PopupMenuItem<String>(
                                 value: 'add_video',
                                 child: Row(
@@ -374,11 +407,15 @@ class Navbar extends StatelessWidget {
                                       isArabic
                                           ? "إضافة فيديو"
                                           : "Ajouter une vidéo",
+                                      style: GoogleFonts.cairo(),
                                     ),
                                   ],
                                 ),
                               ),
+
                               const PopupMenuDivider(),
+
+                              // Gestion des formations
                               PopupMenuItem<String>(
                                 value: 'manage_trainings',
                                 child: Row(
@@ -393,6 +430,7 @@ class Navbar extends StatelessWidget {
                                       isArabic
                                           ? "إدارة التكوينات"
                                           : "Gérer les formations",
+                                      style: GoogleFonts.cairo(),
                                     ),
                                   ],
                                 ),
@@ -402,10 +440,28 @@ class Navbar extends StatelessWidget {
 
                     const SizedBox(width: 15),
 
-                    // Authentification
-                    isUserLoggedIn
-                        ? InkWell(
-                          onTap: () {
+                    // ---- MENU COMPTE ----
+                    PopupMenuButton<String>(
+                      child: CircleAvatar(
+                        backgroundColor: nafahatGreen.withOpacity(0.1),
+                        child: const Icon(
+                          Icons.person_outline_rounded,
+                          color: nafahatGreen,
+                        ),
+                      ),
+                      tooltip: isArabic ? "حسابي" : "Mon compte",
+                      offset: const Offset(0, 50),
+                      onSelected: (value) {
+                        switch (value) {
+                          case 'profile':
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const EditProfilePage(),
+                              ),
+                            );
+                            break;
+                          case 'dashboard':
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -413,44 +469,83 @@ class Navbar extends StatelessWidget {
                                     (context) => const ProfileDashboardPage(),
                               ),
                             );
-                          },
-                          child: CircleAvatar(
-                            backgroundColor: nafahatGreen.withOpacity(0.1),
-                            child: const Icon(
-                              Icons.person_outline_rounded,
-                              color: nafahatGreen,
-                            ),
-                          ),
-                        )
-                        : ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const AuthPage(),
+                            break;
+                          case 'logout':
+                            // TODO: Déconnexion
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  isArabic
+                                      ? "🔓 تم تسجيل الخروج بنجاح"
+                                      : "🔓 Déconnexion réussie",
+                                ),
+                                backgroundColor: nafahatGreen,
                               ),
                             );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: nafahatGreen,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 18,
-                              vertical: 14,
+                            break;
+                        }
+                      },
+                      itemBuilder:
+                          (context) => [
+                            // Mon profil
+                            PopupMenuItem<String>(
+                              value: 'profile',
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.person_outline,
+                                    color: nafahatGreen,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    isArabic ? "ملفي الشخصي" : "Mon profil",
+                                    style: GoogleFonts.cairo(),
+                                  ),
+                                ],
+                              ),
                             ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                            // Tableau de bord
+                            PopupMenuItem<String>(
+                              value: 'dashboard',
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.dashboard_outlined,
+                                    color: nafahatGreen,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    isArabic
+                                        ? "لوحة التحكم"
+                                        : "Tableau de bord",
+                                    style: GoogleFonts.cairo(),
+                                  ),
+                                ],
+                              ),
                             ),
-                            elevation: 0,
-                          ),
-                          child: Text(
-                            isArabic ? "حسابي" : "S'inscrire",
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
+                            const PopupMenuDivider(),
+                            // Déconnexion
+                            PopupMenuItem<String>(
+                              value: 'logout',
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.logout_rounded,
+                                    color: Colors.red,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    isArabic ? "تسجيل الخروج" : "Déconnexion",
+                                    style: GoogleFonts.cairo(color: Colors.red),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ),
+                          ],
+                    ),
                   ],
                 ),
             ],
@@ -459,6 +554,10 @@ class Navbar extends StatelessWidget {
       ),
     );
   }
+
+  // ============================================================
+  // WIDGETS PRIVÉS
+  // ============================================================
 
   Widget _navLink({
     required BuildContext context,
@@ -474,8 +573,8 @@ class Navbar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
           child: Text(
             title,
-            style: const TextStyle(
-              color: Color(0xff2c221e),
+            style: GoogleFonts.cairo(
+              color: const Color(0xff2c221e),
               fontWeight: FontWeight.w600,
               fontSize: 15,
             ),
@@ -485,6 +584,10 @@ class Navbar extends StatelessWidget {
     );
   }
 
+  // ============================================================
+  // DIALOGUES ADMINISTRATION
+  // ============================================================
+
   void _showEditTrainingDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -492,8 +595,8 @@ class Navbar extends StatelessWidget {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(
-            isArabic ? 'Modifier une formation' : 'Modifier une formation',
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            isArabic ? 'تعديل تكوين' : 'Modifier une formation',
+            style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
           ),
           content: SizedBox(
             width: double.maxFinite,
@@ -502,15 +605,17 @@ class Navbar extends StatelessWidget {
               children: [
                 Text(
                   isArabic
-                      ? 'Entrez l\'ID de la formation à modifier'
+                      ? 'أدخل معرف التكوين لتعديله'
                       : 'Entrez l\'ID de la formation à modifier',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                  style: GoogleFonts.cairo(
+                    color: Colors.grey.shade600,
+                    fontSize: 14,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   decoration: InputDecoration(
-                    hintText:
-                        isArabic ? 'ID de la formation' : 'ID de la formation',
+                    hintText: isArabic ? 'معرف التكوين' : 'ID de la formation',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -545,18 +650,18 @@ class Navbar extends StatelessWidget {
                     if (snapshot.hasError || !snapshot.hasData) {
                       return Text(
                         isArabic
-                            ? 'Erreur de chargement des formations'
+                            ? 'خطأ في تحميل التكوينات'
                             : 'Erreur de chargement des formations',
-                        style: TextStyle(color: Colors.red.shade400),
+                        style: GoogleFonts.cairo(color: Colors.red.shade400),
                       );
                     }
                     final formations = snapshot.data!;
                     if (formations.isEmpty) {
                       return Text(
                         isArabic
-                            ? 'Aucune formation disponible'
+                            ? 'لا توجد تكوينات متاحة'
                             : 'Aucune formation disponible',
-                        style: TextStyle(color: Colors.grey.shade600),
+                        style: GoogleFonts.cairo(color: Colors.grey.shade600),
                       );
                     }
                     return Container(
@@ -583,7 +688,7 @@ class Navbar extends StatelessWidget {
                               backgroundColor: nafahatGreen.withOpacity(0.1),
                               child: Text(
                                 '${index + 1}',
-                                style: TextStyle(
+                                style: GoogleFonts.cairo(
                                   color: nafahatGreen,
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
@@ -594,14 +699,14 @@ class Navbar extends StatelessWidget {
                               title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.poppins(
+                              style: GoogleFonts.cairo(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                             subtitle: Text(
                               'ID: ${formation['id']}',
-                              style: TextStyle(
+                              style: GoogleFonts.cairo(
                                 fontSize: 12,
                                 color: Colors.grey.shade500,
                               ),
@@ -636,7 +741,7 @@ class Navbar extends StatelessWidget {
               onPressed: () => Navigator.pop(context),
               child: Text(
                 isArabic ? 'إلغاء' : 'Annuler',
-                style: TextStyle(color: Colors.grey.shade600),
+                style: GoogleFonts.cairo(color: Colors.grey.shade600),
               ),
             ),
           ],
@@ -664,7 +769,6 @@ class Navbar extends StatelessWidget {
     }
   }
 
-  // ✅ Dialogue pour modifier une catégorie
   void _showEditCategorieDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -672,8 +776,8 @@ class Navbar extends StatelessWidget {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(
-            isArabic ? 'Modifier une catégorie' : 'Modifier une catégorie',
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            isArabic ? 'تعديل تصنيف' : 'Modifier une catégorie',
+            style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
           ),
           content: SizedBox(
             width: double.maxFinite,
@@ -682,9 +786,12 @@ class Navbar extends StatelessWidget {
               children: [
                 Text(
                   isArabic
-                      ? 'Sélectionnez une catégorie dans la liste ci-dessous'
+                      ? 'اختر تصنيفاً من القائمة أدناه'
                       : 'Sélectionnez une catégorie dans la liste ci-dessous',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                  style: GoogleFonts.cairo(
+                    color: Colors.grey.shade600,
+                    fontSize: 14,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 FutureBuilder<List<Map<String, dynamic>>>(
@@ -698,9 +805,9 @@ class Navbar extends StatelessWidget {
                         snapshot.data!.isEmpty) {
                       return Text(
                         isArabic
-                            ? 'Aucune catégorie disponible'
+                            ? 'لا توجد تصنيفات متاحة'
                             : 'Aucune catégorie disponible',
-                        style: TextStyle(color: Colors.grey.shade600),
+                        style: GoogleFonts.cairo(color: Colors.grey.shade600),
                       );
                     }
                     final categories = snapshot.data!;
@@ -726,7 +833,7 @@ class Navbar extends StatelessWidget {
                               backgroundColor: nafahatGreen.withOpacity(0.1),
                               child: Text(
                                 '${index + 1}',
-                                style: TextStyle(
+                                style: GoogleFonts.cairo(
                                   color: nafahatGreen,
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
@@ -737,7 +844,7 @@ class Navbar extends StatelessWidget {
                               name ?? 'Sans nom',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.poppins(
+                              style: GoogleFonts.cairo(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -750,7 +857,7 @@ class Navbar extends StatelessWidget {
                                   : (isArabic
                                       ? 'تصنيف رئيسي'
                                       : 'Catégorie principale'),
-                              style: TextStyle(
+                              style: GoogleFonts.cairo(
                                 fontSize: 12,
                                 color: Colors.grey.shade500,
                               ),
@@ -786,7 +893,7 @@ class Navbar extends StatelessWidget {
               onPressed: () => Navigator.pop(context),
               child: Text(
                 isArabic ? 'إلغاء' : 'Annuler',
-                style: TextStyle(color: Colors.grey.shade600),
+                style: GoogleFonts.cairo(color: Colors.grey.shade600),
               ),
             ),
           ],
