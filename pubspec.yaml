@@ -1,0 +1,50 @@
+name: nafahat
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations: 
+    sdk: flutter
+  google_fonts: ^8.0.2
+  animated_text_kit: ^4.2.2
+  cupertino_icons: ^1.0.8
+  shared_preferences: ^2.2.2
+  http: ^1.1.0
+  
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true  
+  fonts:
+    - family: Cairo
+      fonts:
+        - asset: assets/fonts/Cairo-Regular.ttf
+        - asset: assets/fonts/Cairo-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Cairo-Light.ttf
+          weight: 300
+  
+  assets:
+    - assets/images/slide1.png
+    - assets/images/slide2.jpg
+    - assets/images/slide3.jpg
+    - assets/images/logo.jpg  
+    - assets/images/card1.jpg  
+    - assets/images/card2.jpg  
+    - assets/images/card3.jpg  
+    - assets/images/card4.jpg  
+    - assets/images/card5.jpg  
+    - assets/images/card6.jpg 
+    - assets/images/card7.jfif  
+     
