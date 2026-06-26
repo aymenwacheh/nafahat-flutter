@@ -17,6 +17,7 @@ import 'package:nafahat/pages/adminisration/edit_categorie.dart';
 import 'package:nafahat/pages/users/edit_profile_page.dart';
 import 'package:nafahat/pages/users/profile_dashboard_page.dart';
 import 'package:nafahat/pages/users/auth_page.dart';
+import 'package:nafahat/pages/users/inscription_adherent.dart';
 
 // --- PALETTE DE COULEURS ---
 class AppColors {
@@ -227,7 +228,6 @@ class _MobileDrawer extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       children: [
-                        // --- Toutes les options d'administration ---
                         _drawerTile(
                           icon: Icons.dashboard_outlined,
                           title:
@@ -353,6 +353,24 @@ class _MobileDrawer extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       children: [
+                        // --- CRÉER UN COMPTE ---
+                        _drawerTile(
+                          icon: Icons.person_add,
+                          title: isArabic ? "إنشاء حساب" : "Créer un compte",
+                          padding: const EdgeInsets.only(left: 32),
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) =>
+                                        const InscriptionAdherentPage(),
+                              ),
+                            );
+                          },
+                        ),
+                        // --- MON PROFIL ---
                         _drawerTile(
                           icon: Icons.person_outline,
                           title: isArabic ? "ملفي الشخصي" : "Mon profil",
@@ -367,6 +385,22 @@ class _MobileDrawer extends StatelessWidget {
                             );
                           },
                         ),
+                        // --- connexion ---
+                        _drawerTile(
+                          icon: Icons.person_outline,
+                          title: isArabic ? " تسجيل دخول" : "Se connecter",
+                          padding: const EdgeInsets.only(left: 32),
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AuthPage(),
+                              ),
+                            );
+                          },
+                        ),
+                        // --- TABLEAU DE BORD ---
                         _drawerTile(
                           icon: Icons.dashboard_outlined,
                           title: isArabic ? "لوحة التحكم" : "Tableau de bord",
@@ -394,7 +428,6 @@ class _MobileDrawer extends StatelessWidget {
                         isArabic ? "🔧 معالجة النشاط" : "🔧 Traiter l'activité",
                     onTap: () {
                       Navigator.pop(context);
-                      // TODO: Ajouter la logique pour traiter l'activité
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
@@ -418,7 +451,6 @@ class _MobileDrawer extends StatelessWidget {
                       color: Colors.red,
                       onTap: () {
                         Navigator.pop(context);
-                        // TODO: Logique de déconnexion
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
@@ -592,7 +624,6 @@ class _MobileDrawer extends StatelessWidget {
 }
 
 // --- SECTION CYCLES DE FORMATION ---
-// (Le reste du code reste inchangé)
 class _TrainingCyclesSection extends StatefulWidget {
   final bool isArabic;
 
@@ -609,7 +640,6 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
   int _currentPage = 0;
   final int _itemsPerPage = 6;
 
-  // Filtres
   String _selectedCategorie = 'Toutes';
   String _selectedTypeFormation = 'Tous';
   String _selectedFormateur = 'Tous';

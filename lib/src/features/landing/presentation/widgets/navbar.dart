@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:nafahat/pages/users/inscription_adherent.dart';
 import 'package:provider/provider.dart';
 import 'package:nafahat/pages/adminisration/add_training_card.dart';
 import 'package:nafahat/pages/adminisration/administration_page.dart';
@@ -453,6 +454,24 @@ class Navbar extends StatelessWidget {
                       offset: const Offset(0, 50),
                       onSelected: (value) {
                         switch (value) {
+                          case 'create_account':
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) =>
+                                        const InscriptionAdherentPage(),
+                              ),
+                            );
+                            break;
+                          case 'authentification':
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AuthPage(),
+                              ),
+                            );
+                            break;
                           case 'profile':
                             Navigator.push(
                               context,
@@ -487,7 +506,45 @@ class Navbar extends StatelessWidget {
                       },
                       itemBuilder:
                           (context) => [
-                            // Mon profil
+                            // --- CRÉER UN COMPTE ---
+                            PopupMenuItem<String>(
+                              value: 'create_account',
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.person_add,
+                                    color: nafahatGreen,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    isArabic ? "إنشاء حساب" : "Créer un compte",
+                                    style: GoogleFonts.cairo(),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // --- AUTHENTIFICATION ---
+                            PopupMenuItem<String>(
+                              value: 'authentification',
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.login,
+                                    color: nafahatGreen,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    isArabic
+                                        ? "تسجيل الدخول"
+                                        : "Authentification",
+                                    style: GoogleFonts.cairo(),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // --- MON PROFIL ---
                             PopupMenuItem<String>(
                               value: 'profile',
                               child: Row(
@@ -505,7 +562,7 @@ class Navbar extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            // Tableau de bord
+                            // --- TABLEAU DE BORD ---
                             PopupMenuItem<String>(
                               value: 'dashboard',
                               child: Row(
@@ -526,7 +583,7 @@ class Navbar extends StatelessWidget {
                               ),
                             ),
                             const PopupMenuDivider(),
-                            // Déconnexion
+                            // --- DÉCONNEXION ---
                             PopupMenuItem<String>(
                               value: 'logout',
                               child: Row(
