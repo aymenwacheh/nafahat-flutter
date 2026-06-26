@@ -11,6 +11,12 @@ import 'package:nafahat/pages/adminisration/add_training_card.dart';
 import 'package:nafahat/pages/adminisration/add_video_fav_page.dart';
 import 'package:nafahat/pages/adminisration/add_categorie.dart';
 import 'package:nafahat/pages/adminisration/add_formateur.dart';
+import 'package:nafahat/pages/adminisration/administration_page.dart';
+import 'package:nafahat/pages/adminisration/edit_formation.dart';
+import 'package:nafahat/pages/adminisration/edit_categorie.dart';
+import 'package:nafahat/pages/users/edit_profile_page.dart';
+import 'package:nafahat/pages/users/profile_dashboard_page.dart';
+import 'package:nafahat/pages/users/auth_page.dart';
 
 // --- PALETTE DE COULEURS ---
 class AppColors {
@@ -108,6 +114,7 @@ class _MobileDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isAdmin = true;
+    final bool isUserLoggedIn = true;
 
     return Drawer(
       backgroundColor: Colors.white.withOpacity(0.92),
@@ -115,30 +122,67 @@ class _MobileDrawer extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Column(
           children: [
-            DrawerHeader(
+            // --- En-tête du Drawer ---
+            Container(
+              height: 120,
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: AppColors.primary.withOpacity(0.1)),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [AppColors.primary, AppColors.primaryDark],
                 ),
               ),
-              child: Center(
-                child: Text(
-                  isArabic ? "نفحات" : "Nafahat",
-                  style: GoogleFonts.cairo(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
+              child: Row(
+                children: [
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      image: const DecorationImage(
+                        image: AssetImage('assets/images/logo.jpg'),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isArabic ? "نفحات" : "Nafahat",
+                        style: GoogleFonts.cairo(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        isArabic
+                            ? "منصة التدريب والتطوير"
+                            : "Plateforme de formation",
+                        style: GoogleFonts.cairo(
+                          fontSize: 12,
+                          color: Colors.white.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
+
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
+                  horizontal: 16,
                   vertical: 10,
                 ),
                 children: [
+                  // --- Liens principaux ---
                   _drawerTile(
                     icon: Icons.home_outlined,
                     title: isArabic ? "الرئيسية" : "Accueil",
@@ -159,79 +203,238 @@ class _MobileDrawer extends StatelessWidget {
                     title: isArabic ? "عن المنصة" : "À propos",
                     onTap: () => Navigator.pop(context),
                   ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    child: Divider(),
-                  ),
-                  if (isAdmin) ...[
-                    Padding(
-                      padding: const EdgeInsets.only(left: 8, bottom: 8),
-                      child: Text(
+
+                  const Divider(height: 30, thickness: 1),
+
+                  // --- ADMINISTRATION (avec sous-menus) ---
+                  if (isAdmin)
+                    ExpansionTile(
+                      leading: Icon(
+                        Icons.admin_panel_settings,
+                        color: AppColors.primary,
+                      ),
+                      title: Text(
                         isArabic ? "⚙️ الإدارة" : "⚙️ Administration",
                         style: GoogleFonts.cairo(
-                          fontSize: 14,
                           fontWeight: FontWeight.bold,
+                          fontSize: 15,
                           color: AppColors.primary,
                         ),
                       ),
+                      iconColor: AppColors.primary,
+                      collapsedIconColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      children: [
+                        // --- Toutes les options d'administration ---
+                        _drawerTile(
+                          icon: Icons.dashboard_outlined,
+                          title:
+                              isArabic
+                                  ? "🖥️ لوحة الإدارة الكاملة"
+                                  : "🖥️ Administration complète",
+                          padding: const EdgeInsets.only(left: 32),
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => const AdministrationPage(),
+                              ),
+                            );
+                          },
+                        ),
+                        _drawerTile(
+                          icon: Icons.add_circle_outline,
+                          title: isArabic ? "إضافة تكوين" : "Ajouter formation",
+                          padding: const EdgeInsets.only(left: 32),
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => const AddTrainingCardPage(),
+                              ),
+                            );
+                          },
+                        ),
+                        _drawerTile(
+                          icon: Icons.edit,
+                          title:
+                              isArabic
+                                  ? "تعديل تكوين"
+                                  : "Modifier une formation",
+                          padding: const EdgeInsets.only(left: 32),
+                          onTap: () {
+                            Navigator.pop(context);
+                            _showEditTrainingDialog(context);
+                          },
+                        ),
+                        _drawerTile(
+                          icon: Icons.category_outlined,
+                          title: isArabic ? "إضافة تصنيف" : "Ajouter catégorie",
+                          padding: const EdgeInsets.only(left: 32),
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AddCategoriePage(),
+                              ),
+                            );
+                          },
+                        ),
+                        _drawerTile(
+                          icon: Icons.edit,
+                          title:
+                              isArabic
+                                  ? "تعديل تصنيف"
+                                  : "Modifier une catégorie",
+                          padding: const EdgeInsets.only(left: 32),
+                          onTap: () {
+                            Navigator.pop(context);
+                            _showEditCategorieDialog(context);
+                          },
+                        ),
+                        _drawerTile(
+                          icon: Icons.person_add,
+                          title: isArabic ? "إضافة مكون" : "Ajouter formateur",
+                          padding: const EdgeInsets.only(left: 32),
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AddFormateurPage(),
+                              ),
+                            );
+                          },
+                        ),
+                        _drawerTile(
+                          icon: Icons.video_library_outlined,
+                          title: isArabic ? "إضافة فيديو" : "Ajouter vidéo",
+                          padding: const EdgeInsets.only(left: 32),
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AddVideoFavPage(),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
                     ),
+
+                  const Divider(height: 30, thickness: 1),
+
+                  // --- PROFIL (avec sous-menus) ---
+                  if (isUserLoggedIn)
+                    ExpansionTile(
+                      leading: Icon(
+                        Icons.person_outline,
+                        color: AppColors.primary,
+                      ),
+                      title: Text(
+                        isArabic ? "👤 حسابي" : "👤 Mon compte",
+                        style: GoogleFonts.cairo(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      iconColor: AppColors.primary,
+                      collapsedIconColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      children: [
+                        _drawerTile(
+                          icon: Icons.person_outline,
+                          title: isArabic ? "ملفي الشخصي" : "Mon profil",
+                          padding: const EdgeInsets.only(left: 32),
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const EditProfilePage(),
+                              ),
+                            );
+                          },
+                        ),
+                        _drawerTile(
+                          icon: Icons.dashboard_outlined,
+                          title: isArabic ? "لوحة التحكم" : "Tableau de bord",
+                          padding: const EdgeInsets.only(left: 32),
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => const ProfileDashboardPage(),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+
+                  const Divider(height: 30, thickness: 1),
+
+                  // --- TRAITER L'ACTIVITÉ ---
+                  _drawerTile(
+                    icon: Icons.build_circle_outlined,
+                    title:
+                        isArabic ? "🔧 معالجة النشاط" : "🔧 Traiter l'activité",
+                    onTap: () {
+                      Navigator.pop(context);
+                      // TODO: Ajouter la logique pour traiter l'activité
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            isArabic
+                                ? 'معالجة النشاط - قريباً'
+                                : 'Traitement de l\'activité - Bientôt disponible',
+                          ),
+                          backgroundColor: AppColors.primary,
+                        ),
+                      );
+                    },
+                  ),
+
+                  const Divider(height: 30, thickness: 1),
+
+                  // --- DÉCONNEXION ---
+                  if (isUserLoggedIn)
                     _drawerTile(
-                      icon: Icons.add_circle_outline,
-                      title: isArabic ? "إضافة تكوين" : "Ajouter formation",
+                      icon: Icons.logout_rounded,
+                      title: isArabic ? "تسجيل الخروج" : "Déconnexion",
+                      color: Colors.red,
                       onTap: () {
                         Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const AddTrainingCardPage(),
+                        // TODO: Logique de déconnexion
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              isArabic
+                                  ? "🔓 تم تسجيل الخروج بنجاح"
+                                  : "🔓 Déconnexion réussie",
+                            ),
+                            backgroundColor: AppColors.primary,
                           ),
                         );
                       },
                     ),
-                    _drawerTile(
-                      icon: Icons.category,
-                      title: isArabic ? "إضافة تصنيف" : "Ajouter catégorie",
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const AddCategoriePage(),
-                          ),
-                        );
-                      },
-                    ),
-                    _drawerTile(
-                      icon: Icons.person_add,
-                      title: isArabic ? "إضافة مكون" : "Ajouter formateur",
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const AddFormateurPage(),
-                          ),
-                        );
-                      },
-                    ),
-                    _drawerTile(
-                      icon: Icons.video_library,
-                      title: isArabic ? "إضافة فيديو" : "Ajouter vidéo",
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const AddVideoFavPage(),
-                          ),
-                        );
-                      },
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 10),
-                      child: Divider(),
-                    ),
-                  ],
+
+                  const SizedBox(height: 20),
+
+                  // --- Bouton Langue ---
                   ListTile(
                     leading: const Icon(
                       Icons.language,
@@ -242,6 +445,7 @@ class _MobileDrawer extends StatelessWidget {
                       style: GoogleFonts.cairo(
                         fontWeight: FontWeight.bold,
                         color: AppColors.textDark,
+                        fontSize: 15,
                       ),
                     ),
                     onTap: () {
@@ -249,7 +453,7 @@ class _MobileDrawer extends StatelessWidget {
                       onLanguageToggle();
                     },
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     tileColor: AppColors.primary.withOpacity(0.06),
                   ),
@@ -266,26 +470,129 @@ class _MobileDrawer extends StatelessWidget {
     required IconData icon,
     required String title,
     required VoidCallback onTap,
+    Color color = AppColors.textDark,
+    EdgeInsets padding = const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
   }) {
     return ListTile(
-      leading: Icon(icon, color: AppColors.textMuted),
+      leading: Icon(
+        icon,
+        color: color == AppColors.textDark ? AppColors.textMuted : color,
+      ),
       title: Text(
         title,
         style: GoogleFonts.cairo(
-          fontSize: 16,
+          fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: AppColors.textDark,
+          color: color,
         ),
       ),
       onTap: onTap,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       tileColor: Colors.transparent,
       hoverColor: AppColors.primary.withOpacity(0.05),
+      contentPadding: padding,
+      visualDensity: const VisualDensity(horizontal: 0, vertical: -2),
+    );
+  }
+
+  // --- Dialogues d'édition ---
+  void _showEditTrainingDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            isArabic ? 'تعديل تكوين' : 'Modifier une formation',
+            style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  isArabic
+                      ? 'أدخل معرف التكوين لتعديله'
+                      : 'Entrez l\'ID de la formation à modifier',
+                  style: GoogleFonts.cairo(
+                    color: Colors.grey.shade600,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  decoration: InputDecoration(
+                    hintText: isArabic ? 'معرف التكوين' : 'ID de la formation',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    prefixIcon: const Icon(Icons.search),
+                  ),
+                  onSubmitted: (value) {
+                    if (value.trim().isNotEmpty) {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) =>
+                                  EditFormationPage(formationId: value.trim()),
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                isArabic ? 'إلغاء' : 'Annuler',
+                style: GoogleFonts.cairo(color: Colors.grey.shade600),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showEditCategorieDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            isArabic ? 'تعديل تصنيف' : 'Modifier une catégorie',
+            style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            isArabic
+                ? 'Entrez l\'ID de la catégorie à modifier'
+                : 'Entrez l\'ID de la catégorie à modifier',
+            style: GoogleFonts.cairo(color: Colors.grey.shade600, fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                isArabic ? 'إلغاء' : 'Annuler',
+                style: GoogleFonts.cairo(color: Colors.grey.shade600),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
 // --- SECTION CYCLES DE FORMATION ---
+// (Le reste du code reste inchangé)
 class _TrainingCyclesSection extends StatefulWidget {
   final bool isArabic;
 
@@ -974,7 +1281,6 @@ class _TrainingCardState extends State<_TrainingCard> {
           imageUrl = 'https://picsum.photos/seed/${widget.training.id}/800/450';
         }
 
-        // ✅ Utilisation de typeDuree pour la durée
         final durationDisplay =
             widget.training.typeDuree.isNotEmpty
                 ? widget.training.typeDuree
@@ -1078,7 +1384,6 @@ class _TrainingCardState extends State<_TrainingCard> {
                                 ),
                               ),
                             ),
-                          // Badge de type
                           Positioned(
                             bottom: 8,
                             left: 8,
