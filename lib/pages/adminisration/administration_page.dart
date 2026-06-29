@@ -8,6 +8,7 @@ import 'package:nafahat/pages/adminisration/add_formateur.dart';
 import 'package:nafahat/pages/adminisration/add_video_fav_page.dart';
 import 'package:nafahat/pages/adminisration/edit_formation.dart';
 import 'package:nafahat/pages/users/edit_profile_page.dart';
+import 'package:nafahat/pages/adminisration/add_duree.dart';
 import 'package:nafahat/services/training_service.dart';
 import 'package:nafahat/services/video_service.dart';
 import 'package:nafahat/services/adherent_service.dart';
@@ -33,7 +34,8 @@ class _AdministrationPageState extends State<AdministrationPage> {
     const CategoriesManagementPage(),
     const FormateursManagementPage(),
     const VideosManagementPage(),
-    const AdherentsManagementPage(), // ✅ Nouvelle page Adhérents
+    const AdherentsManagementPage(),
+    const DureesManagementPage(),
   ];
 
   final List<String> _titles = [
@@ -43,6 +45,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     'Formateurs',
     'Vidéos',
     'Adhérents',
+    'Durées',
   ];
 
   final List<Map<String, dynamic>> _menuItems = [
@@ -51,12 +54,8 @@ class _AdministrationPageState extends State<AdministrationPage> {
     {'icon': Icons.category_outlined, 'title': 'Catégories', 'page': 2},
     {'icon': Icons.person_outline, 'title': 'Formateurs', 'page': 3},
     {'icon': Icons.video_library_outlined, 'title': 'Vidéos', 'page': 4},
-    {
-      'icon': Icons.people_outline,
-      'title': 'Adhérents',
-      'page': 5,
-      'badge': true,
-    },
+    {'icon': Icons.people_outline, 'title': 'Adhérents', 'page': 5},
+    {'icon': Icons.access_time, 'title': 'Durées', 'page': 6},
   ];
 
   @override
@@ -560,11 +559,13 @@ class DashboardPage extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Gérez vos formations, catégories, formateurs, vidéos et adhérents',
+            'Gérez vos formations, catégories, formateurs, vidéos, adhérents et durées',
             style: GoogleFonts.poppins(color: const Color(0xff7c6e68)),
           ),
           const SizedBox(height: 32),
-          Row(
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
             children: [
               _buildStatCard(
                 icon: Icons.school,
@@ -596,6 +597,12 @@ class DashboardPage extends StatelessWidget {
                 count: '0',
                 color: Colors.green[700]!,
               ),
+              _buildStatCard(
+                icon: Icons.access_time,
+                title: 'Durées',
+                count: '4',
+                color: Colors.orange[700]!,
+              ),
             ],
           ),
         ],
@@ -609,9 +616,9 @@ class DashboardPage extends StatelessWidget {
     required String count,
     required Color color,
   }) {
-    return Expanded(
+    return SizedBox(
+      width: 180,
       child: Container(
-        margin: const EdgeInsets.only(right: 16),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -830,6 +837,23 @@ class _FormationsManagementPageState extends State<FormationsManagementPage> {
               ),
               Row(
                 children: [
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const DureesManagementPage(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.access_time),
+                    label: const Text('Durées'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xffd57653),
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   ElevatedButton.icon(
                     onPressed: () {
                       Navigator.push(
@@ -1273,7 +1297,7 @@ class _FormateursManagementPageState extends State<FormateursManagementPage> {
                               ),
                             ),
                             subtitle: Text(
-                              'ID: ${f['id']}',
+                              'Email: ${f['email'] ?? 'N/A'} | Tél: ${f['telephone'] ?? 'N/A'}',
                               style: TextStyle(color: Colors.grey.shade600),
                             ),
                             trailing: Row(
@@ -1478,7 +1502,7 @@ class _VideosManagementPageState extends State<VideosManagementPage> {
 }
 
 // ============================================================
-// ADHERENTS MANAGEMENT PAGE (NOUVEAU)
+// ADHERENTS MANAGEMENT PAGE
 // ============================================================
 class AdherentsManagementPage extends StatefulWidget {
   const AdherentsManagementPage({super.key});
@@ -1761,6 +1785,255 @@ class _AdherentsManagementPageState extends State<AdherentsManagementPage> {
                                   ),
                                   onPressed: () {
                                     // TODO: Implémenter suppression
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================
+// DUREES MANAGEMENT PAGE
+// ============================================================
+class DureesManagementPage extends StatefulWidget {
+  const DureesManagementPage({super.key});
+
+  @override
+  State<DureesManagementPage> createState() => _DureesManagementPageState();
+}
+
+class _DureesManagementPageState extends State<DureesManagementPage> {
+  List<Map<String, dynamic>> _durees = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDurees();
+  }
+
+  Future<void> _loadDurees() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await http.get(
+        Uri.parse('${TrainingService.apiBaseUrl}/duree'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          _durees = List<Map<String, dynamic>>.from(data['data']);
+          _isLoading = false;
+        });
+      } else {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Erreur lors du chargement des durées'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erreur chargement durées: $e')));
+    }
+  }
+
+  Future<void> _deleteDuree(String id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Confirmer la suppression'),
+            content: const Text(
+              'Êtes-vous sûr de vouloir supprimer cette durée ?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Annuler'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Supprimer'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirm == true) {
+      setState(() => _isLoading = true);
+      try {
+        final response = await http.delete(
+          Uri.parse('${TrainingService.apiBaseUrl}/duree/$id'),
+          headers: {'Content-Type': 'application/json'},
+        );
+
+        final data = json.decode(response.body);
+
+        if (response.statusCode == 200 && data['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Durée supprimée avec succès'),
+              backgroundColor: Color(0xff0D443E),
+            ),
+          );
+          _loadDurees();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(data['message'] ?? 'Erreur lors de la suppression'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          setState(() => _isLoading = false);
+        }
+      } catch (e) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Gestion des durées',
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xff2c221e),
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AddDureePage(),
+                    ),
+                  ).then((_) => _loadDurees());
+                },
+                icon: const Icon(Icons.add),
+                label: const Text('Ajouter'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xff0D443E),
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child:
+                _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _durees.isEmpty
+                    ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.access_time,
+                            size: 80,
+                            color: Colors.grey[300],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Aucune durée trouvée',
+                            style: GoogleFonts.poppins(color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                    )
+                    : Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey[200]!),
+                      ),
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(8),
+                        itemCount: _durees.length,
+                        itemBuilder: (context, index) {
+                          final d = _durees[index];
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: const Color(
+                                0xff0D443E,
+                              ).withOpacity(0.1),
+                              child: Text(
+                                '${index + 1}',
+                                style: TextStyle(
+                                  color: const Color(0xff0D443E),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            title: Text(
+                              d['type_duree'] ?? 'Sans nom',
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            subtitle: Text(
+                              'Ch1: ${d['ch1'] ?? '-'} | Ch2: ${d['ch2'] ?? '-'} | Ch3: ${d['ch3'] ?? '-'} | Ch4: ${d['ch4'] ?? '-'} | Ch5: ${d['ch5'] ?? '-'} | Ch6: ${d['ch6'] ?? '-'}',
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 12,
+                              ),
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.edit,
+                                    color: Color(0xffd57653),
+                                    size: 20,
+                                  ),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (context) =>
+                                                AddDureePage(dureeToEdit: d),
+                                      ),
+                                    ).then((_) => _loadDurees());
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    color: Colors.red,
+                                    size: 20,
+                                  ),
+                                  onPressed: () {
+                                    _deleteDuree(d['id'].toString());
                                   },
                                 ),
                               ],

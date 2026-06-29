@@ -236,7 +236,7 @@ class TrainingService {
   static Future<List<Map<String, dynamic>>> getDurees() async {
     try {
       final response = await http.get(
-        Uri.parse('$apiBaseUrl/durees'),
+        Uri.parse('$apiBaseUrl/duree'),
         headers: {'Content-Type': 'application/json'},
       );
       if (response.statusCode == 200) {

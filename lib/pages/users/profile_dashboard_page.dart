@@ -2,9 +2,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:nafahat/pages/users/edit_profile_page.dart';
-import 'package:nafahat/src/features/landing/presentation/landing_page.dart';
-import 'package:nafahat/src/features/landing/presentation/widgets/navbar.dart'
-    show Navbar;
+import '/landing/landing_page.dart';
+import '/landing/widgets/navbar.dart' show Navbar;
 import 'package:nafahat/providers/language_provider.dart';
 
 class ProfileDashboardPage extends StatefulWidget {

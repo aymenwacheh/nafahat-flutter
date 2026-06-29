@@ -5,8 +5,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:nafahat/models/training_model.dart';
 import 'package:nafahat/services/training_service.dart';
-import '../../src/features/landing/presentation/landing_page.dart'
-    show AppColors;
+import '/landing/landing_page.dart' show AppColors;
 
 class AddTrainingCardPage extends StatefulWidget {
   const AddTrainingCardPage({super.key});
