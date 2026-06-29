@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/pages/formation/formation_detail_page.dart';
-import '/landing/widgets/video_fav_section.dart';
+import 'widgets/video_fav_section.dart';
 import 'widgets/hero_section.dart';
 import 'widgets/navbar.dart';
 import 'package:nafahat/models/training_model.dart';
@@ -379,19 +379,15 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
 
     if (isMobile) {
       cardWidth = screenWidth;
-      cardHeight = 360.0; // Réduit de 380 à 360
+      cardHeight = 360.0;
       rowsPerPage = 100;
     } else if (isTablet) {
       cardWidth = (screenWidth - 80) / 2 - 20;
-      cardHeight =
-          screenHeight * 0.45 > 400 ? 400 : screenHeight * 0.45; // Réduit
+      cardHeight = screenHeight * 0.45 > 400 ? 400 : screenHeight * 0.45;
       rowsPerPage = 2;
     } else {
       cardWidth = (screenWidth - 140) / 3 - 20;
-      cardHeight =
-          screenHeight * 0.45 > 420
-              ? 420
-              : screenHeight * 0.45; // Réduit de 460 à 420
+      cardHeight = screenHeight * 0.45 > 420 ? 420 : screenHeight * 0.45;
       rowsPerPage = 2;
     }
 
@@ -746,13 +742,22 @@ class _TrainingCard extends StatefulWidget {
 class _TrainingCardState extends State<_TrainingCard> {
   bool isHovered = false;
 
-  String _extractFileName(String path) {
-    if (path.contains('\\')) {
-      return path.split('\\').last;
-    } else if (path.contains('/')) {
-      return path.split('/').last;
+  String _getValidImageUrl(String imageUrl) {
+    // Nettoyer l'URL de l'image
+    if (imageUrl.contains('C:\\') || imageUrl.contains('\\')) {
+      String fileName = imageUrl.split('\\').last;
+      return 'assets/images/$fileName';
     }
-    return path;
+    if (imageUrl.contains('/') && imageUrl.startsWith('assets/')) {
+      return imageUrl;
+    }
+    if (imageUrl.isEmpty ||
+        imageUrl.startsWith('file://') ||
+        imageUrl.startsWith('C:') ||
+        (!imageUrl.startsWith('assets/') && !imageUrl.startsWith('http'))) {
+      return 'https://picsum.photos/seed/${widget.training.id}/800/450';
+    }
+    return imageUrl;
   }
 
   @override
@@ -767,9 +772,9 @@ class _TrainingCardState extends State<_TrainingCard> {
         final cardHeight =
             constraints.maxHeight > 0
                 ? constraints.maxHeight
-                : (isMobile ? 360.0 : 420.0); // Réduit
+                : (isMobile ? 360.0 : 420.0);
 
-        final imageHeight = cardHeight * 0.52; // Réduit de 0.55 à 0.52
+        final imageHeight = cardHeight * 0.52;
         final contentHeight = cardHeight * 0.48;
 
         final title =
@@ -779,16 +784,7 @@ class _TrainingCardState extends State<_TrainingCard> {
                 ? widget.training.descriptionAr
                 : widget.training.descriptionFr;
 
-        String imageUrl = widget.training.imageUrl;
-        if (imageUrl.contains('C:\\') || imageUrl.contains('assets/')) {
-          String fileName = _extractFileName(imageUrl);
-          imageUrl = 'assets/images/$fileName';
-        }
-        if (imageUrl.isEmpty ||
-            imageUrl.startsWith('file://') ||
-            (!imageUrl.startsWith('assets/') && !imageUrl.startsWith('http'))) {
-          imageUrl = 'https://picsum.photos/seed/${widget.training.id}/800/450';
-        }
+        final imageUrl = _getValidImageUrl(widget.training.imageUrl);
 
         final durationDisplay =
             widget.training.typeDuree.isNotEmpty
@@ -920,13 +916,13 @@ class _TrainingCardState extends State<_TrainingCard> {
                     ),
                   ),
 
-                  // Contenu - Padding réduit
+                  // Contenu
                   SizedBox(
                     height: contentHeight,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 10, // Réduit de 12 à 10
-                        vertical: 6, // Réduit de 8 à 6
+                        horizontal: 10,
+                        vertical: 6,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -939,7 +935,7 @@ class _TrainingCardState extends State<_TrainingCard> {
                               Text(
                                 title,
                                 style: GoogleFonts.cairo(
-                                  fontSize: isMobile ? 12 : 14, // Réduit
+                                  fontSize: isMobile ? 12 : 14,
                                   fontWeight: FontWeight.w700,
                                   color: AppColors.textDark,
                                   height: 1.1,
@@ -947,22 +943,22 @@ class _TrainingCardState extends State<_TrainingCard> {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 1), // Réduit de 2 à 1
+                              const SizedBox(height: 1),
                               Text(
                                 description,
                                 style: GoogleFonts.cairo(
-                                  fontSize: isMobile ? 8 : 10, // Réduit
+                                  fontSize: isMobile ? 8 : 10,
                                   fontWeight: FontWeight.w400,
                                   color: AppColors.textMuted,
                                   height: 1.2,
                                 ),
-                                maxLines: 1, // Réduit de 2 à 1
+                                maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
 
-                          // Informations - Espacement réduit
+                          // Informations
                           Column(
                             children: [
                               _buildInfoRow(
@@ -971,14 +967,14 @@ class _TrainingCardState extends State<_TrainingCard> {
                                 durationDisplay,
                                 isMobile,
                               ),
-                              const SizedBox(height: 1), // Réduit de 2 à 1
+                              const SizedBox(height: 1),
                               _buildInfoRow(
                                 Icons.calendar_today_rounded,
                                 widget.isArabic ? 'الفترة : ' : 'Période : ',
                                 periodDisplay,
                                 isMobile,
                               ),
-                              const SizedBox(height: 1), // Réduit de 2 à 1
+                              const SizedBox(height: 1),
                               _buildInfoRow(
                                 Icons.people_outline_rounded,
                                 widget.isArabic ? 'الجمهور : ' : 'Cible : ',
@@ -988,7 +984,7 @@ class _TrainingCardState extends State<_TrainingCard> {
                             ],
                           ),
 
-                          // Bas de carte - Espacement réduit
+                          // Bas de carte
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -999,11 +995,11 @@ class _TrainingCardState extends State<_TrainingCard> {
                                     size: isMobile ? 10 : 12,
                                     color: AppColors.primary,
                                   ),
-                                  const SizedBox(width: 3), // Réduit de 4 à 3
+                                  const SizedBox(width: 3),
                                   Text(
                                     durationDisplay,
                                     style: GoogleFonts.cairo(
-                                      fontSize: isMobile ? 8 : 10, // Réduit
+                                      fontSize: isMobile ? 8 : 10,
                                       fontWeight: FontWeight.w600,
                                       color: AppColors.primary,
                                     ),
@@ -1038,9 +1034,7 @@ class _TrainingCardState extends State<_TrainingCard> {
                                 ],
                               ),
                               Container(
-                                padding: const EdgeInsets.all(
-                                  2,
-                                ), // Réduit de 3 à 2
+                                padding: const EdgeInsets.all(2),
                                 decoration: BoxDecoration(
                                   color: AppColors.primary.withOpacity(0.1),
                                   shape: BoxShape.circle,
@@ -1077,11 +1071,11 @@ class _TrainingCardState extends State<_TrainingCard> {
     return Row(
       children: [
         Icon(icon, size: isMobile ? 8 : 10, color: AppColors.primary),
-        const SizedBox(width: 2), // Réduit de 3 à 2
+        const SizedBox(width: 2),
         Text(
           label,
           style: GoogleFonts.cairo(
-            fontSize: isMobile ? 7 : 9, // Réduit
+            fontSize: isMobile ? 7 : 9,
             fontWeight: FontWeight.w600,
             color: AppColors.textMuted,
           ),
@@ -1090,7 +1084,7 @@ class _TrainingCardState extends State<_TrainingCard> {
           child: Text(
             value,
             style: GoogleFonts.cairo(
-              fontSize: isMobile ? 7 : 9, // Réduit
+              fontSize: isMobile ? 7 : 9,
               fontWeight: FontWeight.w500,
               color: AppColors.textDark,
             ),

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/models/video_model.dart';
 import 'package:nafahat/services/video_service.dart';
-import '/landing/widgets/youtube_player.dart';
+import 'youtube_player.dart';
 // ✅ Import du lecteur YouTube
 
 class VideoFavSection extends StatefulWidget {

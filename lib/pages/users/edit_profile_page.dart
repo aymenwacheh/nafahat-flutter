@@ -2,11 +2,11 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '/landing/landing_page.dart' show AppColors;
+import '../landing/landing_page.dart' show AppColors;
 import 'package:nafahat/models/adherent.dart';
 import 'package:nafahat/services/adherent_service.dart';
 import 'package:nafahat/providers/language_provider.dart';
-import '/landing/widgets/navbar.dart';
+import '../landing/widgets/navbar.dart';
 
 class EditProfilePage extends StatefulWidget {
   final String? adherentId;

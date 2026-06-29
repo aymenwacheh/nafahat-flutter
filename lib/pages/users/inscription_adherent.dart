@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/language_provider.dart';
-import '/landing/widgets/navbar.dart';
+import '../landing/widgets/navbar.dart';
 import '../../services/adherent_service.dart';
 import '../../models/adherent.dart';
 import '../../models/enfant.dart';

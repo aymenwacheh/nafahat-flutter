@@ -29,7 +29,7 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       // Fond blanc cassé chaud (similaire à ta LandingPage)
-      backgroundColor: const Color(0xfffcfbfa), 
+      backgroundColor: const Color(0xfffcfbfa),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -41,7 +41,9 @@ class _SplashScreenState extends State<SplashScreen> {
                 shape: BoxShape.circle,
                 color: Colors.white,
                 border: Border.all(
-                  color: const Color(0xffd57653).withOpacity(0.2), // Teinte terracotta
+                  color: const Color(
+                    0xffd57653,
+                  ).withOpacity(0.2), // Teinte terracotta
                   width: 2,
                 ),
                 boxShadow: [
@@ -61,7 +63,9 @@ class _SplashScreenState extends State<SplashScreen> {
                       textStyle: GoogleFonts.arefRuqaa(
                         fontSize: 65,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xff0f3433), // Couleur bleu/vert sombre chic comme ton image
+                        color: const Color(
+                          0xff0f3433,
+                        ), // Couleur bleu/vert sombre chic comme ton image
                       ),
                       // Vitesse d'écriture (plus la valeur est basse, plus c'est rapide)
                       speed: const Duration(milliseconds: 300),

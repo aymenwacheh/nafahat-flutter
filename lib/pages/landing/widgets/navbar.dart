@@ -16,7 +16,7 @@ import 'package:nafahat/pages/adminisration/add_duree.dart';
 import 'package:nafahat/pages/users/auth_page.dart';
 import 'package:nafahat/pages/users/profile_dashboard_page.dart';
 import 'package:nafahat/pages/users/edit_profile_page.dart';
-import '/landing/landing_page.dart';
+import '../landing_page.dart';
 import 'package:nafahat/services/training_service.dart';
 
 class Navbar extends StatelessWidget {
