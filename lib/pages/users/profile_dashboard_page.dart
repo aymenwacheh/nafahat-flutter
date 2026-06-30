@@ -5,6 +5,7 @@ import 'package:nafahat/pages/users/edit_profile_page.dart';
 import '../landing/landing_page.dart';
 import '../landing/widgets/navbar.dart' show Navbar;
 import 'package:nafahat/providers/language_provider.dart';
+import '../landing/widgets/chatbot/chatbot_wrapper.dart'; // 👈 AJOUT
 
 class ProfileDashboardPage extends StatefulWidget {
   const ProfileDashboardPage({super.key});
@@ -53,51 +54,58 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
 
     return Directionality(
       textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
-      child: Scaffold(
-        key: _scaffoldKey,
-        backgroundColor: AppColors.surface,
-        body: SafeArea(
-          top: false,
-          child: Stack(
-            children: [
-              // Contenu principal du Dashboard
-              SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 120),
-                      // 1. BLOC PROFIL / BIENVENUE
-                      _buildHeaderSection(isArabic, isMobile),
-                      const SizedBox(height: 40),
+      child: ChatbotWrapper(
+        // 👈 WRAPPER AJOUTÉ
+        apiBaseUrl:
+            'http://localhost:3000', // À adapter selon votre configuration
+        langue: isArabic ? 'ar' : 'fr',
+        primaryColor: AppColors.primary,
+        child: Scaffold(
+          key: _scaffoldKey,
+          backgroundColor: AppColors.surface,
+          body: SafeArea(
+            top: false,
+            child: Stack(
+              children: [
+                // Contenu principal du Dashboard
+                SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 120),
+                        // 1. BLOC PROFIL / BIENVENUE
+                        _buildHeaderSection(isArabic, isMobile),
+                        const SizedBox(height: 40),
 
-                      // 2. SECTION MES CYCLES PAYÉS
-                      _buildPaidCyclesSection(isArabic),
-                      const SizedBox(height: 40),
+                        // 2. SECTION MES CYCLES PAYÉS
+                        _buildPaidCyclesSection(isArabic),
+                        const SizedBox(height: 40),
 
-                      // 3. SECTION AUTRES SERVICES
-                      _buildOtherServicesSection(isArabic),
-                      const SizedBox(height: 60),
-                    ],
+                        // 3. SECTION AUTRES SERVICES
+                        _buildOtherServicesSection(isArabic),
+                        const SizedBox(height: 60),
+                      ],
+                    ),
                   ),
                 ),
-              ),
 
-              // Navbar réutilisée
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: Navbar(
-                  isArabic: isArabic,
-                  isMobile: isMobile,
-                  onLanguageToggle: toggleLanguage,
-                  scaffoldKey: _scaffoldKey,
+                // Navbar réutilisée
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: Navbar(
+                    isArabic: isArabic,
+                    isMobile: isMobile,
+                    onLanguageToggle: toggleLanguage,
+                    scaffoldKey: _scaffoldKey,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -160,7 +168,7 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const EditProfilePage(), // ✅ corrigé
+                  builder: (context) => const EditProfilePage(),
                 ),
               );
             },

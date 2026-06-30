@@ -7,6 +7,7 @@ import '../landing/widgets/navbar.dart';
 import '../../services/adherent_service.dart';
 import '../../models/adherent.dart';
 import '../../models/enfant.dart';
+import '../landing/widgets/chatbot/chatbot_wrapper.dart'; // 👈 AJOUT
 
 // ----- PAGE PRINCIPALE -----
 class InscriptionAdherentPage extends StatefulWidget {
@@ -217,12 +218,6 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
           ),
         );
 
-        // ✅ Optionnel : ouvrir WhatsApp automatiquement
-        // final whatsappUrl = result['whatsappUrl'];
-        // if (whatsappUrl != null && mounted) {
-        //   // await launchUrl(Uri.parse(whatsappUrl));
-        // }
-
         // Attendre un peu avant de revenir pour que l'utilisateur voit les identifiants
         await Future.delayed(const Duration(seconds: 3));
         if (mounted) {
@@ -271,212 +266,229 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
       provider.toggleLanguage();
     }
 
-    return Scaffold(
-      key: _scaffoldKey,
-      backgroundColor: Colors.grey.shade50,
-      body: SafeArea(
-        top: false,
-        child: Stack(
-          children: [
-            // ---- Contenu principal ----
-            Center(
-              child: Container(
-                constraints: BoxConstraints(maxWidth: maxWidth),
-                padding: EdgeInsets.symmetric(
-                  horizontal: horizontalPadding,
-                  vertical: verticalPadding,
-                ),
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.only(top: topMargin),
-                  child: Column(
-                    children: [
-                      Card(
-                        elevation: isDesktop ? 4 : 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Padding(
-                          padding: EdgeInsets.all(cardPadding),
-                          child: Column(
-                            children: [
-                              _buildWhatsAppField(isArabic, isMobile, fontSize),
-                              const SizedBox(height: 12),
-                              _buildTextField(
-                                label:
-                                    isArabic
-                                        ? 'الاسم واللقب *'
-                                        : 'Nom et Prénom *',
-                                initialValue: _nomPrenom,
-                                onChanged:
-                                    (v) => _updateAdherentField('nomPrenom', v),
-                                required: true,
-                                fontSize: fontSize,
-                              ),
-                              _buildTextField(
-                                label: isArabic ? 'بلد الإقامة *' : 'Pays *',
-                                initialValue: _pays,
-                                onChanged:
-                                    (v) => _updateAdherentField('pays', v),
-                                required: true,
-                                fontSize: fontSize,
-                              ),
-                              _buildTextField(
-                                label: isArabic ? 'المدينة *' : 'Ville *',
-                                initialValue: _ville,
-                                onChanged:
-                                    (v) => _updateAdherentField('ville', v),
-                                required: true,
-                                fontSize: fontSize,
-                              ),
-                              _buildTextField(
-                                label:
-                                    isArabic
-                                        ? 'البريد الإلكتروني - EMAIL *'
-                                        : 'E-mail *',
-                                initialValue: _email,
-                                onChanged:
-                                    (v) => _updateAdherentField('email', v),
-                                required: true,
-                                keyboardType: TextInputType.emailAddress,
-                                fontSize: fontSize,
-                              ),
-                              _buildDatePicker(
-                                label:
-                                    isArabic
-                                        ? 'تاريخ الولادة'
-                                        : 'Date de naissance',
-                                value: _dateNaissance,
-                                onChanged:
-                                    (date) => _updateAdherentField(
-                                      'dateNaissance',
-                                      date,
-                                    ),
-                                fontSize: fontSize,
-                              ),
-                              _buildGenderRadio(isArabic, fontSize),
-                              _buildSourceRadio(isArabic, fontSize),
-                              if (_sourceConnaissance == 'autre')
+    return ChatbotWrapper(
+      // 👈 WRAPPER AJOUTÉ
+      apiBaseUrl:
+          'http://localhost:3000', // À adapter selon votre configuration
+      langue: isArabic ? 'ar' : 'fr',
+      primaryColor: const Color(0xff0D443E),
+      child: Scaffold(
+        key: _scaffoldKey,
+        backgroundColor: Colors.grey.shade50,
+        body: SafeArea(
+          top: false,
+          child: Stack(
+            children: [
+              // ---- Contenu principal ----
+              Center(
+                child: Container(
+                  constraints: BoxConstraints(maxWidth: maxWidth),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: horizontalPadding,
+                    vertical: verticalPadding,
+                  ),
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: EdgeInsets.only(top: topMargin),
+                    child: Column(
+                      children: [
+                        Card(
+                          elevation: isDesktop ? 4 : 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Padding(
+                            padding: EdgeInsets.all(cardPadding),
+                            child: Column(
+                              children: [
+                                _buildWhatsAppField(
+                                  isArabic,
+                                  isMobile,
+                                  fontSize,
+                                ),
+                                const SizedBox(height: 12),
                                 _buildTextField(
                                   label:
-                                      isArabic ? 'الرجاء التوضيح' : 'Précisez',
-                                  initialValue: _sourceAutreDetail,
+                                      isArabic
+                                          ? 'الاسم واللقب *'
+                                          : 'Nom et Prénom *',
+                                  initialValue: _nomPrenom,
+                                  onChanged:
+                                      (v) =>
+                                          _updateAdherentField('nomPrenom', v),
+                                  required: true,
+                                  fontSize: fontSize,
+                                ),
+                                _buildTextField(
+                                  label: isArabic ? 'بلد الإقامة *' : 'Pays *',
+                                  initialValue: _pays,
+                                  onChanged:
+                                      (v) => _updateAdherentField('pays', v),
+                                  required: true,
+                                  fontSize: fontSize,
+                                ),
+                                _buildTextField(
+                                  label: isArabic ? 'المدينة *' : 'Ville *',
+                                  initialValue: _ville,
+                                  onChanged:
+                                      (v) => _updateAdherentField('ville', v),
+                                  required: true,
+                                  fontSize: fontSize,
+                                ),
+                                _buildTextField(
+                                  label:
+                                      isArabic
+                                          ? 'البريد الإلكتروني - EMAIL *'
+                                          : 'E-mail *',
+                                  initialValue: _email,
+                                  onChanged:
+                                      (v) => _updateAdherentField('email', v),
+                                  required: true,
+                                  keyboardType: TextInputType.emailAddress,
+                                  fontSize: fontSize,
+                                ),
+                                _buildDatePicker(
+                                  label:
+                                      isArabic
+                                          ? 'تاريخ الولادة'
+                                          : 'Date de naissance',
+                                  value: _dateNaissance,
+                                  onChanged:
+                                      (date) => _updateAdherentField(
+                                        'dateNaissance',
+                                        date,
+                                      ),
+                                  fontSize: fontSize,
+                                ),
+                                _buildGenderRadio(isArabic, fontSize),
+                                _buildSourceRadio(isArabic, fontSize),
+                                if (_sourceConnaissance == 'autre')
+                                  _buildTextField(
+                                    label:
+                                        isArabic
+                                            ? 'الرجاء التوضيح'
+                                            : 'Précisez',
+                                    initialValue: _sourceAutreDetail,
+                                    onChanged:
+                                        (v) => _updateAdherentField(
+                                          'sourceAutreDetail',
+                                          v,
+                                        ),
+                                    fontSize: fontSize,
+                                  ),
+                                _buildTextField(
+                                  label:
+                                      isArabic
+                                          ? 'ما هو هدفك من الالتحاق بهذه الدورات ؟'
+                                          : 'Quel est votre objectif en rejoignant ces cycles ?',
+                                  initialValue: _objectif,
+                                  onChanged:
+                                      (v) =>
+                                          _updateAdherentField('objectif', v),
+                                  maxLines: 3,
+                                  fontSize: fontSize,
+                                ),
+                                _buildTextField(
+                                  label:
+                                      isArabic
+                                          ? 'اقتراحات دورات و مواضيع دروس تريد أن نبرمجها مستقبلا'
+                                          : 'Suggestions de cours et sujets à programmer',
+                                  initialValue: _suggestions,
                                   onChanged:
                                       (v) => _updateAdherentField(
-                                        'sourceAutreDetail',
+                                        'suggestions',
+                                        v,
+                                      ),
+                                  maxLines: 2,
+                                  fontSize: fontSize,
+                                ),
+                                _buildCheckbox(
+                                  label:
+                                      isArabic
+                                          ? 'أوافق على نشر محتوى الدورات على صفحات أكاديمية نفحات'
+                                          : 'J\'accepte la publication du contenu des cycles sur les pages de Nafahat',
+                                  value: _accordPublication,
+                                  onChanged:
+                                      (v) => _updateAdherentField(
+                                        'accordPublication',
                                         v,
                                       ),
                                   fontSize: fontSize,
                                 ),
-                              _buildTextField(
-                                label:
-                                    isArabic
-                                        ? 'ما هو هدفك من الالتحاق بهذه الدورات ؟'
-                                        : 'Quel est votre objectif en rejoignant ces cycles ?',
-                                initialValue: _objectif,
-                                onChanged:
-                                    (v) => _updateAdherentField('objectif', v),
-                                maxLines: 3,
-                                fontSize: fontSize,
-                              ),
-                              _buildTextField(
-                                label:
-                                    isArabic
-                                        ? 'اقتراحات دورات و مواضيع دروس تريد أن نبرمجها مستقبلا'
-                                        : 'Suggestions de cours et sujets à programmer',
-                                initialValue: _suggestions,
-                                onChanged:
-                                    (v) =>
-                                        _updateAdherentField('suggestions', v),
-                                maxLines: 2,
-                                fontSize: fontSize,
-                              ),
-                              _buildCheckbox(
-                                label:
-                                    isArabic
-                                        ? 'أوافق على نشر محتوى الدورات على صفحات أكاديمية نفحات'
-                                        : 'J\'accepte la publication du contenu des cycles sur les pages de Nafahat',
-                                value: _accordPublication,
-                                onChanged:
-                                    (v) => _updateAdherentField(
-                                      'accordPublication',
-                                      v,
-                                    ),
-                                fontSize: fontSize,
-                              ),
-                              _buildToggleEnfants(isArabic, fontSize),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      if (ajouterEnfants)
-                        _buildEnfantsSection(isArabic, fontSize, isMobile),
-                      const SizedBox(height: 30),
-
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed:
-                              isLoading ? null : () => _soumettre(isArabic),
-                          style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(
-                              vertical: isMobile ? 14 : 18,
-                              horizontal: 20,
-                            ),
-                            backgroundColor: const Color(0xff0D443E),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                                _buildToggleEnfants(isArabic, fontSize),
+                              ],
                             ),
                           ),
-                          child:
-                              isLoading
-                                  ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                  : Text(
-                                    isArabic ? 'تسجيل' : 'S\'inscrire',
-                                    style: GoogleFonts.cairo(
-                                      fontSize: fontSize + 2,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                    ],
+                        const SizedBox(height: 20),
+
+                        if (ajouterEnfants)
+                          _buildEnfantsSection(isArabic, fontSize, isMobile),
+                        const SizedBox(height: 30),
+
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed:
+                                isLoading ? null : () => _soumettre(isArabic),
+                            style: ElevatedButton.styleFrom(
+                              padding: EdgeInsets.symmetric(
+                                vertical: isMobile ? 14 : 18,
+                                horizontal: 20,
+                              ),
+                              backgroundColor: const Color(0xff0D443E),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child:
+                                isLoading
+                                    ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                    : Text(
+                                      isArabic ? 'تسجيل' : 'S\'inscrire',
+                                      style: GoogleFonts.cairo(
+                                        fontSize: fontSize + 2,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
 
-            // ---- NAVBAR ----
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: Navbar(
-                isArabic: isArabic,
-                isMobile: isMobile,
-                onLanguageToggle: toggleLanguage,
-                scaffoldKey: _scaffoldKey,
+              // ---- NAVBAR ----
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Navbar(
+                  isArabic: isArabic,
+                  isMobile: isMobile,
+                  onLanguageToggle: toggleLanguage,
+                  scaffoldKey: _scaffoldKey,
+                ),
               ),
-            ),
 
-            if (isLoading)
-              const Opacity(
-                opacity: 0.5,
-                child: ModalBarrier(dismissible: false, color: Colors.black),
-              ),
-            if (isLoading) const Center(child: CircularProgressIndicator()),
-          ],
+              if (isLoading)
+                const Opacity(
+                  opacity: 0.5,
+                  child: ModalBarrier(dismissible: false, color: Colors.black),
+                ),
+              if (isLoading) const Center(child: CircularProgressIndicator()),
+            ],
+          ),
         ),
       ),
     );

@@ -21,9 +21,7 @@ class MyApp extends StatelessWidget {
         title: 'Nafahat Platform',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          // ✅ Police Cairo via GoogleFonts (pas besoin de fichiers locaux)
           textTheme: GoogleFonts.cairoTextTheme(),
-          // AppBar avec Cairo
           appBarTheme: AppBarTheme(
             titleTextStyle: GoogleFonts.cairo(
               fontSize: 20,
@@ -38,7 +36,6 @@ class MyApp extends StatelessWidget {
           ),
           primarySwatch: Colors.indigo,
         ),
-        // ✅ Localisations pour DatePicker, etc.
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,

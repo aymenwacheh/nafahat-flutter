@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/models/training_model.dart';
 import 'package:nafahat/services/training_service.dart';
+import '../landing/widgets/chatbot/chatbot_wrapper.dart'; // 👈 AJOUT
 
 class FormationDetailPage extends StatefulWidget {
   final String formationId;
@@ -55,104 +56,117 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
 
-    return Scaffold(
-      backgroundColor: const Color(0xfffcfbfa),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            // ✅ Contenu principal
-            if (_isLoading)
-              const Center(
-                child: CircularProgressIndicator(color: Color(0xffd57653)),
-              )
-            else if (_errorMessage != null)
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.error_outline, size: 60, color: Colors.red[400]),
-                    const SizedBox(height: 16),
-                    Text(
-                      _isArabic
-                          ? 'Erreur de chargement'
-                          : 'Erreur de chargement',
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+    return ChatbotWrapper(
+      // 👈 WRAPPER AJOUTÉ
+      apiBaseUrl:
+          'http://localhost:3000', // À adapter selon votre configuration
+      langue: _isArabic ? 'ar' : 'fr',
+      primaryColor: const Color(0xffd57653),
+      child: Scaffold(
+        backgroundColor: const Color(0xfffcfbfa),
+        body: SafeArea(
+          child: Stack(
+            children: [
+              // ✅ Contenu principal
+              if (_isLoading)
+                const Center(
+                  child: CircularProgressIndicator(color: Color(0xffd57653)),
+                )
+              else if (_errorMessage != null)
+                Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 60,
                         color: Colors.red[400],
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _errorMessage!,
-                      style: GoogleFonts.poppins(color: Colors.grey[600]),
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton.icon(
-                      onPressed: _loadFormation,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Réessayer'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xffd57653),
-                        foregroundColor: Colors.white,
+                      const SizedBox(height: 16),
+                      Text(
+                        _isArabic
+                            ? 'Erreur de chargement'
+                            : 'Erreur de chargement',
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.red[400],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              )
-            else if (_training == null)
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.school_outlined,
-                      size: 80,
-                      color: Colors.grey[300],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      _isArabic ? 'التكوين غير موجود' : 'Formation non trouvée',
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[600],
+                      const SizedBox(height: 8),
+                      Text(
+                        _errorMessage!,
+                        style: GoogleFonts.poppins(color: Colors.grey[600]),
                       ),
-                    ),
-                  ],
-                ),
-              )
-            else
-              _buildDetailContent(isMobile),
-
-            // ✅ Bouton retour
-            Positioned(
-              top: 16,
-              left: 16,
-              child: GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        onPressed: _loadFormation,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Réessayer'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xffd57653),
+                          foregroundColor: Colors.white,
+                        ),
                       ),
                     ],
                   ),
-                  child: const Icon(
-                    Icons.arrow_back_rounded,
-                    color: Color(0xff2c221e),
-                    size: 24,
+                )
+              else if (_training == null)
+                Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.school_outlined,
+                        size: 80,
+                        color: Colors.grey[300],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        _isArabic
+                            ? 'التكوين غير موجود'
+                            : 'Formation non trouvée',
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                _buildDetailContent(isMobile),
+
+              // ✅ Bouton retour
+              Positioned(
+                top: 16,
+                left: 16,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.9),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.arrow_back_rounded,
+                      color: Color(0xff2c221e),
+                      size: 24,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

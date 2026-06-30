@@ -9,6 +9,7 @@ import 'widgets/navbar.dart';
 import 'package:nafahat/models/training_model.dart';
 import 'package:nafahat/services/training_service.dart';
 import 'package:nafahat/pages/adminisration/add_training_card.dart';
+import 'widgets/chatbot/chatbot_wrapper.dart';
 
 // --- PALETTE DE COULEURS ---
 class AppColors {
@@ -48,49 +49,55 @@ class _LandingPageState extends State<LandingPage> {
 
     return Directionality(
       textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
-      child: Scaffold(
-        key: _scaffoldKey,
-        backgroundColor: AppColors.surface,
-        drawer:
-            isMobile
-                ? Navbar(
-                  isArabic: isArabic,
-                  isMobile: true,
-                  onLanguageToggle: toggleLanguage,
-                  scaffoldKey: _scaffoldKey,
-                ).buildDrawer(context)
-                : null,
-        body: SafeArea(
-          top: false,
-          child: Stack(
-            children: [
-              SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 90),
-                    HeroSection(isArabic: isArabic),
-                    VideoFavSection(isArabic: isArabic),
-                    _TrainingCyclesSection(
-                      key: _trainingSectionKey,
-                      isArabic: isArabic,
-                    ),
-                    const SizedBox(height: 60),
-                  ],
+      child: ChatbotWrapper(
+        apiBaseUrl:
+            'http://localhost:3000', // À adapter selon votre configuration
+        langue: isArabic ? 'ar' : 'fr',
+        primaryColor: AppColors.primary,
+        child: Scaffold(
+          key: _scaffoldKey,
+          backgroundColor: AppColors.surface,
+          drawer:
+              isMobile
+                  ? Navbar(
+                    isArabic: isArabic,
+                    isMobile: true,
+                    onLanguageToggle: toggleLanguage,
+                    scaffoldKey: _scaffoldKey,
+                  ).buildDrawer(context)
+                  : null,
+          body: SafeArea(
+            top: false,
+            child: Stack(
+              children: [
+                SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 90),
+                      HeroSection(isArabic: isArabic),
+                      VideoFavSection(isArabic: isArabic),
+                      _TrainingCyclesSection(
+                        key: _trainingSectionKey,
+                        isArabic: isArabic,
+                      ),
+                      const SizedBox(height: 60),
+                    ],
+                  ),
                 ),
-              ),
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: Navbar(
-                  isArabic: isArabic,
-                  isMobile: isMobile,
-                  onLanguageToggle: toggleLanguage,
-                  scaffoldKey: _scaffoldKey,
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: Navbar(
+                    isArabic: isArabic,
+                    isMobile: isMobile,
+                    onLanguageToggle: toggleLanguage,
+                    scaffoldKey: _scaffoldKey,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -743,7 +750,6 @@ class _TrainingCardState extends State<_TrainingCard> {
   bool isHovered = false;
 
   String _getValidImageUrl(String imageUrl) {
-    // Nettoyer l'URL de l'image
     if (imageUrl.contains('C:\\') || imageUrl.contains('\\')) {
       String fileName = imageUrl.split('\\').last;
       return 'assets/images/$fileName';
