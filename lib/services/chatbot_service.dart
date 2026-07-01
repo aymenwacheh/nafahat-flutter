@@ -2,22 +2,34 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/chatbot_models.dart';
+import 'training_service.dart'; // 👈 AJOUT
 
 class ChatbotService {
-  final String baseUrl;
-
-  ChatbotService({required this.baseUrl});
+  // ✅ Utiliser la même baseUrl que TrainingService
+  final String baseUrl = TrainingService.apiBaseUrl;
 
   Future<Map<String, dynamic>> askQuestion(
     String message, {
     String langue = 'fr',
   }) async {
     try {
+      final url = '$baseUrl/chatbot/ask';
+
+      print('═══════════════════════════════════════════════════');
+      print('📍 CHATBOT REQUEST');
+      print('📌 BaseUrl: $baseUrl');
+      print('📌 URL Complète: $url');
+      print('📌 Message: $message');
+      print('📌 Langue: $langue');
+      print('═══════════════════════════════════════════════════');
+
       final response = await http.post(
-        Uri.parse('$baseUrl/api/chatbot/ask'),
+        Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'message': message, 'langue': langue}),
       );
+
+      print('📌 Réponse Status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -30,17 +42,24 @@ class ChatbotService {
           };
         }
       } else {
-        return {'success': false, 'message': 'Erreur de connexion au serveur'};
+        return {
+          'success': false,
+          'message': 'Erreur ${response.statusCode}: ${response.body}',
+        };
       }
     } catch (e) {
+      print('❌ Erreur Chatbot: $e');
       return {'success': false, 'message': 'Erreur: ${e.toString()}'};
     }
   }
 
   Future<List<ChatCategory>> getCategories() async {
     try {
+      final url = '$baseUrl/chatbot/categories';
+      print('📍 Chatbot categories URL: $url');
+
       final response = await http.get(
-        Uri.parse('$baseUrl/api/chatbot/categories'),
+        Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
       );
 

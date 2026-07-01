@@ -1,5 +1,6 @@
 // lib/widgets/chatbot/chatbot_wrapper.dart
 import 'package:flutter/material.dart';
+import 'package:nafahat/config/api_config.dart' show ApiConfig;
 import 'chatbot_widget.dart';
 
 class ChatbotWrapper extends StatelessWidget {
@@ -14,7 +15,7 @@ class ChatbotWrapper extends StatelessWidget {
   const ChatbotWrapper({
     super.key,
     required this.child,
-    this.apiBaseUrl = 'http://localhost:3000',
+    this.apiBaseUrl = ApiConfig.baseUrl, // 👈 MODIFIER
     this.langue = 'fr',
     this.showFloatingButton = true,
     this.buttonSize,

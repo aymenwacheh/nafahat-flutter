@@ -1,10 +1,14 @@
+// lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:nafahat/pages/landing/widgets/chatbot/chatbot_widget.dart';
 import 'package:provider/provider.dart';
 import '/pages/landing/splash_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/pages/users/auth_page.dart';
 import 'package:nafahat/providers/language_provider.dart';
+import 'pages/landing/widgets/chatbot/chatbot_widget.dart';
+import 'package:nafahat/config/api_config.dart'; // 👈 AJOUT
 
 void main() {
   runApp(const MyApp());
@@ -46,8 +50,35 @@ class MyApp extends StatelessWidget {
           Locale('ar', 'AR'),
           Locale('en', 'US'),
         ],
-        home: const SplashScreen(),
+        home: const ChatbotGlobalWrapper(child: SplashScreen()),
       ),
+    );
+  }
+}
+
+class ChatbotGlobalWrapper extends StatefulWidget {
+  final Widget child;
+
+  const ChatbotGlobalWrapper({super.key, required this.child});
+
+  @override
+  State<ChatbotGlobalWrapper> createState() => _ChatbotGlobalWrapperState();
+}
+
+class _ChatbotGlobalWrapperState extends State<ChatbotGlobalWrapper> {
+  @override
+  Widget build(BuildContext context) {
+    final isArabic = Provider.of<LanguageProvider>(context).isArabic;
+
+    return Stack(
+      children: [
+        widget.child,
+        ChatbotWidget(
+          apiBaseUrl: ApiConfig.baseUrl, // 👈 UTILISER LA CONFIG
+          langue: isArabic ? 'ar' : 'fr',
+          primaryColor: const Color(0xffd57653),
+        ),
+      ],
     );
   }
 }

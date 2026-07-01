@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import '../../../../models/chatbot_models.dart';
 import '../../../../services/chatbot_service.dart';
-
+import '../../../../config/api_config.dart';
 import 'chatbot_button.dart';
 import 'chatbot_window.dart';
 
@@ -16,7 +16,7 @@ class ChatbotWidget extends StatefulWidget {
 
   const ChatbotWidget({
     super.key,
-    required this.apiBaseUrl,
+    this.apiBaseUrl = ApiConfig.baseUrl,
     this.langue = 'fr',
     this.showFloatingButton = true,
     this.buttonSize,
@@ -50,7 +50,11 @@ class _ChatbotWidgetState extends State<ChatbotWidget>
   @override
   void initState() {
     super.initState();
-    _chatbotService = ChatbotService(baseUrl: widget.apiBaseUrl);
+
+    // ✅ Le ChatbotService utilise maintenant TrainingService.apiBaseUrl en interne
+    // On n'a plus besoin de passer baseUrl
+    _chatbotService = ChatbotService(); // 👈 SIMPLIFIÉ
+
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
