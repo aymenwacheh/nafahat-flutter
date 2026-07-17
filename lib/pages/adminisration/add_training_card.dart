@@ -1,9 +1,16 @@
 // lib/pages/adminisration/add_training_card.dart
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:io' show File;
+import 'dart:html' as html; // Pour le web
 import 'package:nafahat/services/training_service.dart';
+import 'package:nafahat/services/upload_service.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class AddTrainingCardPage extends StatefulWidget {
   const AddTrainingCardPage({super.key});
@@ -36,6 +43,13 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
   bool _isArabic = false;
   bool _isRepetitive = false;
 
+  // Nouveaux états pour l'image
+  dynamic _selectedImageFile; // File ou html.File
+  bool _isUploadingImage = false;
+  String? _uploadedImageUrl;
+  Uint8List? _imageBytes; // Pour l'aperçu Web
+  String? _imageName;
+
   // Sélections
   int? _selectedTypeFormationId;
   int? _selectedDureeId;
@@ -66,7 +80,7 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
   static const Color nafahatOrange = Color(0xffd57653);
   static const Color nafahatGold = Color(0xffC4A46C);
 
-  // Couleurs constantes pour éviter les erreurs
+  // Couleurs constantes
   static const Color grey50 = Color(0xFFFAFAFA);
   static const Color grey100 = Color(0xFFF5F5F5);
   static const Color grey200 = Color(0xFFEEEEEE);
@@ -174,6 +188,227 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
     _nbrSeanceController.dispose();
     _nbrJourController.dispose();
     super.dispose();
+  }
+
+  // ==================== MÉTHODE DE SÉLECTION D'IMAGE POUR WEB ====================
+  Future<void> _pickImageWeb() async {
+    try {
+      setState(() => _isUploadingImage = true);
+
+      // Utiliser l'API File Input pour le web
+      final input = html.FileUploadInputElement();
+      input.accept = 'image/*';
+      input.multiple = false;
+
+      input.click();
+
+      // Attendre la sélection du fichier
+      await input.onChange.first;
+
+      if (input.files != null && input.files!.isNotEmpty) {
+        final file = input.files!.first;
+
+        // Lire le fichier pour l'aperçu
+        final reader = html.FileReader();
+        reader.readAsDataUrl(file);
+        await reader.onLoad.first;
+
+        setState(() {
+          _imageName = file.name;
+          // Pour l'aperçu Web
+          _imageBytes = null; // On utilisera directement l'URL de données
+        });
+
+        // Uploader l'image
+        await _uploadImageWeb(file);
+      } else {
+        setState(() => _isUploadingImage = false);
+      }
+    } catch (e) {
+      setState(() => _isUploadingImage = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _isArabic
+                ? '❌ Erreur lors de la sélection de l\'image'
+                : '❌ Erreur lors de la sélection de l\'image',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      print('❌ Erreur sélection image: $e');
+    }
+  }
+
+  // ==================== MÉTHODE DE SÉLECTION D'IMAGE POUR MOBILE ====================
+  Future<void> _pickImageMobile() async {
+    try {
+      setState(() => _isUploadingImage = true);
+
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        final File imageFile = File(image.path);
+        await _uploadImageMobile(imageFile);
+      } else {
+        setState(() => _isUploadingImage = false);
+      }
+    } catch (e) {
+      setState(() => _isUploadingImage = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _isArabic
+                ? '❌ Erreur lors de la sélection de l\'image'
+                : '❌ Erreur lors de la sélection de l\'image',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      print('❌ Erreur sélection image: $e');
+    }
+  }
+
+  // ==================== MÉTHODE PRINCIPALE DE SÉLECTION ====================
+  Future<void> _pickImage() async {
+    if (kIsWeb) {
+      await _pickImageWeb();
+    } else {
+      await _pickImageMobile();
+    }
+  }
+
+  // Dans add_training_card.dart, modifiez la méthode _uploadImageWeb :
+
+  // ==================== UPLOAD IMAGE POUR WEB ====================
+  Future<void> _uploadImageWeb(html.File file) async {
+    try {
+      setState(() {
+        _selectedImageFile = file;
+        _isUploadingImage = true;
+      });
+
+      // ✅ Utiliser la méthode smart qui essaye plusieurs endpoints
+      final result = await UploadService.uploadImageSmart(file);
+
+      if (result['success'] == true) {
+        setState(() {
+          _uploadedImageUrl = result['image_url'];
+          _imageUrlController.text = result['image_url'];
+          _isUploadingImage = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _isArabic
+                  ? '✅ Image téléchargée avec succès'
+                  : '✅ Image téléchargée avec succès',
+            ),
+            backgroundColor: nafahatGreen,
+          ),
+        );
+      } else {
+        setState(() => _isUploadingImage = false);
+        throw Exception(result['message'] ?? 'Upload failed');
+      }
+    } catch (e) {
+      setState(() {
+        _selectedImageFile = null;
+        _isUploadingImage = false;
+      });
+
+      // ✅ Message d'erreur plus détaillé
+      String errorMessage = e.toString();
+      if (errorMessage.contains('500')) {
+        errorMessage =
+            _isArabic
+                ? '❌ Erreur serveur. Vérifiez que le serveur est configuré correctement.'
+                : '❌ Server error. Check server configuration.';
+      } else if (errorMessage.contains('image')) {
+        errorMessage =
+            _isArabic
+                ? '❌ Format d\'image non supporté. Utilisez JPG, PNG ou GIF.'
+                : '❌ Unsupported image format. Use JPG, PNG or GIF.';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_isArabic ? '❌ $errorMessage' : '❌ $errorMessage'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+      print('❌ Erreur upload image: $e');
+    }
+  }
+
+  // ==================== UPLOAD IMAGE POUR MOBILE ====================
+  Future<void> _uploadImageMobile(File imageFile) async {
+    try {
+      setState(() {
+        _selectedImageFile = imageFile;
+        _isUploadingImage = true;
+      });
+
+      // Utiliser le service existant avec File
+      final result = await TrainingService.uploadImage(imageFile);
+
+      if (result['success'] == true) {
+        setState(() {
+          _uploadedImageUrl = result['image_url'];
+          _imageUrlController.text = result['image_url'];
+          _isUploadingImage = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _isArabic
+                  ? '✅ Image téléchargée avec succès'
+                  : '✅ Image téléchargée avec succès',
+            ),
+            backgroundColor: nafahatGreen,
+          ),
+        );
+      } else {
+        setState(() => _isUploadingImage = false);
+        throw Exception(result['message'] ?? 'Upload failed');
+      }
+    } catch (e) {
+      setState(() {
+        _selectedImageFile = null;
+        _isUploadingImage = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _isArabic
+                ? '❌ Erreur lors de l\'upload de l\'image'
+                : '❌ Erreur lors de l\'upload de l\'image',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      print('❌ Erreur upload image: $e');
+    }
+  }
+
+  // ==================== SUPPRIMER L'IMAGE ====================
+  void _removeImage() {
+    setState(() {
+      _selectedImageFile = null;
+      _uploadedImageUrl = null;
+      _imageUrlController.clear();
+      _imageBytes = null;
+      _imageName = null;
+    });
   }
 
   Future<void> _selectDate(TextEditingController controller) async {
@@ -317,6 +552,14 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
       _nbrSeanceController.clear();
       _nbrJourController.clear();
       _joursSemaine.updateAll((key, value) => false);
+
+      // Réinitialiser l'image
+      _selectedImageFile = null;
+      _uploadedImageUrl = null;
+      _imageUrlController.clear();
+      _isUploadingImage = false;
+      _imageBytes = null;
+      _imageName = null;
     });
   }
 
@@ -359,11 +602,9 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
           key: _formKey,
           child: Column(
             children: [
-              // ========== HEADER ==========
               _buildHeader(),
               const SizedBox(height: 24),
 
-              // ========== CARD PRINCIPAL ==========
               Card(
                 elevation: 4,
                 shadowColor: nafahatGreen.withOpacity(0.1),
@@ -374,7 +615,7 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
                   padding: EdgeInsets.all(isMobile ? 16 : 24),
                   child: Column(
                     children: [
-                      // --- SECTION 1: Informations de base ---
+                      // SECTION 1: Informations de base
                       _buildSection(
                         icon: Icons.info_outline,
                         title:
@@ -464,7 +705,7 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
 
                       const Divider(height: 32, color: grey200),
 
-                      // --- SECTION 2: Catégories ---
+                      // SECTION 2: Catégories
                       _buildSection(
                         icon: Icons.category_outlined,
                         title: _isArabic ? 'التصنيفات' : 'Catégories',
@@ -564,7 +805,7 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
 
                       const Divider(height: 32, color: grey200),
 
-                      // --- SECTION 3: Détails de la durée ---
+                      // SECTION 3: Détails de la durée
                       _buildSection(
                         icon: Icons.timer_outlined,
                         title:
@@ -608,7 +849,7 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
 
                       const Divider(height: 32, color: grey200),
 
-                      // --- SECTION 4: Répétition ---
+                      // SECTION 4: Répétition
                       _buildSection(
                         icon: Icons.repeat_rounded,
                         title: _isArabic ? 'التكرار' : 'Répétition',
@@ -617,7 +858,7 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
 
                       const Divider(height: 32, color: grey200),
 
-                      // --- SECTION 5: Période ---
+                      // SECTION 5: Période
                       _buildSection(
                         icon: Icons.calendar_month_rounded,
                         title: _isArabic ? 'الفترة' : 'Période',
@@ -657,7 +898,7 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
 
                       const Divider(height: 32, color: grey200),
 
-                      // --- SECTION 6: Description ---
+                      // SECTION 6: Description
                       _buildSection(
                         icon: Icons.description_outlined,
                         title: _isArabic ? 'الوصف' : 'Description',
@@ -695,7 +936,7 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
 
                       const Divider(height: 32, color: grey200),
 
-                      // --- SECTION 7: Prix et Cible ---
+                      // SECTION 7: Prix et Cible
                       _buildSection(
                         icon: Icons.payments_outlined,
                         title: _isArabic ? 'السعر والجمهور' : 'Prix et Cible',
@@ -739,61 +980,8 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
 
                       const Divider(height: 32, color: grey200),
 
-                      // --- SECTION 8: Image ---
-                      _buildSection(
-                        icon: Icons.image_outlined,
-                        title: _isArabic ? 'الصورة' : 'Image',
-                        children: [
-                          _buildField(
-                            label:
-                                _isArabic ? 'رابط الصورة' : 'URL de l\'image',
-                            controller: _imageUrlController,
-                            hint:
-                                'https://... (${_isArabic ? 'اختياري' : 'optionnel'})',
-                            prefixIcon: Icons.link_rounded,
-                          ),
-                          if (_imageUrlController.text.isNotEmpty) ...[
-                            const SizedBox(height: 12),
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Image.network(
-                                _imageUrlController.text,
-                                height: 150,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    height: 150,
-                                    color: grey200,
-                                    child: Center(
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.broken_image,
-                                            color: grey400,
-                                            size: 40,
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            _isArabic
-                                                ? '❌ صورة غير صالحة'
-                                                : '❌ Image invalide',
-                                            style: GoogleFonts.cairo(
-                                              color: grey600,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
+                      // ==================== SECTION 8: IMAGE ====================
+                      _buildImageSection(),
                     ],
                   ),
                 ),
@@ -801,7 +989,7 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
 
               const SizedBox(height: 24),
 
-              // ========== BOUTONS ==========
+              // BOUTONS
               Row(
                 children: [
                   Expanded(
@@ -879,9 +1067,229 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
     );
   }
 
-  // ============================================================
-  // WIDGETS
-  // ============================================================
+  // ==================== SECTION IMAGE ====================
+  Widget _buildImageSection() {
+    final bool hasImage =
+        _selectedImageFile != null ||
+        (_imageUrlController.text.isNotEmpty && _uploadedImageUrl != null);
+
+    return _buildSection(
+      icon: Icons.image_outlined,
+      title: _isArabic ? 'الصورة' : 'Image',
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            // Champ URL
+            Expanded(
+              flex: 3,
+              child: _buildField(
+                label: _isArabic ? 'رابط الصورة' : 'URL de l\'image',
+                controller: _imageUrlController,
+                hint:
+                    _isArabic
+                        ? 'URL ou sélectionnez une image'
+                        : 'URL ou sélectionnez une image',
+                prefixIcon: Icons.link_rounded,
+                readOnly: true,
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Bouton Parcourir
+            Expanded(
+              flex: 1,
+              child: Column(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _isUploadingImage ? null : _pickImage,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: nafahatGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      minimumSize: const Size(double.infinity, 40),
+                      textStyle: GoogleFonts.cairo(fontSize: 12),
+                    ),
+                    icon:
+                        _isUploadingImage
+                            ? const SizedBox(
+                              height: 16,
+                              width: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                            : const Icon(Icons.folder_open_rounded, size: 16),
+                    label: Text(
+                      _isUploadingImage
+                          ? (_isArabic ? 'جاري...' : 'Chargement...')
+                          : (_isArabic ? 'تصفح' : 'Parcourir'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+
+        // Aperçu de l'image
+        if (hasImage) ...[
+          const SizedBox(height: 16),
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: nafahatGreen.withOpacity(0.3)),
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.white,
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: _getImagePreview(),
+            ),
+          ),
+          // Bouton Supprimer
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: _removeImage,
+              icon: const Icon(
+                Icons.delete_outline,
+                color: Colors.red,
+                size: 18,
+              ),
+              label: Text(
+                _isArabic ? 'إزالة الصورة' : 'Supprimer l\'image',
+                style: GoogleFonts.cairo(color: Colors.red),
+              ),
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.red.withOpacity(0.05),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  // ==================== APERÇU DE L'IMAGE ====================
+  Widget _getImagePreview() {
+    // Pour Mobile (File)
+    if (_selectedImageFile is File && _selectedImageFile != null) {
+      return Image.file(
+        _selectedImageFile as File,
+        height: 180,
+        width: double.infinity,
+        fit: BoxFit.cover,
+      );
+    }
+
+    // Pour Web (html.File avec URL)
+    if (_selectedImageFile is html.File && _selectedImageFile != null) {
+      final file = _selectedImageFile as html.File;
+      final url = html.Url.createObjectUrl(file);
+      return Image.network(
+        url,
+        height: 180,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            height: 180,
+            color: grey100,
+            child: Center(
+              child: CircularProgressIndicator(
+                value:
+                    loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded /
+                            loadingProgress.expectedTotalBytes!
+                        : null,
+                color: nafahatGreen,
+              ),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            height: 180,
+            color: grey200,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.broken_image, color: grey400, size: 48),
+                  const SizedBox(height: 8),
+                  Text(
+                    _isArabic ? '❌ صورة غير صالحة' : '❌ Image invalide',
+                    style: GoogleFonts.cairo(color: grey600),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    // URL distante
+    if (_uploadedImageUrl != null && _uploadedImageUrl!.isNotEmpty) {
+      return Image.network(
+        _uploadedImageUrl!,
+        height: 180,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            height: 180,
+            color: grey100,
+            child: Center(
+              child: CircularProgressIndicator(
+                value:
+                    loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded /
+                            loadingProgress.expectedTotalBytes!
+                        : null,
+                color: nafahatGreen,
+              ),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            height: 180,
+            color: grey200,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.broken_image, color: grey400, size: 48),
+                  const SizedBox(height: 8),
+                  Text(
+                    _isArabic ? '❌ صورة غير صالحة' : '❌ Image invalide',
+                    style: GoogleFonts.cairo(color: grey600),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  // ==================== WIDGETS EXISTANTS ====================
 
   Widget _buildHeader() {
     return Container(
@@ -1223,6 +1631,7 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
     TextDirection textDirection = TextDirection.ltr,
     TextInputType keyboardType = TextInputType.text,
     IconData? prefixIcon,
+    bool readOnly = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1256,12 +1665,13 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
           textDirection: textDirection,
           keyboardType: keyboardType,
           maxLines: maxLines,
+          readOnly: readOnly,
           style: GoogleFonts.cairo(fontSize: 14),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: GoogleFonts.cairo(color: grey400),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: readOnly ? grey100 : Colors.white,
             prefixIcon:
                 prefixIcon != null
                     ? Icon(

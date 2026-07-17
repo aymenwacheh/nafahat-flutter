@@ -1,5 +1,6 @@
 // lib/services/training_service.dart
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/training_model.dart';
@@ -175,7 +176,124 @@ class TrainingService {
     }
   }
 
-  static Future<String?> uploadImage(String imagePath) async {
+  // =============================================
+  // MÉTHODE POUR UPLOADER UNE IMAGE (CORRIGÉE)
+  // =============================================
+  static Future<Map<String, dynamic>> uploadImage(File imageFile) async {
+    try {
+      print('📤 [Upload] Début de l\'upload...');
+
+      // Lire les bytes du fichier
+      final bytes = await imageFile.readAsBytes();
+
+      // Créer une requête multipart
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$apiBaseUrl/upload/image'),
+      );
+
+      // Ajouter le fichier image avec les bytes
+      var multipartFile = http.MultipartFile.fromBytes(
+        'image',
+        bytes,
+        filename: imageFile.path.split('/').last,
+      );
+
+      request.files.add(multipartFile);
+
+      // Ajouter les headers
+      request.headers['Accept'] = 'application/json';
+
+      // Envoyer la requête
+      var response = await request.send();
+      var responseBody = await response.stream.bytesToString();
+
+      print('📤 [Upload] Status: ${response.statusCode}');
+      print('📤 [Upload] Response: $responseBody');
+
+      if (response.statusCode == 200) {
+        return json.decode(responseBody);
+      } else {
+        throw Exception('Upload failed: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ [Upload] Erreur: $e');
+      rethrow;
+    }
+  }
+
+  // =============================================
+  // MÉTHODE POUR UPLOADER UNE IMAGE (VIA XFile)
+  // =============================================
+  static Future<Map<String, dynamic>> uploadXFileImage(dynamic xFile) async {
+    try {
+      print('📤 [Upload] Début de l\'upload XFile...');
+
+      // Lire les bytes du XFile
+      final bytes = await xFile.readAsBytes();
+      final String fileName = xFile.name;
+
+      // Créer une requête multipart
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$apiBaseUrl/upload/image'),
+      );
+
+      // Ajouter le fichier image avec les bytes
+      var multipartFile = http.MultipartFile.fromBytes(
+        'image',
+        bytes,
+        filename: fileName,
+      );
+
+      request.files.add(multipartFile);
+
+      // Ajouter les headers
+      request.headers['Accept'] = 'application/json';
+
+      // Envoyer la requête
+      var response = await request.send();
+      var responseBody = await response.stream.bytesToString();
+
+      print('📤 [Upload] Status: ${response.statusCode}');
+      print('📤 [Upload] Response: $responseBody');
+
+      if (response.statusCode == 200) {
+        return json.decode(responseBody);
+      } else {
+        throw Exception('Upload failed: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ [Upload] Erreur: $e');
+      rethrow;
+    }
+  }
+
+  // =============================================
+  // MÉTHODE POUR SUPPRIMER UNE IMAGE
+  // =============================================
+  static Future<bool> deleteImage(String filename) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$apiBaseUrl/upload/image/$filename'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['success'] == true;
+      }
+      return false;
+    } catch (e) {
+      print('❌ [Delete] Erreur: $e');
+      return false;
+    }
+  }
+
+  // =============================================
+  // ANCIENNE MÉTHODE (conservée pour compatibilité)
+  // =============================================
+  static Future<String?> uploadImageOld(String imagePath) async {
     try {
       var request = http.MultipartRequest(
         'POST',
