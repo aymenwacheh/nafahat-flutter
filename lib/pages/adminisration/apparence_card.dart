@@ -345,8 +345,8 @@ class _ApparenceCardPageState extends State<ApparenceCardPage> {
                                 });
                               },
                               isArabic: _isArabic,
-                              minValue: 10,
-                              maxValue: 22,
+                              minValue: 8,
+                              maxValue: 28,
                             ),
                             const SizedBox(height: 16),
                             _buildColorPicker(
@@ -419,8 +419,8 @@ class _ApparenceCardPageState extends State<ApparenceCardPage> {
                                 });
                               },
                               isArabic: _isArabic,
-                              minValue: 8,
-                              maxValue: 16,
+                              minValue: 6,
+                              maxValue: 18,
                             ),
                             const SizedBox(height: 16),
                             _buildColorPicker(
@@ -493,8 +493,8 @@ class _ApparenceCardPageState extends State<ApparenceCardPage> {
                                 });
                               },
                               isArabic: _isArabic,
-                              minValue: 8,
-                              maxValue: 16,
+                              minValue: 6,
+                              maxValue: 18,
                             ),
                             const SizedBox(height: 16),
                             _buildColorPicker(
@@ -912,16 +912,65 @@ class _ApparenceCardPageState extends State<ApparenceCardPage> {
     required bool isArabic,
   }) {
     final colors = [
+      // Couleurs neutres
       Colors.black,
+      Colors.grey[900]!,
       Colors.grey[800]!,
+      Colors.grey[700]!,
       Colors.grey[600]!,
-      const Color(0xff0D443E),
-      const Color(0xffd57653),
+      Colors.grey[500]!,
+      Colors.grey[400]!,
+      Colors.white,
+
+      // Couleurs primaires
+      const Color(0xff0D443E), // Vert foncé Nafahat
+      const Color(0xff1A6B63), // Vert moyen
+      const Color(0xff2E9E94), // Vert clair
+      // Couleurs chaudes
+      const Color(0xffd57653), // Orange Nafahat
+      const Color(0xffE8926E), // Orange clair
+      const Color(0xffC45A35), // Orange foncé
+      const Color(0xffC4A46C), // Or Nafahat
+      // Bleus
+      Colors.blue[900]!,
       Colors.blue[700]!,
+      Colors.blue[500]!,
+      Colors.blue[300]!,
+
+      // Rouges
+      Colors.red[900]!,
       Colors.red[700]!,
+      Colors.red[500]!,
+
+      // Verts
+      Colors.green[900]!,
       Colors.green[700]!,
+      Colors.green[500]!,
+
+      // Violets
+      Colors.purple[900]!,
       Colors.purple[700]!,
+      Colors.purple[500]!,
+
+      // Roses
+      Colors.pink[900]!,
+      Colors.pink[700]!,
+      Colors.pink[500]!,
+
+      // Oranges
+      Colors.orange[900]!,
       Colors.orange[700]!,
+      Colors.orange[500]!,
+
+      // Teals
+      Colors.teal[900]!,
+      Colors.teal[700]!,
+      Colors.teal[500]!,
+
+      // Indigos
+      Colors.indigo[900]!,
+      Colors.indigo[700]!,
+      Colors.indigo[500]!,
     ];
 
     return Column(
@@ -1101,15 +1150,15 @@ class CardConfig {
         'price',
         'discount',
       ],
-      labelFontFamily: 'Cairo-Regular', // ✅ Variante Regular
+      labelFontFamily: 'Cairo-Regular',
       labelFontSize: 10,
       labelFontWeight: FontWeight.w600,
       labelColor: Colors.grey[600]!,
-      valueFontFamily: 'Cairo-Regular', // ✅ Variante Regular
+      valueFontFamily: 'Cairo-Regular',
       valueFontSize: 10,
       valueFontWeight: FontWeight.w500,
       valueColor: Colors.black,
-      titleFontFamily: 'Cairo-Bold', // ✅ Variante Bold
+      titleFontFamily: 'Cairo-Bold',
       titleFontSize: 14,
       titleFontWeight: FontWeight.bold,
       titleColor: const Color(0xff2c221e),

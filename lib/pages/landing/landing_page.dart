@@ -10,7 +10,7 @@ import 'package:nafahat/models/training_model.dart';
 import 'package:nafahat/services/training_service.dart';
 import 'package:nafahat/pages/adminisration/add_training_card.dart';
 import 'widgets/chatbot/chatbot_wrapper.dart';
-import 'widgets/training_card.dart'; // 👈 NOUVEL IMPORT
+import 'widgets/training_card.dart';
 
 // --- PALETTE DE COULEURS ---
 class AppColors {
@@ -51,8 +51,7 @@ class _LandingPageState extends State<LandingPage> {
     return Directionality(
       textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
       child: ChatbotWrapper(
-        apiBaseUrl:
-            'http://localhost:3000', // À adapter selon votre configuration
+        apiBaseUrl: 'http://localhost:3000',
         langue: isArabic ? 'ar' : 'fr',
         primaryColor: AppColors.primary,
         child: Scaffold(
@@ -387,7 +386,8 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
 
     if (isMobile) {
       cardWidth = screenWidth;
-      cardHeight = 360.0;
+      cardHeight =
+          310.0; // 👈 CORRECTION MOBILE : Réduit de 420.0 à 310.0 pour supprimer le blanc excessif
       rowsPerPage = 100;
     } else if (isTablet) {
       cardWidth = (screenWidth - 80) / 2 - 20;
@@ -406,7 +406,6 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
       gridHeight =
           (cardHeight * _filteredTrainings.length) +
           (20 * (_filteredTrainings.length - 1));
-      gridHeight = gridHeight > 600 ? 600 : gridHeight;
     } else {
       gridHeight = (cardHeight * rowsPerPage) + (20 * (rowsPerPage - 1));
     }
@@ -440,6 +439,7 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
             ],
           ),
         ),
+        const SizedBox(height: 10),
         Container(
           constraints: BoxConstraints(
             minHeight: cardHeight,
@@ -448,7 +448,8 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
           child:
               isMobile
                   ? ListView.builder(
-                    physics: const BouncingScrollPhysics(),
+                    physics:
+                        const NeverScrollableScrollPhysics(), // Désactive le scroll imbriqué
                     shrinkWrap: true,
                     padding: EdgeInsets.zero,
                     itemCount: _filteredTrainings.length,
@@ -459,7 +460,6 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
                           width: cardWidth,
                           height: cardHeight,
                           child: TrainingCard(
-                            // 👈 REMPLACÉ _TrainingCard par TrainingCard
                             training: _filteredTrainings[index],
                             isArabic: widget.isArabic,
                             onRefresh: refreshTrainings,
@@ -496,7 +496,6 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
                             itemCount: pageItems.length,
                             itemBuilder: (context, index) {
                               return TrainingCard(
-                                // 👈 REMPLACÉ _TrainingCard par TrainingCard
                                 training: pageItems[index],
                                 isArabic: widget.isArabic,
                                 onRefresh: refreshTrainings,
@@ -517,7 +516,6 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
                         itemCount: _filteredTrainings.length,
                         itemBuilder: (context, index) {
                           return TrainingCard(
-                            // 👈 REMPLACÉ _TrainingCard par TrainingCard
                             training: _filteredTrainings[index],
                             isArabic: widget.isArabic,
                             onRefresh: refreshTrainings,

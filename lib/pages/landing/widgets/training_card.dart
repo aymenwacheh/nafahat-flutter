@@ -120,22 +120,15 @@ class _TrainingCardState extends State<TrainingCard> {
         final cardWidth =
             constraints.maxWidth > 0 ? constraints.maxWidth : 320.0;
 
-        // ✅ Ajustement pour mobile : hauteur plus petite
         final cardHeight =
             constraints.maxHeight > 0
                 ? constraints.maxHeight
-                : (isMobile ? 340.0 : 420.0); // 👈 Réduit de 360 à 340
+                : (isMobile ? 380.0 : 420.0);
 
-        // ✅ Ajustement des proportions
-        final imageHeight = isMobile ? cardHeight * 0.50 : cardHeight * 0.52;
-        final contentHeight = cardHeight - imageHeight;
+        final imageHeight = cardHeight * 0.48;
 
         final title =
             widget.isArabic ? widget.training.titleAr : widget.training.titleFr;
-        final description =
-            widget.isArabic
-                ? widget.training.descriptionAr
-                : widget.training.descriptionFr;
 
         final imageUrl = _getValidImageUrl(widget.training.imageUrl);
 
@@ -269,198 +262,170 @@ class _TrainingCardState extends State<TrainingCard> {
                     ),
                   ),
 
-                  // Contenu
-                  SizedBox(
-                    height: contentHeight,
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isMobile ? 8 : 10,
-                        vertical: isMobile ? 4 : 6,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          // Titre et description
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Titre avec configuration
-                              if (config.visibleFields.contains('title'))
-                                Text(
-                                  title,
-                                  style: GoogleFonts.getFont(
-                                    _extractFontFamily(config.titleFontFamily),
-                                    fontSize:
-                                        isMobile
-                                            ? config.titleFontSize - 4
-                                            : config.titleFontSize,
-                                    fontWeight: config.titleFontWeight,
-                                    color: config.titleColor,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              const SizedBox(height: 1),
+                  // Contenu principal ajustable
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const NeverScrollableScrollPhysics(),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isMobile ? 6 : 12,
+                          vertical: isMobile ? 4 : 8,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Titre
+                            if (config.visibleFields.contains('title'))
                               Text(
-                                description,
-                                style: GoogleFonts.cairo(
-                                  fontSize: isMobile ? 7 : 10,
-                                  fontWeight: FontWeight.w400,
-                                  color: const Color(0xff7c6e68),
-                                  height: 1.1,
+                                title,
+                                style: GoogleFonts.getFont(
+                                  _extractFontFamily(config.titleFontFamily),
+                                  fontSize:
+                                      isMobile
+                                          ? config.titleFontSize - 2
+                                          : config.titleFontSize,
+                                  fontWeight: config.titleFontWeight,
+                                  color: config.titleColor,
                                 ),
-                                maxLines: isMobile ? 1 : 1,
+                                maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                            ],
-                          ),
+                            const SizedBox(height: 4),
 
-                          // Informations avec configuration - Réduit pour mobile
-                          if (!isMobile ||
-                              config.visibleFields
-                                      .where(
-                                        (f) => [
-                                          'duration',
-                                          'period',
-                                          'target',
-                                          'trainer',
-                                          'category',
-                                        ].contains(f),
-                                      )
-                                      .length <=
-                                  3) ...[
-                            Column(
-                              children: [
-                                if (config.visibleFields.contains('duration'))
-                                  _buildInfoRowWithConfig(
-                                    Icons.access_time_rounded,
-                                    widget.isArabic ? 'المدة : ' : 'Durée : ',
-                                    durationDisplay,
-                                    isMobile,
-                                    config,
-                                  ),
-                                if (config.visibleFields.contains('period') &&
-                                    !isMobile)
-                                  _buildInfoRowWithConfig(
-                                    Icons.calendar_today_rounded,
-                                    widget.isArabic
-                                        ? 'الفترة : '
-                                        : 'Période : ',
-                                    periodDisplay,
-                                    isMobile,
-                                    config,
-                                  ),
-                                if (config.visibleFields.contains('target') &&
-                                    !isMobile)
-                                  _buildInfoRowWithConfig(
-                                    Icons.people_outline_rounded,
-                                    widget.isArabic ? 'الجمهور : ' : 'Cible : ',
-                                    widget.training.target,
-                                    isMobile,
-                                    config,
-                                  ),
-                                if (config.visibleFields.contains('trainer') &&
-                                    !isMobile)
-                                  _buildInfoRowWithConfig(
-                                    Icons.person_outline_rounded,
-                                    widget.isArabic
-                                        ? 'المكون : '
-                                        : 'Formateur : ',
-                                    widget.training.trainer,
-                                    isMobile,
-                                    config,
-                                  ),
-                                if (config.visibleFields.contains('category') &&
-                                    !isMobile)
-                                  _buildInfoRowWithConfig(
-                                    Icons.category_outlined,
-                                    widget.isArabic
-                                        ? 'التصنيف : '
-                                        : 'Catégorie : ',
-                                    widget.isArabic
-                                        ? widget.training.categorieAr
-                                        : widget.training.categorieFr,
-                                    isMobile,
-                                    config,
-                                  ),
-                              ],
-                            ),
-                          ],
+                            // Informations de la formation
+                            if (config.visibleFields.contains('duration'))
+                              _buildInfoRowWithConfig(
+                                Icons.access_time_rounded,
+                                widget.isArabic ? 'المدة : ' : 'Durée : ',
+                                durationDisplay,
+                                isMobile,
+                                config,
+                              ),
+                            if (config.visibleFields.contains('period'))
+                              _buildInfoRowWithConfig(
+                                Icons.calendar_today_rounded,
+                                widget.isArabic ? 'الفترة : ' : 'Période : ',
+                                periodDisplay,
+                                isMobile,
+                                config,
+                              ),
+                            if (config.visibleFields.contains('target'))
+                              _buildInfoRowWithConfig(
+                                Icons.people_outline_rounded,
+                                widget.isArabic ? 'الجمهور : ' : 'Cible : ',
+                                widget.training.target,
+                                isMobile,
+                                config,
+                              ),
+                            if (config.visibleFields.contains('trainer'))
+                              _buildInfoRowWithConfig(
+                                Icons.person_outline_rounded,
+                                widget.isArabic ? 'المكون : ' : 'Formateur : ',
+                                widget.training.trainer,
+                                isMobile,
+                                config,
+                              ),
+                            if (config.visibleFields.contains('category'))
+                              _buildInfoRowWithConfig(
+                                Icons.category_outlined,
+                                widget.isArabic ? 'التصنيف : ' : 'Catégorie : ',
+                                widget.isArabic
+                                    ? widget.training.categorieAr
+                                    : widget.training.categorieFr,
+                                isMobile,
+                                config,
+                              ),
 
-                          // Bas de carte
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              if (config.visibleFields.contains('duration') &&
-                                  !isMobile)
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.access_time_rounded,
-                                      size: isMobile ? 10 : 12,
-                                      color: const Color(0xffd57653),
-                                    ),
-                                    const SizedBox(width: 3),
-                                    Text(
-                                      durationDisplay,
-                                      style: GoogleFonts.cairo(
-                                        fontSize: isMobile ? 8 : 10,
-                                        fontWeight: FontWeight.w600,
-                                        color: const Color(0xffd57653),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              if (config.visibleFields.contains('price'))
-                                Row(
-                                  children: [
-                                    if (widget.training.hasDiscount &&
-                                        widget.training.discountValue != null)
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          right: 3,
+                            const SizedBox(height: 8),
+
+                            // Bas de carte (Prix & Flèche d'action)
+                            Padding(
+                              padding: EdgeInsets.only(
+                                top: isMobile ? 4 : 6,
+                                bottom: isMobile ? 2 : 4,
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  if (config.visibleFields.contains('duration'))
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.access_time_rounded,
+                                          size: isMobile ? 11 : 14,
+                                          color: const Color(0xffd57653),
                                         ),
-                                        child: Text(
-                                          '${widget.training.price.toInt()} DH',
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          durationDisplay,
                                           style: GoogleFonts.cairo(
-                                            fontSize: isMobile ? 7 : 9,
-                                            fontWeight: FontWeight.w400,
-                                            decoration:
-                                                TextDecoration.lineThrough,
-                                            color: Colors.grey.shade500,
+                                            fontSize: isMobile ? 9 : 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: const Color(0xffd57653),
                                           ),
                                         ),
-                                      ),
-                                    Text(
-                                      '${widget.training.finalPrice.toInt()} DH',
-                                      style: GoogleFonts.cairo(
-                                        fontSize: isMobile ? 12 : 13,
-                                        fontWeight: FontWeight.w700,
-                                        color: const Color(0xffd57653),
-                                      ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                              Container(
-                                padding: const EdgeInsets.all(2),
-                                decoration: BoxDecoration(
-                                  color: const Color(
-                                    0xffd57653,
-                                  ).withOpacity(0.1),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  widget.isArabic
-                                      ? Icons.arrow_back_rounded
-                                      : Icons.arrow_forward_rounded,
-                                  color: const Color(0xffd57653),
-                                  size: isMobile ? 10 : 12,
-                                ),
+                                  if (config.visibleFields.contains('price'))
+                                    Row(
+                                      children: [
+                                        if (widget.training.hasDiscount &&
+                                            widget.training.discountValue !=
+                                                null)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              right: 4,
+                                            ),
+                                            child: Text(
+                                              '${widget.training.price.toInt()} DH',
+                                              style: GoogleFonts.cairo(
+                                                fontSize: isMobile ? 8 : 10,
+                                                fontWeight: FontWeight.w400,
+                                                decoration:
+                                                    TextDecoration.lineThrough,
+                                                color: Colors.grey.shade500,
+                                              ),
+                                            ),
+                                          ),
+                                        Text(
+                                          '${widget.training.finalPrice.toInt()} DH',
+                                          style: GoogleFonts.cairo(
+                                            fontSize: isMobile ? 13 : 15,
+                                            fontWeight: FontWeight.w800,
+                                            color: const Color(0xffd57653),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    padding: EdgeInsets.all(isMobile ? 5 : 7),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          isHovered
+                                              ? const Color(0xffd57653)
+                                              : const Color(
+                                                0xffd57653,
+                                              ).withOpacity(0.12),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      widget.isArabic
+                                          ? Icons.arrow_back_rounded
+                                          : Icons.arrow_forward_rounded,
+                                      color:
+                                          isHovered
+                                              ? Colors.white
+                                              : const Color(0xffd57653),
+                                      size: isMobile ? 14 : 18,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -481,19 +446,21 @@ class _TrainingCardState extends State<TrainingCard> {
     CardConfig config,
   ) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: isMobile ? 0.5 : 0.5),
+      padding: EdgeInsets.symmetric(vertical: isMobile ? 1.0 : 2.0),
       child: Row(
         children: [
-          Icon(icon, size: isMobile ? 8 : 10, color: const Color(0xffd57653)),
-          const SizedBox(width: 2),
-          Text(
-            label,
-            style: GoogleFonts.getFont(
-              _extractFontFamily(config.labelFontFamily),
-              fontSize:
-                  isMobile ? config.labelFontSize - 2 : config.labelFontSize,
-              fontWeight: config.labelFontWeight,
-              color: config.labelColor,
+          Icon(icon, size: isMobile ? 9 : 11, color: const Color(0xffd57653)),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              label,
+              style: GoogleFonts.getFont(
+                _extractFontFamily(config.labelFontFamily),
+                fontSize:
+                    isMobile ? config.labelFontSize - 1 : config.labelFontSize,
+                fontWeight: config.labelFontWeight,
+                color: config.labelColor,
+              ),
             ),
           ),
           Expanded(
@@ -502,7 +469,7 @@ class _TrainingCardState extends State<TrainingCard> {
               style: GoogleFonts.getFont(
                 _extractFontFamily(config.valueFontFamily),
                 fontSize:
-                    isMobile ? config.valueFontSize - 2 : config.valueFontSize,
+                    isMobile ? config.valueFontSize - 1 : config.valueFontSize,
                 fontWeight: config.valueFontWeight,
                 color: config.valueColor,
               ),
@@ -517,8 +484,9 @@ class _TrainingCardState extends State<TrainingCard> {
 
   Widget _buildImage(String imageUrl) {
     if (imageUrl.startsWith('assets/')) {
+      final cleanPath = imageUrl.replaceFirst('assets/', '');
       return Image.asset(
-        imageUrl,
+        cleanPath,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) => _buildErrorWidget(),
       );
