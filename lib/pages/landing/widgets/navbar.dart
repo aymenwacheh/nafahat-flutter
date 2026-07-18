@@ -13,6 +13,7 @@ import 'package:nafahat/pages/adminisration/edit_categorie.dart';
 import 'package:nafahat/pages/adminisration/add_formateur.dart';
 import 'package:nafahat/pages/adminisration/add_video_fav_page.dart';
 import 'package:nafahat/pages/adminisration/add_duree.dart';
+import 'package:nafahat/pages/adminisration/apparence_card.dart';
 import 'package:nafahat/pages/users/auth_page.dart';
 import 'package:nafahat/pages/users/profile_dashboard_page.dart';
 import 'package:nafahat/pages/users/edit_profile_page.dart';
@@ -62,9 +63,7 @@ class Navbar extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // ---- Logo ----
               _buildLogo(),
-              // ---- Menu ----
               if (isMobile)
                 _buildMobileMenuButton()
               else
@@ -76,9 +75,6 @@ class Navbar extends StatelessWidget {
     );
   }
 
-  // ============================================================
-  // LOGO
-  // ============================================================
   Widget _buildLogo() {
     return Row(
       children: [
@@ -107,9 +103,6 @@ class Navbar extends StatelessWidget {
     );
   }
 
-  // ============================================================
-  // BOUTON MENU MOBILE
-  // ============================================================
   Widget _buildMobileMenuButton() {
     return IconButton(
       icon: const Icon(Icons.menu_rounded, color: nafahatGreen, size: 30),
@@ -117,9 +110,6 @@ class Navbar extends StatelessWidget {
     );
   }
 
-  // ============================================================
-  // MENU DESKTOP
-  // ============================================================
   Widget _buildDesktopMenu(BuildContext context) {
     return Row(
       children: [
@@ -145,17 +135,14 @@ class Navbar extends StatelessWidget {
           onTap: () {},
         ),
         const SizedBox(width: 15),
-        // ---- Bouton Langue ----
         IconButton(
           icon: const Icon(Icons.language, color: nafahatGreen, size: 22),
           onPressed: onLanguageToggle,
           tooltip: isArabic ? "Français" : "العربية",
         ),
         const SizedBox(width: 15),
-        // ---- MENU ADMINISTRATION ----
         if (isAdmin) _buildAdminMenu(context),
         const SizedBox(width: 15),
-        // ---- MENU COMPTE ----
         _buildAccountMenu(context),
       ],
     );
@@ -229,6 +216,13 @@ class Navbar extends StatelessWidget {
         'titleFr': 'Gérer les formations',
         'titleAr': 'إدارة التكوينات',
       },
+      {'isDivider': true},
+      {
+        'value': 'apparence_card',
+        'icon': Icons.palette_outlined,
+        'titleFr': 'Apparence des cartes',
+        'titleAr': 'مظهر البطاقات',
+      },
     ];
   }
 
@@ -271,7 +265,6 @@ class Navbar extends StatelessWidget {
 
     for (final item in _adminMenuItems) {
       if (item['isDivider'] == true) {
-        // ✅ Correction : utiliser PopupMenuItem avec Divider au lieu de PopupMenuDivider
         items.add(
           PopupMenuItem<String>(
             enabled: false,
@@ -400,6 +393,12 @@ class Navbar extends StatelessWidget {
           ),
         );
         break;
+      case 'apparence_card':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ApparenceCardPage()),
+        );
+        break;
     }
   }
 
@@ -461,7 +460,6 @@ class Navbar extends StatelessWidget {
 
     for (final item in _accountMenuItems) {
       if (item['isDivider'] == true) {
-        // ✅ Correction : utiliser PopupMenuItem avec Divider
         items.add(
           PopupMenuItem<String>(
             enabled: false,
@@ -547,7 +545,6 @@ class Navbar extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Column(
           children: [
-            // --- En-tête ---
             _buildDrawerHeader(),
             Expanded(
               child: ListView(
@@ -556,7 +553,6 @@ class Navbar extends StatelessWidget {
                   vertical: 10,
                 ),
                 children: [
-                  // --- Liens principaux ---
                   _drawerTile(
                     icon: Icons.home_outlined,
                     title: isArabic ? "الرئيسية" : "Accueil",
@@ -583,15 +579,12 @@ class Navbar extends StatelessWidget {
                   ),
                   const Divider(height: 30, thickness: 1),
 
-                  // --- ADMINISTRATION ---
                   if (isAdmin) _buildDrawerAdminSection(context),
                   const Divider(height: 30, thickness: 1),
 
-                  // --- COMPTE ---
                   if (isUserLoggedIn) _buildDrawerAccountSection(context),
                   const Divider(height: 30, thickness: 1),
 
-                  // --- TRAITER L'ACTIVITÉ ---
                   _drawerTile(
                     icon: Icons.build_circle_outlined,
                     title:
@@ -612,7 +605,6 @@ class Navbar extends StatelessWidget {
                   ),
                   const Divider(height: 30, thickness: 1),
 
-                  // --- DÉCONNEXION ---
                   if (isUserLoggedIn)
                     _drawerTile(
                       icon: Icons.logout_rounded,
@@ -634,7 +626,6 @@ class Navbar extends StatelessWidget {
                     ),
                   const SizedBox(height: 20),
 
-                  // --- Bouton Langue ---
                   ListTile(
                     leading: const Icon(Icons.language, color: nafahatGreen),
                     title: Text(

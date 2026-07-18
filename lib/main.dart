@@ -7,8 +7,9 @@ import '/pages/landing/splash_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/pages/users/auth_page.dart';
 import 'package:nafahat/providers/language_provider.dart';
+import 'package:nafahat/providers/card_config_provider.dart'; // 👈 AJOUT
 import 'pages/landing/widgets/chatbot/chatbot_widget.dart';
-import 'package:nafahat/config/api_config.dart'; // 👈 AJOUT
+import 'package:nafahat/config/api_config.dart';
 
 void main() {
   runApp(const MyApp());
@@ -19,8 +20,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => LanguageProvider(),
+    return MultiProvider(
+      // 👈 CHANGEMENT : MultiProvider au lieu de ChangeNotifierProvider
+      providers: [
+        ChangeNotifierProvider(create: (_) => LanguageProvider()),
+        ChangeNotifierProvider(create: (_) => CardConfigProvider()), // 👈 AJOUT
+      ],
       child: MaterialApp(
         title: 'Nafahat Platform',
         debugShowCheckedModeBanner: false,
@@ -74,7 +79,7 @@ class _ChatbotGlobalWrapperState extends State<ChatbotGlobalWrapper> {
       children: [
         widget.child,
         ChatbotWidget(
-          apiBaseUrl: ApiConfig.baseUrl, // 👈 UTILISER LA CONFIG
+          apiBaseUrl: ApiConfig.baseUrl,
           langue: isArabic ? 'ar' : 'fr',
           primaryColor: const Color(0xffd57653),
         ),

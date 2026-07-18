@@ -9,6 +9,7 @@ import 'package:nafahat/pages/adminisration/add_video_fav_page.dart';
 import 'package:nafahat/pages/adminisration/edit_formation.dart';
 import 'package:nafahat/pages/users/edit_profile_page.dart';
 import 'package:nafahat/pages/adminisration/add_duree.dart';
+import 'package:nafahat/pages/adminisration/apparence_card.dart';
 import 'package:nafahat/services/training_service.dart';
 import 'package:nafahat/services/video_service.dart';
 import 'package:nafahat/services/adherent_service.dart';
@@ -36,6 +37,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     const VideosManagementPage(),
     const AdherentsManagementPage(),
     const DureesManagementPage(),
+    const ApparenceCardPage(),
   ];
 
   final List<String> _titles = [
@@ -46,6 +48,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     'Vidéos',
     'Adhérents',
     'Durées',
+    'Apparence des cartes',
   ];
 
   final List<Map<String, dynamic>> _menuItems = [
@@ -56,6 +59,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     {'icon': Icons.video_library_outlined, 'title': 'Vidéos', 'page': 4},
     {'icon': Icons.people_outline, 'title': 'Adhérents', 'page': 5},
     {'icon': Icons.access_time, 'title': 'Durées', 'page': 6},
+    {'icon': Icons.palette_outlined, 'title': 'Apparence', 'page': 7},
   ];
 
   @override
@@ -602,6 +606,13 @@ class DashboardPage extends StatelessWidget {
                 title: 'Durées',
                 count: '4',
                 color: Colors.orange[700]!,
+              ),
+              // 👈 AJOUT : Carte Apparence dans le dashboard
+              _buildStatCard(
+                icon: Icons.palette,
+                title: 'Apparence',
+                count: '⚙️',
+                color: const Color(0xffC4A46C),
               ),
             ],
           ),
