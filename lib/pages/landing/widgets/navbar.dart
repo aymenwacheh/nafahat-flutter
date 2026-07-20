@@ -13,6 +13,7 @@ import 'package:nafahat/pages/adminisration/edit_categorie.dart';
 import 'package:nafahat/pages/adminisration/add_formateur.dart';
 import 'package:nafahat/pages/adminisration/add_video_fav_page.dart';
 import 'package:nafahat/pages/adminisration/add_duree.dart';
+import 'package:nafahat/pages/adminisration/add_typeFormation.dart';
 import 'package:nafahat/pages/adminisration/apparence_card.dart';
 import 'package:nafahat/pages/users/auth_page.dart';
 import 'package:nafahat/pages/users/profile_dashboard_page.dart';
@@ -197,6 +198,19 @@ class Navbar extends StatelessWidget {
       },
       {'isDivider': true},
       {
+        'value': 'add_type_formation',
+        'icon': Icons.label_outline,
+        'titleFr': 'Ajouter un type de formation',
+        'titleAr': 'إضافة نوع تكوين',
+      },
+      {
+        'value': 'edit_type_formation',
+        'icon': Icons.edit_note,
+        'titleFr': 'Gérer les types de formation',
+        'titleAr': 'إدارة أنواع التكوين',
+      },
+      {'isDivider': true},
+      {
         'value': 'add_formateur',
         'icon': Icons.person_add,
         'titleFr': 'Ajouter un formateur',
@@ -363,6 +377,15 @@ class Navbar extends StatelessWidget {
         break;
       case 'edit_categorie':
         _showEditCategorieDialog(context);
+        break;
+      case 'add_type_formation':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AddTypeFormationPage()),
+        );
+        break;
+      case 'edit_type_formation':
+        _showEditTypeFormationDialog(context);
         break;
       case 'add_formateur':
         Navigator.push(
@@ -1171,6 +1194,166 @@ class Navbar extends StatelessWidget {
       return [];
     } catch (e) {
       print('❌ Erreur chargement catégories: $e');
+      return [];
+    }
+  }
+
+  // ============================================================
+  // DIALOGUE TYPES DE FORMATION
+  // ============================================================
+  void _showEditTypeFormationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            isArabic ? 'تعديل نوع تكوين' : 'Modifier un type de formation',
+            style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  isArabic
+                      ? 'اختر نوع تكوين من القائمة أدناه'
+                      : 'Sélectionnez un type de formation dans la liste ci-dessous',
+                  style: GoogleFonts.cairo(
+                    color: Colors.grey.shade600,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                FutureBuilder<List<Map<String, dynamic>>>(
+                  future: _loadTypesFormationList(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError ||
+                        !snapshot.hasData ||
+                        snapshot.data!.isEmpty) {
+                      return Text(
+                        isArabic
+                            ? 'لا توجد أنواع تكوين متاحة'
+                            : 'Aucun type de formation disponible',
+                        style: GoogleFonts.cairo(color: Colors.grey.shade600),
+                      );
+                    }
+                    final types = snapshot.data!;
+                    return Container(
+                      height: 200,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade200),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: types.length,
+                        itemBuilder: (context, index) {
+                          final type = types[index];
+                          // Compter les chapitres non vides
+                          final chapters =
+                              [
+                                    type['ch1'],
+                                    type['ch2'],
+                                    type['ch3'],
+                                    type['ch4'],
+                                    type['ch5'],
+                                    type['ch6'],
+                                  ]
+                                  .where(
+                                    (ch) =>
+                                        ch != null && ch.toString().isNotEmpty,
+                                  )
+                                  .length;
+
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: const Color(
+                                0xffd57653,
+                              ).withOpacity(0.1),
+                              child: Text(
+                                '${index + 1}',
+                                style: GoogleFonts.cairo(
+                                  color: const Color(0xffd57653),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            title: Text(
+                              type['type_formation'] ?? 'Sans nom',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.cairo(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '$chapters chapitre${chapters > 1 ? 's' : ''}',
+                              style: GoogleFonts.cairo(
+                                fontSize: 12,
+                                color: Colors.grey.shade500,
+                              ),
+                            ),
+                            trailing: Icon(
+                              Icons.chevron_right,
+                              color: const Color(0xff0D443E),
+                            ),
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => AddTypeFormationPage(
+                                        typeToEdit: type,
+                                      ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                isArabic ? 'إلغاء' : 'Annuler',
+                style: GoogleFonts.cairo(color: Colors.grey.shade600),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> _loadTypesFormationList() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${TrainingService.apiBaseUrl}/types-formation'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          return List<Map<String, dynamic>>.from(data['data']);
+        }
+      }
+      return [];
+    } catch (e) {
+      print('❌ Erreur chargement types de formation: $e');
       return [];
     }
   }

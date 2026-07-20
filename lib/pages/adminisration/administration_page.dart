@@ -18,6 +18,7 @@ import 'package:nafahat/models/video_model.dart';
 import 'package:nafahat/models/adherent.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:nafahat/pages/adminisration/add_typeFormation.dart';
 
 class AdministrationPage extends StatefulWidget {
   const AdministrationPage({super.key});
@@ -37,6 +38,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     const VideosManagementPage(),
     const AdherentsManagementPage(),
     const DureesManagementPage(),
+    const TypesFormationManagementPage(),
     const ApparenceCardPage(),
   ];
 
@@ -48,6 +50,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     'Vidéos',
     'Adhérents',
     'Durées',
+    'Types de formation',
     'Apparence des cartes',
   ];
 
@@ -59,7 +62,8 @@ class _AdministrationPageState extends State<AdministrationPage> {
     {'icon': Icons.video_library_outlined, 'title': 'Vidéos', 'page': 4},
     {'icon': Icons.people_outline, 'title': 'Adhérents', 'page': 5},
     {'icon': Icons.access_time, 'title': 'Durées', 'page': 6},
-    {'icon': Icons.palette_outlined, 'title': 'Apparence', 'page': 7},
+    {'icon': Icons.label_outlined, 'title': 'Types Formation', 'page': 7},
+    {'icon': Icons.palette_outlined, 'title': 'Apparence', 'page': 8},
   ];
 
   @override
@@ -2045,6 +2049,321 @@ class _DureesManagementPageState extends State<DureesManagementPage> {
                                   ),
                                   onPressed: () {
                                     _deleteDuree(d['id'].toString());
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================
+// TYPES DE FORMATION MANAGEMENT PAGE
+// ============================================================
+class TypesFormationManagementPage extends StatefulWidget {
+  const TypesFormationManagementPage({super.key});
+
+  @override
+  State<TypesFormationManagementPage> createState() =>
+      _TypesFormationManagementPageState();
+}
+
+class _TypesFormationManagementPageState
+    extends State<TypesFormationManagementPage> {
+  List<Map<String, dynamic>> _typesFormation = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTypesFormation();
+  }
+
+  Future<void> _loadTypesFormation() async {
+    setState(() => _isLoading = true);
+    try {
+      // ✅ CORRECTION : Ajouter le "s" à "types"
+      final response = await http.get(
+        Uri.parse('${TrainingService.apiBaseUrl}/types-formation'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          _typesFormation = List<Map<String, dynamic>>.from(data['data']);
+          _isLoading = false;
+        });
+      } else {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Erreur lors du chargement des types de formation'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur chargement types de formation: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _deleteTypeFormation(String id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Confirmer la suppression'),
+            content: const Text(
+              'Êtes-vous sûr de vouloir supprimer ce type de formation ?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Annuler'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Supprimer'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirm == true) {
+      setState(() => _isLoading = true);
+      try {
+        // ✅ CORRECTION : Ajouter le "s" à "types"
+        final response = await http.delete(
+          Uri.parse('${TrainingService.apiBaseUrl}/types-formation/$id'),
+          headers: {'Content-Type': 'application/json'},
+        );
+
+        final data = json.decode(response.body);
+
+        if (response.statusCode == 200 && data['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Type de formation supprimé avec succès'),
+              backgroundColor: Color(0xff0D443E),
+            ),
+          );
+          _loadTypesFormation();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(data['message'] ?? 'Erreur lors de la suppression'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          setState(() => _isLoading = false);
+        }
+      } catch (e) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Gestion des types de formation',
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xff2c221e),
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AddTypeFormationPage(),
+                    ),
+                  ).then((_) => _loadTypesFormation());
+                },
+                icon: const Icon(Icons.add),
+                label: const Text('Ajouter'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xff0D443E),
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child:
+                _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _typesFormation.isEmpty
+                    ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.label_outline,
+                            size: 80,
+                            color: Colors.grey[300],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Aucun type de formation trouvé',
+                            style: GoogleFonts.poppins(color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                    )
+                    : Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey[200]!),
+                      ),
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(8),
+                        itemCount: _typesFormation.length,
+                        itemBuilder: (context, index) {
+                          final type = _typesFormation[index];
+                          // Compter les chapitres non vides
+                          final chapters =
+                              [
+                                    type['ch1'],
+                                    type['ch2'],
+                                    type['ch3'],
+                                    type['ch4'],
+                                    type['ch5'],
+                                    type['ch6'],
+                                  ]
+                                  .where(
+                                    (ch) =>
+                                        ch != null && ch.toString().isNotEmpty,
+                                  )
+                                  .length;
+
+                          // Construire l'affichage des chapitres
+                          String chaptersDisplay = '';
+                          if (chapters > 0) {
+                            final List<String> chapterNames = [];
+                            if (type['ch1'] != null &&
+                                type['ch1'].toString().isNotEmpty) {
+                              chapterNames.add('Ch1: ${type['ch1']}');
+                            }
+                            if (type['ch2'] != null &&
+                                type['ch2'].toString().isNotEmpty) {
+                              chapterNames.add('Ch2: ${type['ch2']}');
+                            }
+                            if (type['ch3'] != null &&
+                                type['ch3'].toString().isNotEmpty) {
+                              chapterNames.add('Ch3: ${type['ch3']}');
+                            }
+                            if (type['ch4'] != null &&
+                                type['ch4'].toString().isNotEmpty) {
+                              chapterNames.add('Ch4: ${type['ch4']}');
+                            }
+                            if (type['ch5'] != null &&
+                                type['ch5'].toString().isNotEmpty) {
+                              chapterNames.add('Ch5: ${type['ch5']}');
+                            }
+                            if (type['ch6'] != null &&
+                                type['ch6'].toString().isNotEmpty) {
+                              chapterNames.add('Ch6: ${type['ch6']}');
+                            }
+                            chaptersDisplay = chapterNames.join(' | ');
+                          }
+
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: const Color(
+                                0xffd57653,
+                              ).withOpacity(0.1),
+                              child: Text(
+                                '${index + 1}',
+                                style: TextStyle(
+                                  color: const Color(0xffd57653),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            title: Text(
+                              type['type_formation'] ?? 'Sans nom',
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            subtitle:
+                                chapters > 0
+                                    ? Text(
+                                      chaptersDisplay,
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 12,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    )
+                                    : Text(
+                                      'Aucun chapitre',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade400,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.edit,
+                                    color: Color(0xffd57653),
+                                    size: 20,
+                                  ),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (context) => AddTypeFormationPage(
+                                              typeToEdit: type,
+                                            ),
+                                      ),
+                                    ).then((_) => _loadTypesFormation());
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    color: Colors.red,
+                                    size: 20,
+                                  ),
+                                  onPressed: () {
+                                    _deleteTypeFormation(type['id'].toString());
                                   },
                                 ),
                               ],
