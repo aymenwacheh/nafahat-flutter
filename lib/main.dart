@@ -11,8 +11,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/pages/users/auth_page.dart';
 import 'package:nafahat/providers/language_provider.dart';
 import 'package:nafahat/providers/card_config_provider.dart';
+import 'package:nafahat/providers/chatbot_provider.dart'; // 👈 NOUVEAU: Import du ChatbotProvider
 import 'pages/landing/widgets/chatbot/chatbot_widget.dart';
 import 'package:nafahat/config/api_config.dart';
+import 'pages/landing/landing_page.dart'; // 👈 NOUVEAU: Import pour la landing page
 
 void main() {
   runApp(const MyApp());
@@ -50,6 +52,9 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => LanguageProvider()),
         ChangeNotifierProvider(create: (_) => CardConfigProvider()),
+        ChangeNotifierProvider(
+          create: (_) => ChatbotProvider(),
+        ), // 👈 NOUVEAU: Ajout du ChatbotProvider
       ],
       child: Consumer<LanguageProvider>(
         builder: (context, languageProvider, child) {
@@ -88,12 +93,82 @@ class MyApp extends StatelessWidget {
             localeResolutionCallback: (deviceLocale, supportedLocales) {
               return const Locale('ar');
             },
+            // 👇 Navigation avec route observer pour contrôler le chatbot
+            navigatorObservers: [
+              ChatbotRouteObserver(), // 👈 NOUVEAU: Observateur pour suivre les routes
+            ],
             // 👈 ICI on utilise la fonction pour déterminer la page initiale
             home: _getInitialPage(),
+            // 👇 Routes nommées pour un meilleur contrôle
+            routes: {
+              '/landing':
+                  (context) => const ChatbotGlobalWrapper(
+                    child: LandingPage(),
+                    hideOnRoute: true, // 👈 Cacher le chatbot sur LandingPage
+                  ),
+              '/splash':
+                  (context) => const ChatbotGlobalWrapper(
+                    child: SplashScreen(),
+                    hideOnRoute: true, // 👈 Cacher le chatbot sur SplashScreen
+                  ),
+              '/auth':
+                  (context) => const ChatbotGlobalWrapper(
+                    child: AuthPage(),
+                    hideOnRoute: false, // 👈 Afficher le chatbot sur AuthPage
+                  ),
+            },
           );
         },
       ),
     );
+  }
+}
+
+// 👇 OBSERVATEUR DE ROUTE pour mettre à jour le ChatbotProvider
+class ChatbotRouteObserver extends NavigatorObserver {
+  // Liste des routes où le chatbot doit être caché
+  static const List<String> _hideRoutes = ['/splash', '/landing'];
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    _updateChatbotVisibility(route.settings.name);
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPop(route, previousRoute);
+    _updateChatbotVisibility(previousRoute?.settings.name);
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+    _updateChatbotVisibility(newRoute?.settings.name);
+  }
+
+  void _updateChatbotVisibility(String? routeName) {
+    // Récupérer le contexte du navigateur
+    final context = navigator?.context;
+    if (context != null) {
+      // Récupérer le ChatbotProvider
+      final chatbotProvider = Provider.of<ChatbotProvider>(
+        context,
+        listen: false,
+      );
+
+      // Vérifier si la route actuelle doit cacher le chatbot
+      final shouldHide = _hideRoutes.contains(routeName);
+
+      // Mettre à jour la visibilité
+      if (shouldHide) {
+        chatbotProvider.hide();
+        print('🔍 Chatbot CACHÉ sur la route: $routeName');
+      } else {
+        chatbotProvider.show();
+        print('🔍 Chatbot VISIBLE sur la route: $routeName');
+      }
+    }
   }
 }
 
@@ -136,13 +211,13 @@ class _ComingSoonPageState extends State<ComingSoonPage>
   @override
   Widget build(BuildContext context) {
     // Couleur orange utilisée dans le bouton
-    const Color orangeColor = const Color.fromARGB(255, 180, 5, 20);
+    const Color orangeColor = Color.fromARGB(255, 180, 5, 20);
 
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
           image: DecorationImage(
-            image: const AssetImage(
+            image: AssetImage(
               'assets/images/slide1.png',
             ), // Remplacez par votre image
             fit: BoxFit.cover,
@@ -180,18 +255,13 @@ class _ComingSoonPageState extends State<ComingSoonPage>
                             icon: Icon(
                               Icons.hourglass_empty, // Icône sablier
                               size: 28,
-                              color: const Color.fromARGB(
-                                255,
-                                180,
-                                5,
-                                20,
-                              ), // Couleur orange
+                              color: orangeColor,
                             ),
                             label: Text(
                               'Coming Soon',
                               style: GoogleFonts.cairo(
                                 fontSize: 18,
-                                color: const Color.fromARGB(255, 180, 5, 20),
+                                color: orangeColor,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -224,10 +294,16 @@ class _ComingSoonPageState extends State<ComingSoonPage>
   }
 }
 
+// ✅ WRAPPER avec ChatbotProvider
 class ChatbotGlobalWrapper extends StatefulWidget {
   final Widget child;
+  final bool hideOnRoute; // 👈 Paramètre pour cacher sur une route spécifique
 
-  const ChatbotGlobalWrapper({super.key, required this.child});
+  const ChatbotGlobalWrapper({
+    super.key,
+    required this.child,
+    this.hideOnRoute = false,
+  });
 
   @override
   State<ChatbotGlobalWrapper> createState() => _ChatbotGlobalWrapperState();
@@ -235,17 +311,52 @@ class ChatbotGlobalWrapper extends StatefulWidget {
 
 class _ChatbotGlobalWrapperState extends State<ChatbotGlobalWrapper> {
   @override
+  void initState() {
+    super.initState();
+    // Si hideOnRoute est true, cacher le chatbot immédiatement
+    if (widget.hideOnRoute) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final provider = Provider.of<ChatbotProvider>(context, listen: false);
+        provider.hide();
+        print('🔍 Chatbot caché sur cette page');
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isArabic = Provider.of<LanguageProvider>(context).isArabic;
+    final chatbotProvider = Provider.of<ChatbotProvider>(context);
+
+    // Vérifier si le chatbot doit être caché via le provider
+    bool showChatbot = chatbotProvider.isVisible;
+
+    // Vérification supplémentaire via le type du widget enfant
+    if (widget.child is SplashScreen || widget.child is LandingPage) {
+      showChatbot = false;
+    }
+
+    // Vérification via le nom de la route
+    final route = ModalRoute.of(context);
+    final routeName = route?.settings.name ?? '';
+    if (routeName == '/splash' || routeName == '/landing') {
+      showChatbot = false;
+    }
+
+    print(
+      '🔍 Chatbot sur $routeName: ${showChatbot ? '✅ VISIBLE' : '❌ CACHÉ'}',
+    );
 
     return Stack(
       children: [
         widget.child,
-        ChatbotWidget(
-          apiBaseUrl: ApiConfig.baseUrl,
-          langue: isArabic ? 'ar' : 'fr',
-          primaryColor: const Color(0xffd57653),
-        ),
+        // 👇 Afficher le chatbot SEULEMENT si showChatbot est true
+        if (showChatbot)
+          ChatbotWidget(
+            apiBaseUrl: ApiConfig.baseUrl,
+            langue: isArabic ? 'ar' : 'fr',
+            primaryColor: const Color(0xffd57653),
+          ),
       ],
     );
   }
