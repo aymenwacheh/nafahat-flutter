@@ -85,12 +85,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
     super.dispose();
   }
 
-  // ---- Méthode pour changer la langue ----
-  void toggleLanguage() {
-    final provider = Provider.of<LanguageProvider>(context, listen: false);
-    provider.toggleLanguage();
-  }
-
   Future<void> _saveProfile() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
@@ -445,17 +439,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 ),
               ),
 
-              // ---- NAVBAR ----
+              // ---- NAVBAR (CORRIGÉE) ----
               Positioned(
                 top: 0,
                 left: 0,
                 right: 0,
-                child: Navbar(
-                  isArabic: isArabic,
-                  isMobile: isMobile,
-                  onLanguageToggle: toggleLanguage,
-                  scaffoldKey: _scaffoldKey,
-                ),
+                child: Navbar(isMobile: isMobile, scaffoldKey: _scaffoldKey),
               ),
 
               // ---- Overlay chargement ----

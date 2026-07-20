@@ -8,7 +8,7 @@ import 'profile_dashboard_page.dart';
 import 'inscription_adherent.dart';
 import '../../providers/language_provider.dart';
 import '../../services/adherent_service.dart';
-import '../landing/widgets/chatbot/chatbot_wrapper.dart'; // 👈 AJOUT
+import '../landing/widgets/chatbot/chatbot_wrapper.dart';
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
@@ -30,12 +30,6 @@ class _AuthPageState extends State<AuthPage> {
   static const Color nafahatGreenDark = Color(0xff092E2A);
   static const Color nafahatGreen = Color(0xff0D443E);
   static const Color nafahatGold = Color(0xffC4A46C);
-
-  // Méthode toggle qui appelle le provider
-  void toggleLanguage() {
-    final provider = Provider.of<LanguageProvider>(context, listen: false);
-    provider.toggleLanguage();
-  }
 
   // ---- AUTHENTIFICATION ----
   Future<void> _login() async {
@@ -107,8 +101,6 @@ class _AuthPageState extends State<AuthPage> {
       return;
     }
 
-    // TODO: Implémenter la réinitialisation du mot de passe
-    // Pour l'instant, on affiche un message
     final isArabic =
         Provider.of<LanguageProvider>(context, listen: false).isArabic;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -132,9 +124,7 @@ class _AuthPageState extends State<AuthPage> {
     return Directionality(
       textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
       child: ChatbotWrapper(
-        // 👈 WRAPPER AJOUTÉ
-        apiBaseUrl:
-            'http://localhost:3000', // À adapter selon votre configuration
+        apiBaseUrl: 'http://localhost:3000',
         langue: isArabic ? 'ar' : 'fr',
         primaryColor: nafahatGreen,
         child: Scaffold(
@@ -458,17 +448,12 @@ class _AuthPageState extends State<AuthPage> {
                   ],
                 ),
 
-                // --- NAVBAR ---
+                // --- NAVBAR (CORRIGÉE) ---
                 Positioned(
                   top: 0,
                   left: 0,
                   right: 0,
-                  child: Navbar(
-                    isArabic: isArabic,
-                    isMobile: isMobile,
-                    onLanguageToggle: toggleLanguage,
-                    scaffoldKey: _scaffoldKey,
-                  ),
+                  child: Navbar(isMobile: isMobile, scaffoldKey: _scaffoldKey),
                 ),
               ],
             ),
@@ -524,4 +509,13 @@ class _AuthPageState extends State<AuthPage> {
       ),
     );
   }
+}
+
+// 👈 AJOUT : Définition de AppColors si non défini ailleurs
+class AppColors {
+  static const Color surface = Color(0xfffcfbfa);
+  static const Color primary = Color(0xffd57653);
+  static const Color textDark = Color(0xff2c221e);
+  static const Color textMuted = Color(0xff7c6e68);
+  static const Color primaryDark = Color(0xff994a2b);
 }

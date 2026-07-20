@@ -5,7 +5,7 @@ import 'package:nafahat/pages/users/edit_profile_page.dart';
 import '../landing/landing_page.dart';
 import '../landing/widgets/navbar.dart' show Navbar;
 import 'package:nafahat/providers/language_provider.dart';
-import '../landing/widgets/chatbot/chatbot_wrapper.dart'; // 👈 AJOUT
+import '../landing/widgets/chatbot/chatbot_wrapper.dart';
 
 class ProfileDashboardPage extends StatefulWidget {
   const ProfileDashboardPage({super.key});
@@ -42,11 +42,6 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
     },
   ];
 
-  void toggleLanguage() {
-    final provider = Provider.of<LanguageProvider>(context, listen: false);
-    provider.toggleLanguage();
-  }
-
   @override
   Widget build(BuildContext context) {
     final isArabic = Provider.of<LanguageProvider>(context).isArabic;
@@ -55,9 +50,7 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
     return Directionality(
       textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
       child: ChatbotWrapper(
-        // 👈 WRAPPER AJOUTÉ
-        apiBaseUrl:
-            'http://localhost:3000', // À adapter selon votre configuration
+        apiBaseUrl: 'http://localhost:3000',
         langue: isArabic ? 'ar' : 'fr',
         primaryColor: AppColors.primary,
         child: Scaffold(
@@ -92,17 +85,12 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
                   ),
                 ),
 
-                // Navbar réutilisée
+                // Navbar (CORRIGÉE)
                 Positioned(
                   top: 0,
                   left: 0,
                   right: 0,
-                  child: Navbar(
-                    isArabic: isArabic,
-                    isMobile: isMobile,
-                    onLanguageToggle: toggleLanguage,
-                    scaffoldKey: _scaffoldKey,
-                  ),
+                  child: Navbar(isMobile: isMobile, scaffoldKey: _scaffoldKey),
                 ),
               ],
             ),
@@ -353,4 +341,13 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
       ],
     );
   }
+}
+
+// 👈 AJOUT : Définition de AppColors si non défini ailleurs
+class AppColors {
+  static const Color surface = Color(0xfffcfbfa);
+  static const Color primary = Color(0xffd57653);
+  static const Color textDark = Color(0xff2c221e);
+  static const Color textMuted = Color(0xff7c6e68);
+  static const Color primaryDark = Color(0xff994a2b);
 }

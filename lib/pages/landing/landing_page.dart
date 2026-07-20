@@ -1,8 +1,10 @@
-// lib/landing/landing_page.dart
+// lib/pages/landing/landing_page.dart
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/pages/formation/formation_detail_page.dart';
+import 'package:provider/provider.dart';
+import 'package:nafahat/providers/language_provider.dart';
 import 'widgets/video_fav_section.dart';
 import 'widgets/hero_section.dart';
 import 'widgets/navbar.dart';
@@ -11,6 +13,7 @@ import 'package:nafahat/services/training_service.dart';
 import 'package:nafahat/pages/adminisration/add_training_card.dart';
 import 'widgets/chatbot/chatbot_wrapper.dart';
 import 'widgets/training_card.dart';
+import 'package:nafahat/pages/landing/widgets/navbar.dart';
 
 // --- PALETTE DE COULEURS ---
 class AppColors {
@@ -30,22 +33,14 @@ class LandingPage extends StatefulWidget {
 }
 
 class _LandingPageState extends State<LandingPage> {
-  bool isArabic = false;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final _trainingSectionKey = GlobalKey<_TrainingCyclesSectionState>();
 
-  void toggleLanguage() {
-    setState(() {
-      isArabic = !isArabic;
-    });
-  }
-
-  void refreshTrainings() {
-    _trainingSectionKey.currentState?.refreshTrainings();
-  }
-
   @override
   Widget build(BuildContext context) {
+    // 👈 Récupérer la langue depuis le provider
+    final languageProvider = Provider.of<LanguageProvider>(context);
+    final isArabic = languageProvider.isArabic;
     bool isMobile = MediaQuery.of(context).size.width < 850;
 
     return Directionality(
@@ -60,9 +55,7 @@ class _LandingPageState extends State<LandingPage> {
           drawer:
               isMobile
                   ? Navbar(
-                    isArabic: isArabic,
                     isMobile: true,
-                    onLanguageToggle: toggleLanguage,
                     scaffoldKey: _scaffoldKey,
                   ).buildDrawer(context)
                   : null,
@@ -89,12 +82,7 @@ class _LandingPageState extends State<LandingPage> {
                   top: 0,
                   left: 0,
                   right: 0,
-                  child: Navbar(
-                    isArabic: isArabic,
-                    isMobile: isMobile,
-                    onLanguageToggle: toggleLanguage,
-                    scaffoldKey: _scaffoldKey,
-                  ),
+                  child: Navbar(isMobile: isMobile, scaffoldKey: _scaffoldKey),
                 ),
               ],
             ),
@@ -102,6 +90,10 @@ class _LandingPageState extends State<LandingPage> {
         ),
       ),
     );
+  }
+
+  void refreshTrainings() {
+    _trainingSectionKey.currentState?.refreshTrainings();
   }
 }
 
@@ -386,8 +378,7 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
 
     if (isMobile) {
       cardWidth = screenWidth;
-      cardHeight =
-          310.0; // 👈 CORRECTION MOBILE : Réduit de 420.0 à 310.0 pour supprimer le blanc excessif
+      cardHeight = 310.0;
       rowsPerPage = 100;
     } else if (isTablet) {
       cardWidth = (screenWidth - 80) / 2 - 20;
@@ -448,8 +439,7 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
           child:
               isMobile
                   ? ListView.builder(
-                    physics:
-                        const NeverScrollableScrollPhysics(), // Désactive le scroll imbriqué
+                    physics: const NeverScrollableScrollPhysics(),
                     shrinkWrap: true,
                     padding: EdgeInsets.zero,
                     itemCount: _filteredTrainings.length,

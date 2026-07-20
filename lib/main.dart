@@ -7,7 +7,7 @@ import '/pages/landing/splash_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/pages/users/auth_page.dart';
 import 'package:nafahat/providers/language_provider.dart';
-import 'package:nafahat/providers/card_config_provider.dart'; // 👈 AJOUT
+import 'package:nafahat/providers/card_config_provider.dart';
 import 'pages/landing/widgets/chatbot/chatbot_widget.dart';
 import 'package:nafahat/config/api_config.dart';
 
@@ -21,41 +21,52 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      // 👈 CHANGEMENT : MultiProvider au lieu de ChangeNotifierProvider
       providers: [
         ChangeNotifierProvider(create: (_) => LanguageProvider()),
-        ChangeNotifierProvider(create: (_) => CardConfigProvider()), // 👈 AJOUT
+        ChangeNotifierProvider(create: (_) => CardConfigProvider()),
       ],
-      child: MaterialApp(
-        title: 'Nafahat Platform',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          textTheme: GoogleFonts.cairoTextTheme(),
-          appBarTheme: AppBarTheme(
-            titleTextStyle: GoogleFonts.cairo(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
+      child: Consumer<LanguageProvider>(
+        builder: (context, languageProvider, child) {
+          print('📍 Langue actuelle: ${languageProvider.languageCode}');
+          print('📍 Locale: ${languageProvider.locale}');
+          return MaterialApp(
+            title: 'Nafahat Platform',
+            debugShowCheckedModeBanner: false,
+            locale: languageProvider.locale,
+            theme: ThemeData(
+              textTheme: GoogleFonts.cairoTextTheme(),
+              appBarTheme: AppBarTheme(
+                titleTextStyle: GoogleFonts.cairo(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+                toolbarTextStyle: GoogleFonts.cairo(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white,
+                ),
+              ),
+              primarySwatch: Colors.indigo,
             ),
-            toolbarTextStyle: GoogleFonts.cairo(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Colors.white,
-            ),
-          ),
-          primarySwatch: Colors.indigo,
-        ),
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: const [
-          Locale('fr', 'FR'),
-          Locale('ar', 'AR'),
-          Locale('en', 'US'),
-        ],
-        home: const ChatbotGlobalWrapper(child: SplashScreen()),
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('ar', 'AR'),
+              Locale('fr', 'FR'),
+              Locale('en', 'US'),
+            ],
+            // 👈 SOLUTION ALTERNATIVE
+            localeResolutionCallback: (deviceLocale, supportedLocales) {
+              // Forcer l'arabe
+              return const Locale('ar');
+            },
+            home: const ChatbotGlobalWrapper(child: SplashScreen()),
+          );
+        },
       ),
     );
   }

@@ -7,7 +7,7 @@ import '../landing/widgets/navbar.dart';
 import '../../services/adherent_service.dart';
 import '../../models/adherent.dart';
 import '../../models/enfant.dart';
-import '../landing/widgets/chatbot/chatbot_wrapper.dart'; // 👈 AJOUT
+import '../landing/widgets/chatbot/chatbot_wrapper.dart';
 
 // ----- PAGE PRINCIPALE -----
 class InscriptionAdherentPage extends StatefulWidget {
@@ -218,7 +218,7 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
           ),
         );
 
-        // Attendre un peu avant de revenir pour que l'utilisateur voit les identifiants
+        // Attendre un peu avant de revenir pour que l'utilisateur voie les identifiants
         await Future.delayed(const Duration(seconds: 3));
         if (mounted) {
           Navigator.pop(context);
@@ -261,15 +261,8 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
     final double fontSize = isMobile ? 14 : 16;
     final double topMargin = isMobile ? 100 : 90;
 
-    void toggleLanguage() {
-      final provider = Provider.of<LanguageProvider>(context, listen: false);
-      provider.toggleLanguage();
-    }
-
     return ChatbotWrapper(
-      // 👈 WRAPPER AJOUTÉ
-      apiBaseUrl:
-          'http://localhost:3000', // À adapter selon votre configuration
+      apiBaseUrl: 'http://localhost:3000',
       langue: isArabic ? 'ar' : 'fr',
       primaryColor: const Color(0xff0D443E),
       child: Scaffold(
@@ -468,17 +461,12 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
                 ),
               ),
 
-              // ---- NAVBAR ----
+              // ---- NAVBAR (CORRIGÉE) ----
               Positioned(
                 top: 0,
                 left: 0,
                 right: 0,
-                child: Navbar(
-                  isArabic: isArabic,
-                  isMobile: isMobile,
-                  onLanguageToggle: toggleLanguage,
-                  scaffoldKey: _scaffoldKey,
-                ),
+                child: Navbar(isMobile: isMobile, scaffoldKey: _scaffoldKey),
               ),
 
               if (isLoading)
