@@ -142,7 +142,7 @@ class _ComingSoonPageState extends State<ComingSoonPage>
       body: Container(
         decoration: const BoxDecoration(
           image: DecorationImage(
-            image: NetworkImage(
+            image: const AssetImage(
               'assets/images/slide1.png',
             ), // Remplacez par votre image
             fit: BoxFit.cover,
