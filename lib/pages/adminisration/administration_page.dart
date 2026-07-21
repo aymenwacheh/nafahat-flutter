@@ -16,7 +16,9 @@ import 'package:nafahat/services/video_service.dart';
 import 'package:nafahat/services/adherent_service.dart';
 import 'package:nafahat/models/training_model.dart';
 import 'package:nafahat/models/video_model.dart';
+import 'package:nafahat/models/formateur.dart';
 import 'package:nafahat/models/adherent.dart';
+import 'edit_formateur.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:nafahat/pages/adminisration/add_typeFormation.dart';
@@ -1220,7 +1222,7 @@ class _CategoriesManagementPageState extends State<CategoriesManagementPage> {
 }
 
 // ============================================================
-// FORMATEURS MANAGEMENT PAGE
+// FORMATEURS MANAGEMENT PAGE - VERSION CORRIGÉE
 // ============================================================
 class FormateursManagementPage extends StatefulWidget {
   const FormateursManagementPage({super.key});
@@ -1253,6 +1255,98 @@ class _FormateursManagementPageState extends State<FormateursManagementPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erreur chargement formateurs: $e')),
       );
+    }
+  }
+
+  // ✅ Nouvelle méthode pour ouvrir la page d'édition
+  void _openEditFormateur(
+    BuildContext context,
+    Map<String, dynamic> formateurData,
+  ) {
+    // Créer un objet Formateur à partir des données
+    final formateur = Formateur(
+      id: formateurData['id'] ?? 0,
+      nomPrenomFr: formateurData['nom_prenom_fr'] ?? '',
+      nomPrenomAr: formateurData['nom_prenom_ar'] ?? '',
+      email: formateurData['email'],
+      telephone: formateurData['telephone'],
+      bioFr: formateurData['bio_fr'],
+      bioAr: formateurData['bio_ar'],
+      idCategorie: formateurData['id_categorie'],
+      photo: formateurData['photo'],
+      categorieFr: formateurData['categorie_fr'],
+      categorieAr: formateurData['categorie_ar'],
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditFormateurScreen(formateur: formateur),
+      ),
+    ).then((result) {
+      if (result == true) {
+        _loadFormateurs(); // Rafraîchir la liste après modification
+      }
+    });
+  }
+
+  // ✅ Méthode pour supprimer un formateur
+  Future<void> _deleteFormateur(String id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Confirmer la suppression'),
+            content: const Text(
+              'Êtes-vous sûr de vouloir supprimer ce formateur ?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Annuler'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Supprimer'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirm == true) {
+      setState(() => _isLoading = true);
+      try {
+        final response = await http.delete(
+          Uri.parse('${TrainingService.apiBaseUrl}/formateurs/$id'),
+          headers: {'Content-Type': 'application/json'},
+        );
+
+        final data = json.decode(response.body);
+
+        if (response.statusCode == 200 && data['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Formateur supprimé avec succès'),
+              backgroundColor: Color(0xff0D443E),
+            ),
+          );
+          _loadFormateurs();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(data['message'] ?? 'Erreur lors de la suppression'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          setState(() => _isLoading = false);
+        }
+      } catch (e) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -1350,6 +1444,7 @@ class _FormateursManagementPageState extends State<FormateursManagementPage> {
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
+                                // ✅ Bouton Éditer - maintenant fonctionnel !
                                 IconButton(
                                   icon: const Icon(
                                     Icons.edit,
@@ -1357,9 +1452,11 @@ class _FormateursManagementPageState extends State<FormateursManagementPage> {
                                     size: 20,
                                   ),
                                   onPressed: () {
-                                    // TODO: Implémenter modification formateur
+                                    _openEditFormateur(context, f);
                                   },
+                                  tooltip: 'Modifier ce formateur',
                                 ),
+                                // ✅ Bouton Supprimer - maintenant fonctionnel !
                                 IconButton(
                                   icon: const Icon(
                                     Icons.delete_outline,
@@ -1367,8 +1464,9 @@ class _FormateursManagementPageState extends State<FormateursManagementPage> {
                                     size: 20,
                                   ),
                                   onPressed: () {
-                                    // TODO: Implémenter suppression
+                                    _deleteFormateur(f['id'].toString());
                                   },
+                                  tooltip: 'Supprimer ce formateur',
                                 ),
                               ],
                             ),
