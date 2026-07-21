@@ -18,6 +18,8 @@ import 'package:nafahat/models/training_model.dart';
 import 'package:nafahat/models/video_model.dart';
 import 'package:nafahat/models/formateur.dart';
 import 'package:nafahat/models/adherent.dart';
+import 'package:nafahat/providers/language_provider.dart';
+import 'package:provider/provider.dart';
 import 'edit_formateur.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -59,17 +61,80 @@ class _AdministrationPageState extends State<AdministrationPage> {
     'Apparence Hero',
   ];
 
+  final List<String> _titlesAr = [
+    'لوحة القيادة',
+    'التكوينات',
+    'التصنيفات',
+    'المكونين',
+    'الفيديوهات',
+    'المنخرطين',
+    'المدد',
+    'أنواع التكوين',
+    'مظهر البطاقات',
+    'مظهر الهيرو',
+  ];
+
   final List<Map<String, dynamic>> _menuItems = [
-    {'icon': Icons.dashboard_outlined, 'title': 'Tableau de bord', 'page': 0},
-    {'icon': Icons.school_outlined, 'title': 'Formations', 'page': 1},
-    {'icon': Icons.category_outlined, 'title': 'Catégories', 'page': 2},
-    {'icon': Icons.person_outline, 'title': 'Formateurs', 'page': 3},
-    {'icon': Icons.video_library_outlined, 'title': 'Vidéos', 'page': 4},
-    {'icon': Icons.people_outline, 'title': 'Adhérents', 'page': 5},
-    {'icon': Icons.access_time, 'title': 'Durées', 'page': 6},
-    {'icon': Icons.label_outlined, 'title': 'Types Formation', 'page': 7},
-    {'icon': Icons.palette_outlined, 'title': 'Apparence Cartes', 'page': 8},
-    {'icon': Icons.slideshow_outlined, 'title': 'Apparence Hero', 'page': 9},
+    {
+      'icon': Icons.dashboard_outlined,
+      'title': 'Tableau de bord',
+      'titleAr': 'لوحة القيادة',
+      'page': 0,
+    },
+    {
+      'icon': Icons.school_outlined,
+      'title': 'Formations',
+      'titleAr': 'التكوينات',
+      'page': 1,
+    },
+    {
+      'icon': Icons.category_outlined,
+      'title': 'Catégories',
+      'titleAr': 'التصنيفات',
+      'page': 2,
+    },
+    {
+      'icon': Icons.person_outline,
+      'title': 'Formateurs',
+      'titleAr': 'المكونين',
+      'page': 3,
+    },
+    {
+      'icon': Icons.video_library_outlined,
+      'title': 'Vidéos',
+      'titleAr': 'الفيديوهات',
+      'page': 4,
+    },
+    {
+      'icon': Icons.people_outline,
+      'title': 'Adhérents',
+      'titleAr': 'المنخرطين',
+      'page': 5,
+    },
+    {
+      'icon': Icons.access_time,
+      'title': 'Durées',
+      'titleAr': 'المدد',
+      'page': 6,
+    },
+    {
+      'icon': Icons.label_outlined,
+      'title': 'Types Formation',
+      'titleAr': 'أنواع التكوين',
+      'page': 7,
+    },
+    {
+      'icon': Icons.palette_outlined,
+      'title': 'Apparence Cartes',
+      'titleAr': 'مظهر البطاقات',
+      'page': 8,
+    },
+    {
+      'icon': Icons.slideshow_outlined,
+      'title': 'Apparence Hero',
+      'titleAr': 'مظهر الهيرو',
+      'page': 9,
+    },
   ];
 
   @override
@@ -81,9 +146,17 @@ class _AdministrationPageState extends State<AdministrationPage> {
     if (isMobile) {
       return Scaffold(
         appBar: AppBar(
-          title: Text(
-            _titles[_selectedIndex],
-            style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+          title: Consumer<LanguageProvider>(
+            builder: (context, languageProvider, child) {
+              final title =
+                  languageProvider.isArabic
+                      ? _titlesAr[_selectedIndex]
+                      : _titles[_selectedIndex];
+              return Text(
+                title,
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+              );
+            },
           ),
           backgroundColor: const Color(0xff0D443E),
           foregroundColor: Colors.white,
@@ -94,6 +167,21 @@ class _AdministrationPageState extends State<AdministrationPage> {
               Scaffold.of(context).openDrawer();
             },
           ),
+          actions: [
+            Consumer<LanguageProvider>(
+              builder: (context, languageProvider, child) {
+                return IconButton(
+                  icon: const Icon(Icons.translate),
+                  color: Colors.white,
+                  onPressed: () {
+                    languageProvider.toggleLanguage();
+                    setState(() {});
+                  },
+                  tooltip: languageProvider.isArabic ? 'Français' : 'العربية',
+                );
+              },
+            ),
+          ],
         ),
         drawer: _buildDrawer(isMobile),
         body: _pages[_selectedIndex],
@@ -163,26 +251,32 @@ class _AdministrationPageState extends State<AdministrationPage> {
                 ),
                 if (!isCollapsed) ...[
                   const SizedBox(width: 12),
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Nafahat',
-                        style: GoogleFonts.poppins(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Text(
-                        'Administration',
-                        style: GoogleFonts.poppins(
-                          fontSize: 10,
-                          color: Colors.white70,
-                        ),
-                      ),
-                    ],
+                  Consumer<LanguageProvider>(
+                    builder: (context, languageProvider, child) {
+                      return Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Nafahat',
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          Text(
+                            languageProvider.isArabic
+                                ? 'الإدارة'
+                                : 'Administration',
+                            style: GoogleFonts.poppins(
+                              fontSize: 10,
+                              color: Colors.white70,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ],
               ],
@@ -198,16 +292,25 @@ class _AdministrationPageState extends State<AdministrationPage> {
                 final item = _menuItems[index];
                 final isSelected = _selectedIndex == item['page'];
                 final hasBadge = item['badge'] ?? false;
-                return _buildMenuItem(
-                  icon: item['icon'],
-                  title: item['title'],
-                  isSelected: isSelected,
-                  isCollapsed: isCollapsed,
-                  hasBadge: hasBadge,
-                  onTap: () {
-                    setState(() {
-                      _selectedIndex = item['page'];
-                    });
+
+                return Consumer<LanguageProvider>(
+                  builder: (context, languageProvider, child) {
+                    final title =
+                        languageProvider.isArabic
+                            ? (item['titleAr'] ?? item['title'])
+                            : item['title'];
+                    return _buildMenuItem(
+                      icon: item['icon'],
+                      title: title,
+                      isSelected: isSelected,
+                      isCollapsed: isCollapsed,
+                      hasBadge: hasBadge,
+                      onTap: () {
+                        setState(() {
+                          _selectedIndex = item['page'];
+                        });
+                      },
+                    );
                   },
                 );
               },
@@ -235,25 +338,29 @@ class _AdministrationPageState extends State<AdministrationPage> {
                 ),
                 if (!isCollapsed) ...[
                   const SizedBox(width: 8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Admin',
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Text(
-                        'admin@nafahat.com',
-                        style: GoogleFonts.poppins(
-                          fontSize: 10,
-                          color: Colors.white60,
-                        ),
-                      ),
-                    ],
+                  Consumer<LanguageProvider>(
+                    builder: (context, languageProvider, child) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            languageProvider.isArabic ? 'مدير' : 'Admin',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                          Text(
+                            'admin@nafahat.com',
+                            style: GoogleFonts.poppins(
+                              fontSize: 10,
+                              color: Colors.white60,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ],
               ],
@@ -382,26 +489,30 @@ class _AdministrationPageState extends State<AdministrationPage> {
                 bottom: BorderSide(color: Colors.white24, width: 1),
               ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Nafahat',
-                  style: GoogleFonts.poppins(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                Text(
-                  'Administration',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: Colors.white70,
-                  ),
-                ),
-              ],
+            child: Consumer<LanguageProvider>(
+              builder: (context, languageProvider, child) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Nafahat',
+                      style: GoogleFonts.poppins(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      languageProvider.isArabic ? 'الإدارة' : 'Administration',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
           Expanded(
@@ -412,74 +523,85 @@ class _AdministrationPageState extends State<AdministrationPage> {
                 final item = _menuItems[index];
                 final isSelected = _selectedIndex == item['page'];
                 final hasBadge = item['badge'] ?? false;
-                return ListTile(
-                  leading: Stack(
-                    children: [
-                      Icon(
-                        item['icon'],
-                        color:
-                            isSelected
-                                ? const Color(0xffd57653)
-                                : Colors.white70,
-                      ),
-                      if (hasBadge)
-                        Positioned(
-                          right: -4,
-                          top: -4,
-                          child: Container(
-                            padding: const EdgeInsets.all(3),
-                            decoration: const BoxDecoration(
-                              color: Colors.red,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Text(
-                              '!',
-                              style: GoogleFonts.poppins(
-                                fontSize: 6,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
+
+                return Consumer<LanguageProvider>(
+                  builder: (context, languageProvider, child) {
+                    final title =
+                        languageProvider.isArabic
+                            ? (item['titleAr'] ?? item['title'])
+                            : item['title'];
+                    return ListTile(
+                      leading: Stack(
+                        children: [
+                          Icon(
+                            item['icon'],
+                            color:
+                                isSelected
+                                    ? const Color(0xffd57653)
+                                    : Colors.white70,
                           ),
-                        ),
-                    ],
-                  ),
-                  title: Text(
-                    item['title'],
-                    style: GoogleFonts.poppins(
-                      color: isSelected ? Colors.white : Colors.white70,
-                      fontWeight:
-                          isSelected ? FontWeight.w600 : FontWeight.w400,
-                    ),
-                  ),
-                  trailing:
-                      hasBadge
-                          ? Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.red,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              'Nouveau',
-                              style: GoogleFonts.poppins(
-                                fontSize: 8,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                          if (hasBadge)
+                            Positioned(
+                              right: -4,
+                              top: -4,
+                              child: Container(
+                                padding: const EdgeInsets.all(3),
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  '!',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 6,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
                               ),
                             ),
-                          )
-                          : null,
-                  selected: isSelected,
-                  selectedTileColor: const Color(0xffd57653).withOpacity(0.2),
-                  onTap: () {
-                    setState(() {
-                      _selectedIndex = item['page'];
-                    });
-                    Navigator.pop(context);
+                        ],
+                      ),
+                      title: Text(
+                        title,
+                        style: GoogleFonts.poppins(
+                          color: isSelected ? Colors.white : Colors.white70,
+                          fontWeight:
+                              isSelected ? FontWeight.w600 : FontWeight.w400,
+                        ),
+                      ),
+                      trailing:
+                          hasBadge
+                              ? Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  'Nouveau',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              )
+                              : null,
+                      selected: isSelected,
+                      selectedTileColor: const Color(
+                        0xffd57653,
+                      ).withOpacity(0.2),
+                      onTap: () {
+                        setState(() {
+                          _selectedIndex = item['page'];
+                        });
+                        Navigator.pop(context);
+                      },
+                    );
                   },
                 );
               },
@@ -490,14 +612,21 @@ class _AdministrationPageState extends State<AdministrationPage> {
             decoration: const BoxDecoration(
               border: Border(top: BorderSide(color: Colors.white24, width: 1)),
             ),
-            child: ListTile(
-              leading: const Icon(Icons.logout_rounded, color: Colors.white70),
-              title: Text(
-                'Déconnexion',
-                style: GoogleFonts.poppins(color: Colors.white70),
-              ),
-              onTap: () {
-                // TODO: Déconnexion
+            child: Consumer<LanguageProvider>(
+              builder: (context, languageProvider, child) {
+                return ListTile(
+                  leading: const Icon(
+                    Icons.logout_rounded,
+                    color: Colors.white70,
+                  ),
+                  title: Text(
+                    languageProvider.isArabic ? 'تسجيل الخروج' : 'Déconnexion',
+                    style: GoogleFonts.poppins(color: Colors.white70),
+                  ),
+                  onTap: () {
+                    // TODO: Déconnexion
+                  },
+                );
               },
             ),
           ),
@@ -520,16 +649,37 @@ class _AdministrationPageState extends State<AdministrationPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            _titles[_selectedIndex],
-            style: GoogleFonts.poppins(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: const Color(0xff2c221e),
-            ),
+          Consumer<LanguageProvider>(
+            builder: (context, languageProvider, child) {
+              final title =
+                  languageProvider.isArabic
+                      ? _titlesAr[_selectedIndex]
+                      : _titles[_selectedIndex];
+              return Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xff2c221e),
+                ),
+              );
+            },
           ),
           Row(
             children: [
+              Consumer<LanguageProvider>(
+                builder: (context, languageProvider, child) {
+                  return IconButton(
+                    icon: const Icon(Icons.translate),
+                    color: Colors.grey[600],
+                    onPressed: () {
+                      languageProvider.toggleLanguage();
+                      setState(() {});
+                    },
+                    tooltip: languageProvider.isArabic ? 'Français' : 'العربية',
+                  );
+                },
+              ),
               IconButton(
                 icon: const Icon(Icons.notifications_outlined),
                 color: Colors.grey[600],
@@ -558,13 +708,17 @@ class DashboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = Provider.of<LanguageProvider>(context).isArabic;
+
     return Container(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Bienvenue dans le tableau de bord',
+            isArabic
+                ? 'مرحباً بكم في لوحة القيادة'
+                : 'Bienvenue dans le tableau de bord',
             style: GoogleFonts.poppins(
               fontSize: 24,
               fontWeight: FontWeight.w600,
@@ -573,7 +727,9 @@ class DashboardPage extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Gérez vos formations, catégories, formateurs, vidéos, adhérents, durées et apparence',
+            isArabic
+                ? 'إدارة التكوينات، التصنيفات، المكونين، الفيديوهات، المنخرطين، المدد والمظهر'
+                : 'Gérez vos formations, catégories, formateurs, vidéos, adhérents, durées et apparence',
             style: GoogleFonts.poppins(color: const Color(0xff7c6e68)),
           ),
           const SizedBox(height: 32),
@@ -583,50 +739,49 @@ class DashboardPage extends StatelessWidget {
             children: [
               _buildStatCard(
                 icon: Icons.school,
-                title: 'Formations',
+                title: isArabic ? 'التكوينات' : 'Formations',
                 count: '12',
                 color: const Color(0xffd57653),
               ),
               _buildStatCard(
                 icon: Icons.category,
-                title: 'Catégories',
+                title: isArabic ? 'التصنيفات' : 'Catégories',
                 count: '5',
                 color: const Color(0xff0D443E),
               ),
               _buildStatCard(
                 icon: Icons.person,
-                title: 'Formateurs',
+                title: isArabic ? 'المكونين' : 'Formateurs',
                 count: '8',
                 color: Colors.blue[700]!,
               ),
               _buildStatCard(
                 icon: Icons.video_library,
-                title: 'Vidéos',
+                title: isArabic ? 'الفيديوهات' : 'Vidéos',
                 count: '6',
                 color: Colors.purple[700]!,
               ),
               _buildStatCard(
                 icon: Icons.people,
-                title: 'Adhérents',
+                title: isArabic ? 'المنخرطين' : 'Adhérents',
                 count: '0',
                 color: Colors.green[700]!,
               ),
               _buildStatCard(
                 icon: Icons.access_time,
-                title: 'Durées',
+                title: isArabic ? 'المدد' : 'Durées',
                 count: '4',
                 color: Colors.orange[700]!,
               ),
               _buildStatCard(
                 icon: Icons.palette,
-                title: 'Apparence Cartes',
+                title: isArabic ? 'مظهر البطاقات' : 'Apparence Cartes',
                 count: '⚙️',
                 color: const Color(0xffC4A46C),
               ),
-              // 👈 NOUVEAU : Carte Apparence Hero dans le dashboard
               _buildStatCard(
                 icon: Icons.slideshow,
-                title: 'Apparence Hero',
+                title: isArabic ? 'مظهر الهيرو' : 'Apparence Hero',
                 count: '🖼️',
                 color: const Color(0xffd57653),
               ),
@@ -711,10 +866,7 @@ class ApparenceHeroPageWrapper extends StatefulWidget {
 class _ApparenceHeroPageWrapperState extends State<ApparenceHeroPageWrapper> {
   @override
   Widget build(BuildContext context) {
-    // Détecter la langue de l'application
-    final locale = Localizations.localeOf(context);
-    final isArabic = locale.languageCode == 'ar';
-
+    final isArabic = Provider.of<LanguageProvider>(context).isArabic;
     return ApparenceHero(isArabic: isArabic);
   }
 }
@@ -756,14 +908,90 @@ class _FormationsManagementPageState extends State<FormationsManagementPage> {
     }
   }
 
+  Future<void> _deleteFormation(String id, String title) async {
+    final isArabic =
+        Provider.of<LanguageProvider>(context, listen: false).isArabic;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text(isArabic ? 'تأكيد الحذف' : 'Confirmer la suppression'),
+            content: Text(
+              isArabic
+                  ? 'هل أنت متأكد من رغبتك في حذف التكوين "$title"؟'
+                  : 'Êtes-vous sûr de vouloir supprimer la formation "$title" ?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(isArabic ? 'إلغاء' : 'Annuler'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: Text(isArabic ? 'حذف' : 'Supprimer'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirm == true) {
+      setState(() => _isLoading = true);
+      try {
+        final response = await http.delete(
+          Uri.parse('${TrainingService.apiBaseUrl}/formations/hard/$id'),
+          headers: {'Content-Type': 'application/json'},
+        );
+
+        final data = json.decode(response.body);
+
+        if (response.statusCode == 200 && data['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                isArabic
+                    ? 'تم حذف التكوين بنجاح'
+                    : 'Formation supprimée avec succès',
+              ),
+              backgroundColor: const Color(0xff0D443E),
+            ),
+          );
+          _loadFormations();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                data['message'] ??
+                    (isArabic
+                        ? 'خطأ في الحذف'
+                        : 'Erreur lors de la suppression'),
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+          setState(() => _isLoading = false);
+        }
+      } catch (e) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   void _showEditTrainingDialog(BuildContext context) {
+    final isArabic =
+        Provider.of<LanguageProvider>(context, listen: false).isArabic;
+
     showDialog(
       context: context,
       barrierDismissible: true,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(
-            'Modifier une formation',
+            isArabic ? 'تعديل تكوين' : 'Modifier une formation',
             style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
           ),
           content: SizedBox(
@@ -772,7 +1000,9 @@ class _FormationsManagementPageState extends State<FormationsManagementPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Sélectionnez une formation dans la liste ci-dessous',
+                  isArabic
+                      ? 'اختر تكويناً من القائمة أدناه'
+                      : 'Sélectionnez une formation dans la liste ci-dessous',
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
                 ),
                 const SizedBox(height: 16),
@@ -780,7 +1010,9 @@ class _FormationsManagementPageState extends State<FormationsManagementPage> {
                   const Center(child: CircularProgressIndicator())
                 else if (_formations.isEmpty)
                   Text(
-                    'Aucune formation disponible',
+                    isArabic
+                        ? 'لا توجد تكوينات متاحة'
+                        : 'Aucune formation disponible',
                     style: TextStyle(color: Colors.grey.shade600),
                   )
                 else
@@ -856,7 +1088,7 @@ class _FormationsManagementPageState extends State<FormationsManagementPage> {
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(
-                'Annuler',
+                isArabic ? 'إلغاء' : 'Annuler',
                 style: TextStyle(color: Colors.grey.shade600),
               ),
             ),
@@ -868,6 +1100,8 @@ class _FormationsManagementPageState extends State<FormationsManagementPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = Provider.of<LanguageProvider>(context).isArabic;
+
     return Container(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -877,7 +1111,7 @@ class _FormationsManagementPageState extends State<FormationsManagementPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Gestion des formations',
+                isArabic ? 'إدارة التكوينات' : 'Gestion des formations',
                 style: GoogleFonts.poppins(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
@@ -891,29 +1125,12 @@ class _FormationsManagementPageState extends State<FormationsManagementPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const DureesManagementPage(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.access_time),
-                    label: const Text('Durées'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xffd57653),
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
                           builder: (context) => const AddTrainingCardPage(),
                         ),
                       ).then((_) => _loadFormations());
                     },
                     icon: const Icon(Icons.add),
-                    label: const Text('Ajouter'),
+                    label: Text(isArabic ? 'إضافة' : 'Ajouter'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xff0D443E),
                       foregroundColor: Colors.white,
@@ -925,7 +1142,7 @@ class _FormationsManagementPageState extends State<FormationsManagementPage> {
                       _showEditTrainingDialog(context);
                     },
                     icon: const Icon(Icons.edit),
-                    label: const Text('Modifier'),
+                    label: Text(isArabic ? 'تعديل' : 'Modifier'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xffd57653),
                       foregroundColor: Colors.white,
@@ -952,7 +1169,9 @@ class _FormationsManagementPageState extends State<FormationsManagementPage> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Aucune formation trouvée',
+                            isArabic
+                                ? 'لا توجد تكوينات'
+                                : 'Aucune formation trouvée',
                             style: GoogleFonts.poppins(color: Colors.grey[600]),
                           ),
                         ],
@@ -972,11 +1191,11 @@ class _FormationsManagementPageState extends State<FormationsManagementPage> {
                           final typeDisplay =
                               formation.typeFormation.isNotEmpty
                                   ? formation.typeFormation
-                                  : 'Non défini';
+                                  : (isArabic ? 'غير محدد' : 'Non défini');
                           final dureeDisplay =
                               formation.typeDuree.isNotEmpty
                                   ? formation.typeDuree
-                                  : 'Non définie';
+                                  : (isArabic ? 'غير محدد' : 'Non définie');
                           return ListTile(
                             leading: CircleAvatar(
                               backgroundColor: const Color(
@@ -999,7 +1218,7 @@ class _FormationsManagementPageState extends State<FormationsManagementPage> {
                               ),
                             ),
                             subtitle: Text(
-                              'Type: $typeDisplay | Durée: $dureeDisplay | Prix: ${formation.price} DH',
+                              '${isArabic ? 'النوع' : 'Type'}: $typeDisplay | ${isArabic ? 'المدة' : 'Durée'}: $dureeDisplay | ${isArabic ? 'السعر' : 'Prix'}: ${formation.price} DH',
                               style: TextStyle(color: Colors.grey.shade600),
                             ),
                             trailing: Row(
@@ -1030,8 +1249,17 @@ class _FormationsManagementPageState extends State<FormationsManagementPage> {
                                     size: 20,
                                   ),
                                   onPressed: () {
-                                    // TODO: Implémenter la suppression
+                                    _deleteFormation(
+                                      formation.id,
+                                      formation.titleFr.isNotEmpty
+                                          ? formation.titleFr
+                                          : formation.titleAr,
+                                    );
                                   },
+                                  tooltip:
+                                      isArabic
+                                          ? 'حذف هذا التكوين'
+                                          : 'Supprimer cette formation',
                                 ),
                               ],
                             ),
@@ -1083,8 +1311,83 @@ class _CategoriesManagementPageState extends State<CategoriesManagementPage> {
     }
   }
 
+  Future<void> _deleteCategory(String id) async {
+    final isArabic =
+        Provider.of<LanguageProvider>(context, listen: false).isArabic;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text(isArabic ? 'تأكيد الحذف' : 'Confirmer la suppression'),
+            content: Text(
+              isArabic
+                  ? 'هل أنت متأكد من رغبتك في حذف هذا التصنيف؟'
+                  : 'Êtes-vous sûr de vouloir supprimer cette catégorie ?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(isArabic ? 'إلغاء' : 'Annuler'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: Text(isArabic ? 'حذف' : 'Supprimer'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirm == true) {
+      setState(() => _isLoading = true);
+      try {
+        final response = await http.delete(
+          Uri.parse('${TrainingService.apiBaseUrl}/categories/$id'),
+          headers: {'Content-Type': 'application/json'},
+        );
+
+        final data = json.decode(response.body);
+
+        if (response.statusCode == 200 && data['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                isArabic
+                    ? 'تم حذف التصنيف بنجاح'
+                    : 'Catégorie supprimée avec succès',
+              ),
+              backgroundColor: const Color(0xff0D443E),
+            ),
+          );
+          _loadCategories();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                data['message'] ??
+                    (isArabic
+                        ? 'خطأ في الحذف'
+                        : 'Erreur lors de la suppression'),
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+          setState(() => _isLoading = false);
+        }
+      } catch (e) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isArabic = Provider.of<LanguageProvider>(context).isArabic;
+
     return Container(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -1094,7 +1397,7 @@ class _CategoriesManagementPageState extends State<CategoriesManagementPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Gestion des catégories',
+                isArabic ? 'إدارة التصنيفات' : 'Gestion des catégories',
                 style: GoogleFonts.poppins(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
@@ -1111,7 +1414,7 @@ class _CategoriesManagementPageState extends State<CategoriesManagementPage> {
                   ).then((_) => _loadCategories());
                 },
                 icon: const Icon(Icons.add),
-                label: const Text('Ajouter'),
+                label: Text(isArabic ? 'إضافة' : 'Ajouter'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xff0D443E),
                   foregroundColor: Colors.white,
@@ -1136,7 +1439,9 @@ class _CategoriesManagementPageState extends State<CategoriesManagementPage> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Aucune catégorie trouvée',
+                            isArabic
+                                ? 'لا توجد تصنيفات'
+                                : 'Aucune catégorie trouvée',
                             style: GoogleFonts.poppins(color: Colors.grey[600]),
                           ),
                         ],
@@ -1167,7 +1472,11 @@ class _CategoriesManagementPageState extends State<CategoriesManagementPage> {
                               ),
                             ),
                             title: Text(
-                              cat['categorie_fr'] ?? 'Sans nom',
+                              isArabic
+                                  ? (cat['categorie_ar'] ??
+                                      cat['categorie_fr'] ??
+                                      'Sans nom')
+                                  : (cat['categorie_fr'] ?? 'Sans nom'),
                               style: GoogleFonts.poppins(
                                 fontWeight: FontWeight.w500,
                               ),
@@ -1205,7 +1514,7 @@ class _CategoriesManagementPageState extends State<CategoriesManagementPage> {
                                     size: 20,
                                   ),
                                   onPressed: () {
-                                    // TODO: Implémenter suppression
+                                    _deleteCategory(cat['id'].toString());
                                   },
                                 ),
                               ],
@@ -1222,7 +1531,7 @@ class _CategoriesManagementPageState extends State<CategoriesManagementPage> {
 }
 
 // ============================================================
-// FORMATEURS MANAGEMENT PAGE - VERSION CORRIGÉE
+// FORMATEURS MANAGEMENT PAGE
 // ============================================================
 class FormateursManagementPage extends StatefulWidget {
   const FormateursManagementPage({super.key});
@@ -1258,12 +1567,10 @@ class _FormateursManagementPageState extends State<FormateursManagementPage> {
     }
   }
 
-  // ✅ Nouvelle méthode pour ouvrir la page d'édition
   void _openEditFormateur(
     BuildContext context,
     Map<String, dynamic> formateurData,
   ) {
-    // Créer un objet Formateur à partir des données
     final formateur = Formateur(
       id: formateurData['id'] ?? 0,
       nomPrenomFr: formateurData['nom_prenom_fr'] ?? '',
@@ -1285,30 +1592,34 @@ class _FormateursManagementPageState extends State<FormateursManagementPage> {
       ),
     ).then((result) {
       if (result == true) {
-        _loadFormateurs(); // Rafraîchir la liste après modification
+        _loadFormateurs();
       }
     });
   }
 
-  // ✅ Méthode pour supprimer un formateur
   Future<void> _deleteFormateur(String id) async {
+    final isArabic =
+        Provider.of<LanguageProvider>(context, listen: false).isArabic;
+
     final confirm = await showDialog<bool>(
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Confirmer la suppression'),
-            content: const Text(
-              'Êtes-vous sûr de vouloir supprimer ce formateur ?',
+            title: Text(isArabic ? 'تأكيد الحذف' : 'Confirmer la suppression'),
+            content: Text(
+              isArabic
+                  ? 'هل أنت متأكد من رغبتك في حذف هذا المكون؟'
+                  : 'Êtes-vous sûr de vouloir supprimer ce formateur ?',
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('Annuler'),
+                child: Text(isArabic ? 'إلغاء' : 'Annuler'),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(context, true),
                 style: TextButton.styleFrom(foregroundColor: Colors.red),
-                child: const Text('Supprimer'),
+                child: Text(isArabic ? 'حذف' : 'Supprimer'),
               ),
             ],
           ),
@@ -1326,16 +1637,25 @@ class _FormateursManagementPageState extends State<FormateursManagementPage> {
 
         if (response.statusCode == 200 && data['success'] == true) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Formateur supprimé avec succès'),
-              backgroundColor: Color(0xff0D443E),
+            SnackBar(
+              content: Text(
+                isArabic
+                    ? 'تم حذف المكون بنجاح'
+                    : 'Formateur supprimé avec succès',
+              ),
+              backgroundColor: const Color(0xff0D443E),
             ),
           );
           _loadFormateurs();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(data['message'] ?? 'Erreur lors de la suppression'),
+              content: Text(
+                data['message'] ??
+                    (isArabic
+                        ? 'خطأ في الحذف'
+                        : 'Erreur lors de la suppression'),
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -1352,6 +1672,8 @@ class _FormateursManagementPageState extends State<FormateursManagementPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = Provider.of<LanguageProvider>(context).isArabic;
+
     return Container(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -1361,7 +1683,7 @@ class _FormateursManagementPageState extends State<FormateursManagementPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Gestion des formateurs',
+                isArabic ? 'إدارة المكونين' : 'Gestion des formateurs',
                 style: GoogleFonts.poppins(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
@@ -1378,7 +1700,7 @@ class _FormateursManagementPageState extends State<FormateursManagementPage> {
                   ).then((_) => _loadFormateurs());
                 },
                 icon: const Icon(Icons.add),
-                label: const Text('Ajouter'),
+                label: Text(isArabic ? 'إضافة' : 'Ajouter'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xff0D443E),
                   foregroundColor: Colors.white,
@@ -1403,7 +1725,9 @@ class _FormateursManagementPageState extends State<FormateursManagementPage> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Aucun formateur trouvé',
+                            isArabic
+                                ? 'لا يوجد مكونين'
+                                : 'Aucun formateur trouvé',
                             style: GoogleFonts.poppins(color: Colors.grey[600]),
                           ),
                         ],
@@ -1432,19 +1756,22 @@ class _FormateursManagementPageState extends State<FormateursManagementPage> {
                               ),
                             ),
                             title: Text(
-                              f['nom_prenom_fr'] ?? 'Sans nom',
+                              isArabic
+                                  ? (f['nom_prenom_ar'] ??
+                                      f['nom_prenom_fr'] ??
+                                      'Sans nom')
+                                  : (f['nom_prenom_fr'] ?? 'Sans nom'),
                               style: GoogleFonts.poppins(
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                             subtitle: Text(
-                              'Email: ${f['email'] ?? 'N/A'} | Tél: ${f['telephone'] ?? 'N/A'}',
+                              '${isArabic ? 'البريد الإلكتروني' : 'Email'}: ${f['email'] ?? 'N/A'} | ${isArabic ? 'الهاتف' : 'Tél'}: ${f['telephone'] ?? 'N/A'}',
                               style: TextStyle(color: Colors.grey.shade600),
                             ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                // ✅ Bouton Éditer - maintenant fonctionnel !
                                 IconButton(
                                   icon: const Icon(
                                     Icons.edit,
@@ -1454,9 +1781,7 @@ class _FormateursManagementPageState extends State<FormateursManagementPage> {
                                   onPressed: () {
                                     _openEditFormateur(context, f);
                                   },
-                                  tooltip: 'Modifier ce formateur',
                                 ),
-                                // ✅ Bouton Supprimer - maintenant fonctionnel !
                                 IconButton(
                                   icon: const Icon(
                                     Icons.delete_outline,
@@ -1466,7 +1791,6 @@ class _FormateursManagementPageState extends State<FormateursManagementPage> {
                                   onPressed: () {
                                     _deleteFormateur(f['id'].toString());
                                   },
-                                  tooltip: 'Supprimer ce formateur',
                                 ),
                               ],
                             ),
@@ -1517,8 +1841,99 @@ class _VideosManagementPageState extends State<VideosManagementPage> {
     }
   }
 
+  Future<void> _deleteVideo(String id) async {
+    final isArabic =
+        Provider.of<LanguageProvider>(context, listen: false).isArabic;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text(isArabic ? 'تأكيد الحذف' : 'Confirmer la suppression'),
+            content: Text(
+              isArabic
+                  ? 'هل أنت متأكد من رغبتك في حذف هذا الفيديو؟'
+                  : 'Êtes-vous sûr de vouloir supprimer cette vidéo ?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(isArabic ? 'إلغاء' : 'Annuler'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: Text(isArabic ? 'حذف' : 'Supprimer'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirm == true) {
+      setState(() => _isLoading = true);
+      try {
+        final response = await http.delete(
+          Uri.parse('${TrainingService.apiBaseUrl}/videos/$id'),
+          headers: {'Content-Type': 'application/json'},
+        );
+
+        final data = json.decode(response.body);
+
+        if (response.statusCode == 200 && data['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                isArabic
+                    ? 'تم حذف الفيديو بنجاح'
+                    : 'Vidéo supprimée avec succès',
+              ),
+              backgroundColor: const Color(0xff0D443E),
+            ),
+          );
+          _loadVideos();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                data['message'] ??
+                    (isArabic
+                        ? 'خطأ في الحذف'
+                        : 'Erreur lors de la suppression'),
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+          setState(() => _isLoading = false);
+        }
+      } catch (e) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  void _editVideo(BuildContext context, VideoModel video) {
+    final isArabic =
+        Provider.of<LanguageProvider>(context, listen: false).isArabic;
+    // TODO: Implémenter l'édition de vidéo
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          isArabic
+              ? 'جاري تطوير تعديل الفيديو'
+              : 'Fonctionnalité en développement',
+        ),
+        backgroundColor: Colors.orange,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isArabic = Provider.of<LanguageProvider>(context).isArabic;
+
     return Container(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -1528,7 +1943,7 @@ class _VideosManagementPageState extends State<VideosManagementPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Gestion des vidéos',
+                isArabic ? 'إدارة الفيديوهات' : 'Gestion des vidéos',
                 style: GoogleFonts.poppins(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
@@ -1545,7 +1960,7 @@ class _VideosManagementPageState extends State<VideosManagementPage> {
                   ).then((_) => _loadVideos());
                 },
                 icon: const Icon(Icons.add),
-                label: const Text('Ajouter'),
+                label: Text(isArabic ? 'إضافة' : 'Ajouter'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xff0D443E),
                   foregroundColor: Colors.white,
@@ -1570,7 +1985,9 @@ class _VideosManagementPageState extends State<VideosManagementPage> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Aucune vidéo trouvée',
+                            isArabic
+                                ? 'لا توجد فيديوهات'
+                                : 'Aucune vidéo trouvée',
                             style: GoogleFonts.poppins(color: Colors.grey[600]),
                           ),
                         ],
@@ -1599,15 +2016,19 @@ class _VideosManagementPageState extends State<VideosManagementPage> {
                               ),
                             ),
                             title: Text(
-                              video.titleFr.isNotEmpty
-                                  ? video.titleFr
-                                  : video.titleAr,
+                              isArabic
+                                  ? (video.titleAr.isNotEmpty
+                                      ? video.titleAr
+                                      : video.titleFr)
+                                  : (video.titleFr.isNotEmpty
+                                      ? video.titleFr
+                                      : video.titleAr),
                               style: GoogleFonts.poppins(
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                             subtitle: Text(
-                              'ID YouTube: ${video.videoId}',
+                              '${isArabic ? 'معرف يوتيوب' : 'ID YouTube'}: ${video.videoId}',
                               style: TextStyle(color: Colors.grey.shade600),
                             ),
                             trailing: Row(
@@ -1620,7 +2041,7 @@ class _VideosManagementPageState extends State<VideosManagementPage> {
                                     size: 20,
                                   ),
                                   onPressed: () {
-                                    // TODO: Implémenter modification vidéo
+                                    _editVideo(context, video);
                                   },
                                 ),
                                 IconButton(
@@ -1630,7 +2051,7 @@ class _VideosManagementPageState extends State<VideosManagementPage> {
                                     size: 20,
                                   ),
                                   onPressed: () {
-                                    // TODO: Implémenter suppression
+                                    _deleteVideo(video.id.toString());
                                   },
                                 ),
                               ],
@@ -1684,13 +2105,16 @@ class _AdherentsManagementPageState extends State<AdherentsManagementPage> {
   }
 
   void _showEditAdherentDialog(BuildContext context) {
+    final isArabic =
+        Provider.of<LanguageProvider>(context, listen: false).isArabic;
+
     showDialog(
       context: context,
       barrierDismissible: true,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(
-            'Modifier un adhérent',
+            isArabic ? 'تعديل منخرط' : 'Modifier un adhérent',
             style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
           ),
           content: SizedBox(
@@ -1699,7 +2123,9 @@ class _AdherentsManagementPageState extends State<AdherentsManagementPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Sélectionnez un adhérent dans la liste ci-dessous',
+                  isArabic
+                      ? 'اختر منخرطاً من القائمة أدناه'
+                      : 'Sélectionnez un adhérent dans la liste ci-dessous',
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
                 ),
                 const SizedBox(height: 16),
@@ -1707,7 +2133,7 @@ class _AdherentsManagementPageState extends State<AdherentsManagementPage> {
                   const Center(child: CircularProgressIndicator())
                 else if (_adherents.isEmpty)
                   Text(
-                    'Aucun adhérent disponible',
+                    isArabic ? 'لا يوجد منخرطين' : 'Aucun adhérent disponible',
                     style: TextStyle(color: Colors.grey.shade600),
                   )
                 else
@@ -1780,7 +2206,7 @@ class _AdherentsManagementPageState extends State<AdherentsManagementPage> {
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(
-                'Annuler',
+                isArabic ? 'إلغاء' : 'Annuler',
                 style: TextStyle(color: Colors.grey.shade600),
               ),
             ),
@@ -1792,6 +2218,8 @@ class _AdherentsManagementPageState extends State<AdherentsManagementPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = Provider.of<LanguageProvider>(context).isArabic;
+
     return Container(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -1801,7 +2229,7 @@ class _AdherentsManagementPageState extends State<AdherentsManagementPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Gestion des adhérents',
+                isArabic ? 'إدارة المنخرطين' : 'Gestion des adhérents',
                 style: GoogleFonts.poppins(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
@@ -1812,7 +2240,6 @@ class _AdherentsManagementPageState extends State<AdherentsManagementPage> {
                 children: [
                   ElevatedButton.icon(
                     onPressed: () {
-                      // TODO: Rediriger vers InscriptionAdherentPage
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Redirection vers inscription...'),
@@ -1820,7 +2247,7 @@ class _AdherentsManagementPageState extends State<AdherentsManagementPage> {
                       );
                     },
                     icon: const Icon(Icons.add),
-                    label: const Text('Ajouter'),
+                    label: Text(isArabic ? 'إضافة' : 'Ajouter'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xff0D443E),
                       foregroundColor: Colors.white,
@@ -1832,7 +2259,7 @@ class _AdherentsManagementPageState extends State<AdherentsManagementPage> {
                       _showEditAdherentDialog(context);
                     },
                     icon: const Icon(Icons.edit),
-                    label: const Text('Modifier'),
+                    label: Text(isArabic ? 'تعديل' : 'Modifier'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xffd57653),
                       foregroundColor: Colors.white,
@@ -1859,7 +2286,9 @@ class _AdherentsManagementPageState extends State<AdherentsManagementPage> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Aucun adhérent trouvé',
+                            isArabic
+                                ? 'لا يوجد منخرطين'
+                                : 'Aucun adhérent trouvé',
                             style: GoogleFonts.poppins(color: Colors.grey[600]),
                           ),
                         ],
@@ -1997,23 +2426,28 @@ class _DureesManagementPageState extends State<DureesManagementPage> {
   }
 
   Future<void> _deleteDuree(String id) async {
+    final isArabic =
+        Provider.of<LanguageProvider>(context, listen: false).isArabic;
+
     final confirm = await showDialog<bool>(
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Confirmer la suppression'),
-            content: const Text(
-              'Êtes-vous sûr de vouloir supprimer cette durée ?',
+            title: Text(isArabic ? 'تأكيد الحذف' : 'Confirmer la suppression'),
+            content: Text(
+              isArabic
+                  ? 'هل أنت متأكد من رغبتك في حذف هذه المدة؟'
+                  : 'Êtes-vous sûr de vouloir supprimer cette durée ?',
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('Annuler'),
+                child: Text(isArabic ? 'إلغاء' : 'Annuler'),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(context, true),
                 style: TextButton.styleFrom(foregroundColor: Colors.red),
-                child: const Text('Supprimer'),
+                child: Text(isArabic ? 'حذف' : 'Supprimer'),
               ),
             ],
           ),
@@ -2031,16 +2465,23 @@ class _DureesManagementPageState extends State<DureesManagementPage> {
 
         if (response.statusCode == 200 && data['success'] == true) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Durée supprimée avec succès'),
-              backgroundColor: Color(0xff0D443E),
+            SnackBar(
+              content: Text(
+                isArabic ? 'تم حذف المدة بنجاح' : 'Durée supprimée avec succès',
+              ),
+              backgroundColor: const Color(0xff0D443E),
             ),
           );
           _loadDurees();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(data['message'] ?? 'Erreur lors de la suppression'),
+              content: Text(
+                data['message'] ??
+                    (isArabic
+                        ? 'خطأ في الحذف'
+                        : 'Erreur lors de la suppression'),
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -2057,6 +2498,8 @@ class _DureesManagementPageState extends State<DureesManagementPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = Provider.of<LanguageProvider>(context).isArabic;
+
     return Container(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -2066,7 +2509,7 @@ class _DureesManagementPageState extends State<DureesManagementPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Gestion des durées',
+                isArabic ? 'إدارة المدد' : 'Gestion des durées',
                 style: GoogleFonts.poppins(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
@@ -2083,7 +2526,7 @@ class _DureesManagementPageState extends State<DureesManagementPage> {
                   ).then((_) => _loadDurees());
                 },
                 icon: const Icon(Icons.add),
-                label: const Text('Ajouter'),
+                label: Text(isArabic ? 'إضافة' : 'Ajouter'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xff0D443E),
                   foregroundColor: Colors.white,
@@ -2108,7 +2551,7 @@ class _DureesManagementPageState extends State<DureesManagementPage> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Aucune durée trouvée',
+                            isArabic ? 'لا توجد مدد' : 'Aucune durée trouvée',
                             style: GoogleFonts.poppins(color: Colors.grey[600]),
                           ),
                         ],
@@ -2251,23 +2694,28 @@ class _TypesFormationManagementPageState
   }
 
   Future<void> _deleteTypeFormation(String id) async {
+    final isArabic =
+        Provider.of<LanguageProvider>(context, listen: false).isArabic;
+
     final confirm = await showDialog<bool>(
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Confirmer la suppression'),
-            content: const Text(
-              'Êtes-vous sûr de vouloir supprimer ce type de formation ?',
+            title: Text(isArabic ? 'تأكيد الحذف' : 'Confirmer la suppression'),
+            content: Text(
+              isArabic
+                  ? 'هل أنت متأكد من رغبتك في حذف هذا النوع؟'
+                  : 'Êtes-vous sûr de vouloir supprimer ce type de formation ?',
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('Annuler'),
+                child: Text(isArabic ? 'إلغاء' : 'Annuler'),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(context, true),
                 style: TextButton.styleFrom(foregroundColor: Colors.red),
-                child: const Text('Supprimer'),
+                child: Text(isArabic ? 'حذف' : 'Supprimer'),
               ),
             ],
           ),
@@ -2285,16 +2733,23 @@ class _TypesFormationManagementPageState
 
         if (response.statusCode == 200 && data['success'] == true) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Type de formation supprimé avec succès'),
-              backgroundColor: Color(0xff0D443E),
+            SnackBar(
+              content: Text(
+                isArabic ? 'تم حذف النوع بنجاح' : 'Type supprimé avec succès',
+              ),
+              backgroundColor: const Color(0xff0D443E),
             ),
           );
           _loadTypesFormation();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(data['message'] ?? 'Erreur lors de la suppression'),
+              content: Text(
+                data['message'] ??
+                    (isArabic
+                        ? 'خطأ في الحذف'
+                        : 'Erreur lors de la suppression'),
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -2311,6 +2766,8 @@ class _TypesFormationManagementPageState
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = Provider.of<LanguageProvider>(context).isArabic;
+
     return Container(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -2320,7 +2777,9 @@ class _TypesFormationManagementPageState
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Gestion des types de formation',
+                isArabic
+                    ? 'إدارة أنواع التكوين'
+                    : 'Gestion des types de formation',
                 style: GoogleFonts.poppins(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
@@ -2337,7 +2796,7 @@ class _TypesFormationManagementPageState
                   ).then((_) => _loadTypesFormation());
                 },
                 icon: const Icon(Icons.add),
-                label: const Text('Ajouter'),
+                label: Text(isArabic ? 'إضافة' : 'Ajouter'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xff0D443E),
                   foregroundColor: Colors.white,
@@ -2362,7 +2821,9 @@ class _TypesFormationManagementPageState
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Aucun type de formation trouvé',
+                            isArabic
+                                ? 'لا توجد أنواع'
+                                : 'Aucun type de formation trouvé',
                             style: GoogleFonts.poppins(color: Colors.grey[600]),
                           ),
                         ],
@@ -2455,7 +2916,9 @@ class _TypesFormationManagementPageState
                                       overflow: TextOverflow.ellipsis,
                                     )
                                     : Text(
-                                      'Aucun chapitre',
+                                      isArabic
+                                          ? 'لا توجد فصول'
+                                          : 'Aucun chapitre',
                                       style: TextStyle(
                                         color: Colors.grey.shade400,
                                         fontSize: 12,
