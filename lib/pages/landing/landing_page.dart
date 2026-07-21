@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/pages/formation/formation_detail_page.dart';
+import 'package:nafahat/pages/landing/widgets/inscription_section.dart';
 import 'package:provider/provider.dart';
 import 'package:nafahat/providers/language_provider.dart';
 import 'widgets/video_fav_section.dart';
@@ -11,9 +12,9 @@ import 'widgets/navbar.dart';
 import 'package:nafahat/models/training_model.dart';
 import 'package:nafahat/services/training_service.dart';
 import 'package:nafahat/pages/adminisration/add_training_card.dart';
-// ❌ SUPPRIMÉ: import 'widgets/chatbot/chatbot_wrapper.dart';
 import 'widgets/training_card.dart';
 import 'package:nafahat/pages/landing/widgets/navbar.dart';
+// ✅ IMPORT DU WIDGET INSCRIPTION_SECTION
 
 // --- PALETTE DE COULEURS ---
 class AppColors {
@@ -38,14 +39,13 @@ class _LandingPageState extends State<LandingPage> {
 
   @override
   Widget build(BuildContext context) {
-    // 👈 Récupérer la langue depuis le provider
+    // Récupérer la langue depuis le provider
     final languageProvider = Provider.of<LanguageProvider>(context);
     final isArabic = languageProvider.isArabic;
     bool isMobile = MediaQuery.of(context).size.width < 850;
 
     return Directionality(
       textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
-      // ❌ SUPPRIMÉ: ChatbotWrapper supprimé
       child: Scaffold(
         key: _scaffoldKey,
         backgroundColor: AppColors.surface,
@@ -65,13 +65,52 @@ class _LandingPageState extends State<LandingPage> {
                 child: Column(
                   children: [
                     const SizedBox(height: 90),
+
+                    // ✅ SECTION HERO
                     HeroSection(isArabic: isArabic),
+
+                    // ✅ SECTION VIDÉO FAVORIS
                     VideoFavSection(isArabic: isArabic),
+
+                    // ✅ SECTION INSCRIPTION 1 - APRÈS LA VIDÉO
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isMobile ? 0 : 20,
+                        vertical: 10,
+                      ),
+                      child: InscriptionSection(
+                        isArabic: isArabic,
+                        fullWidth: true,
+                        showIcon: true,
+                        showSubtitle: true,
+                      ),
+                    ),
+
+                    // ✅ SECTION CYCLES DE FORMATION
                     _TrainingCyclesSection(
                       key: _trainingSectionKey,
                       isArabic: isArabic,
                     ),
-                    const SizedBox(height: 60),
+
+                    // ✅ SECTION INSCRIPTION 2 - APRÈS LES FORMATIONS
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isMobile ? 0 : 20,
+                        vertical: 10,
+                      ),
+                      child: InscriptionSection(
+                        isArabic: isArabic,
+                        fullWidth: true,
+                        showIcon: true,
+                        showSubtitle: true,
+                        customText:
+                            isArabic
+                                ? 'ابدأ رحلتك الآن'
+                                : 'Commencez votre parcours',
+                      ),
+                    ),
+
+                    const SizedBox(height: 40),
                   ],
                 ),
               ),

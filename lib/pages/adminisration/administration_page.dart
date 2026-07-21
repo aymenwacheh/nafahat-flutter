@@ -10,6 +10,7 @@ import 'package:nafahat/pages/adminisration/edit_formation.dart';
 import 'package:nafahat/pages/users/edit_profile_page.dart';
 import 'package:nafahat/pages/adminisration/add_duree.dart';
 import 'package:nafahat/pages/adminisration/apparence_card.dart';
+import 'package:nafahat/pages/adminisration/apparence_hero.dart';
 import 'package:nafahat/services/training_service.dart';
 import 'package:nafahat/services/video_service.dart';
 import 'package:nafahat/services/adherent_service.dart';
@@ -40,6 +41,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     const DureesManagementPage(),
     const TypesFormationManagementPage(),
     const ApparenceCardPage(),
+    const ApparenceHeroPageWrapper(),
   ];
 
   final List<String> _titles = [
@@ -52,6 +54,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     'Durées',
     'Types de formation',
     'Apparence des cartes',
+    'Apparence Hero',
   ];
 
   final List<Map<String, dynamic>> _menuItems = [
@@ -63,7 +66,8 @@ class _AdministrationPageState extends State<AdministrationPage> {
     {'icon': Icons.people_outline, 'title': 'Adhérents', 'page': 5},
     {'icon': Icons.access_time, 'title': 'Durées', 'page': 6},
     {'icon': Icons.label_outlined, 'title': 'Types Formation', 'page': 7},
-    {'icon': Icons.palette_outlined, 'title': 'Apparence', 'page': 8},
+    {'icon': Icons.palette_outlined, 'title': 'Apparence Cartes', 'page': 8},
+    {'icon': Icons.slideshow_outlined, 'title': 'Apparence Hero', 'page': 9},
   ];
 
   @override
@@ -567,7 +571,7 @@ class DashboardPage extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Gérez vos formations, catégories, formateurs, vidéos, adhérents et durées',
+            'Gérez vos formations, catégories, formateurs, vidéos, adhérents, durées et apparence',
             style: GoogleFonts.poppins(color: const Color(0xff7c6e68)),
           ),
           const SizedBox(height: 32),
@@ -611,12 +615,18 @@ class DashboardPage extends StatelessWidget {
                 count: '4',
                 color: Colors.orange[700]!,
               ),
-              // 👈 AJOUT : Carte Apparence dans le dashboard
               _buildStatCard(
                 icon: Icons.palette,
-                title: 'Apparence',
+                title: 'Apparence Cartes',
                 count: '⚙️',
                 color: const Color(0xffC4A46C),
+              ),
+              // 👈 NOUVEAU : Carte Apparence Hero dans le dashboard
+              _buildStatCard(
+                icon: Icons.slideshow,
+                title: 'Apparence Hero',
+                count: '🖼️',
+                color: const Color(0xffd57653),
               ),
             ],
           ),
@@ -682,6 +692,28 @@ class DashboardPage extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// ============================================================
+// WRAPPER POUR APPARENCE HERO
+// ============================================================
+class ApparenceHeroPageWrapper extends StatefulWidget {
+  const ApparenceHeroPageWrapper({super.key});
+
+  @override
+  State<ApparenceHeroPageWrapper> createState() =>
+      _ApparenceHeroPageWrapperState();
+}
+
+class _ApparenceHeroPageWrapperState extends State<ApparenceHeroPageWrapper> {
+  @override
+  Widget build(BuildContext context) {
+    // Détecter la langue de l'application
+    final locale = Localizations.localeOf(context);
+    final isArabic = locale.languageCode == 'ar';
+
+    return ApparenceHero(isArabic: isArabic);
   }
 }
 
@@ -2089,7 +2121,6 @@ class _TypesFormationManagementPageState
   Future<void> _loadTypesFormation() async {
     setState(() => _isLoading = true);
     try {
-      // ✅ CORRECTION : Ajouter le "s" à "types"
       final response = await http.get(
         Uri.parse('${TrainingService.apiBaseUrl}/types-formation'),
         headers: {'Content-Type': 'application/json'},
@@ -2147,7 +2178,6 @@ class _TypesFormationManagementPageState
     if (confirm == true) {
       setState(() => _isLoading = true);
       try {
-        // ✅ CORRECTION : Ajouter le "s" à "types"
         final response = await http.delete(
           Uri.parse('${TrainingService.apiBaseUrl}/types-formation/$id'),
           headers: {'Content-Type': 'application/json'},
@@ -2251,7 +2281,6 @@ class _TypesFormationManagementPageState
                         itemCount: _typesFormation.length,
                         itemBuilder: (context, index) {
                           final type = _typesFormation[index];
-                          // Compter les chapitres non vides
                           final chapters =
                               [
                                     type['ch1'],
@@ -2267,7 +2296,6 @@ class _TypesFormationManagementPageState
                                   )
                                   .length;
 
-                          // Construire l'affichage des chapitres
                           String chaptersDisplay = '';
                           if (chapters > 0) {
                             final List<String> chapterNames = [];
