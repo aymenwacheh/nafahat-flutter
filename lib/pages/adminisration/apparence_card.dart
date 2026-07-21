@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/models/training_model.dart';
+import 'package:nafahat/services/training_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nafahat/services/card_config_manager.dart';
 import 'dart:convert';
@@ -19,6 +20,10 @@ class _ApparenceCardPageState extends State<ApparenceCardPage> {
 
   // Configuration de la carte
   CardConfig _config = CardConfig.defaultConfig();
+
+  // Liste des formations disponibles pour la sélection
+  List<TrainingModel> _availableTrainings = [];
+  bool _isLoadingTrainings = false;
 
   // Options disponibles
   final List<CardFieldOption> _availableFields = [
@@ -114,6 +119,21 @@ class _ApparenceCardPageState extends State<ApparenceCardPage> {
   void initState() {
     super.initState();
     _loadConfig();
+    _loadTrainings();
+  }
+
+  Future<void> _loadTrainings() async {
+    setState(() => _isLoadingTrainings = true);
+    try {
+      // Import du service
+      final trainings = await TrainingService.getTrainings();
+      setState(() {
+        _availableTrainings = trainings.reversed.toList();
+        _isLoadingTrainings = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingTrainings = false);
+    }
   }
 
   Future<void> _loadConfig() async {
@@ -216,6 +236,11 @@ class _ApparenceCardPageState extends State<ApparenceCardPage> {
                 child: Column(
                   children: [
                     _buildPreviewSection(isMobile),
+                    const SizedBox(height: 24),
+
+                    // ✅ NOUVELLE SECTION : Paramètres d'affichage mobile
+                    _buildMobileDisplaySettings(isMobile),
+
                     const SizedBox(height: 24),
 
                     // Champs à afficher
@@ -571,6 +596,392 @@ class _ApparenceCardPageState extends State<ApparenceCardPage> {
                   ],
                 ),
               ),
+    );
+  }
+
+  // ✅ NOUVELLE SECTION : Paramètres d'affichage mobile
+  Widget _buildMobileDisplaySettings(bool isMobile) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: EdgeInsets.all(isMobile ? 16 : 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.phone_android, color: const Color(0xff0D443E)),
+                const SizedBox(width: 8),
+                Text(
+                  _isArabic
+                      ? '📱 Paramètres d\'affichage mobile'
+                      : '📱 Paramètres d\'affichage mobile',
+                  style: GoogleFonts.cairo(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xff0D443E),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _isArabic
+                  ? 'Configurez l\'affichage des formations sur la page d\'accueil (version mobile)'
+                  : 'Configurez l\'affichage des formations sur la page d\'accueil (version mobile)',
+              style: GoogleFonts.cairo(color: Colors.grey[600], fontSize: 13),
+            ),
+            const SizedBox(height: 20),
+
+            // Nombre de cartes à afficher
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _isArabic
+                            ? 'Nombre de cartes à afficher'
+                            : 'Nombre de cartes à afficher',
+                        style: GoogleFonts.cairo(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[700],
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey[300]!),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<int>(
+                            value: _config.mobileDisplayCount,
+                            isExpanded: true,
+                            items:
+                                List.generate(10, (index) => index + 1).map((
+                                  count,
+                                ) {
+                                  return DropdownMenuItem<int>(
+                                    value: count,
+                                    child: Text(
+                                      '$count ${_isArabic ? 'بطاقة' : 'cartes'}',
+                                      style: GoogleFonts.cairo(fontSize: 14),
+                                    ),
+                                  );
+                                }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _config.mobileDisplayCount = value!;
+                                // Réinitialiser la sélection si nécessaire
+                                if (_config.mobileSelectedTrainings.length >
+                                    value) {
+                                  _config.mobileSelectedTrainings = _config
+                                      .mobileSelectedTrainings
+                                      .sublist(0, value);
+                                }
+                              });
+                            },
+                            icon: Icon(
+                              Icons.arrow_drop_down,
+                              color: const Color(0xff0D443E),
+                            ),
+                            style: GoogleFonts.cairo(
+                              color: const Color(0xff0D443E),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _isArabic
+                            ? 'Afficher le bouton "Voir plus"'
+                            : 'Afficher le bouton "Voir plus"',
+                        style: GoogleFonts.cairo(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[700],
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey[300]!),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<bool>(
+                            value: _config.showSeeMoreButton,
+                            isExpanded: true,
+                            items: [
+                              DropdownMenuItem<bool>(
+                                value: true,
+                                child: Text(
+                                  _isArabic ? 'نعم' : 'Oui',
+                                  style: GoogleFonts.cairo(fontSize: 14),
+                                ),
+                              ),
+                              DropdownMenuItem<bool>(
+                                value: false,
+                                child: Text(
+                                  _isArabic ? 'لا' : 'Non',
+                                  style: GoogleFonts.cairo(fontSize: 14),
+                                ),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              setState(() {
+                                _config.showSeeMoreButton = value!;
+                              });
+                            },
+                            icon: Icon(
+                              Icons.arrow_drop_down,
+                              color: const Color(0xff0D443E),
+                            ),
+                            style: GoogleFonts.cairo(
+                              color: const Color(0xff0D443E),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            // Sélection des cartes à afficher
+            if (_config.mobileDisplayCount > 0) ...[
+              Text(
+                _isArabic
+                    ? 'Sélectionnez les cartes à afficher (${_config.mobileSelectedTrainings.length}/${_config.mobileDisplayCount})'
+                    : 'Sélectionnez les cartes à afficher (${_config.mobileSelectedTrainings.length}/${_config.mobileDisplayCount})',
+                style: GoogleFonts.cairo(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[700],
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _isArabic
+                    ? 'Choisissez les formations à afficher sur la page d\'accueil en version mobile'
+                    : 'Choisissez les formations à afficher sur la page d\'accueil en version mobile',
+                style: GoogleFonts.cairo(color: Colors.grey[500], fontSize: 12),
+              ),
+              const SizedBox(height: 12),
+
+              if (_isLoadingTrainings)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              else if (_availableTrainings.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Center(
+                    child: Text(
+                      _isArabic
+                          ? 'Aucune formation disponible'
+                          : 'Aucune formation disponible',
+                      style: GoogleFonts.cairo(
+                        color: Colors.grey[500],
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  constraints: BoxConstraints(maxHeight: isMobile ? 300 : 400),
+                  child: _buildTrainingSelectionList(isMobile),
+                ),
+
+              const SizedBox(height: 12),
+
+              // Boutons d'action pour la sélection
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _config.mobileSelectedTrainings = [];
+                        });
+                      },
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.red[700],
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          side: BorderSide(color: Colors.red[300]!),
+                        ),
+                      ),
+                      child: Text(
+                        _isArabic
+                            ? 'Effacer la sélection'
+                            : 'Effacer la sélection',
+                        style: GoogleFonts.cairo(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () {
+                        setState(() {
+                          final limit = _config.mobileDisplayCount;
+                          _config.mobileSelectedTrainings =
+                              _availableTrainings
+                                  .take(limit)
+                                  .map((t) => t.id)
+                                  .toList();
+                        });
+                      },
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xff0D443E),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          side: BorderSide(color: const Color(0xff0D443E)),
+                        ),
+                      ),
+                      child: Text(
+                        _isArabic
+                            ? 'Sélectionner les ${_config.mobileDisplayCount} premières'
+                            : 'Sélectionner les ${_config.mobileDisplayCount} premières',
+                        style: GoogleFonts.cairo(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+
+            // Aperçu de la sélection
+            if (_config.mobileSelectedTrainings.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xff0D443E).withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xff0D443E).withOpacity(0.1),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: const Color(0xff0D443E),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _isArabic
+                            ? '${_config.mobileSelectedTrainings.length} formation(s) sélectionnée(s) sur ${_availableTrainings.length} disponible(s)'
+                            : '${_config.mobileSelectedTrainings.length} formation(s) sélectionnée(s) sur ${_availableTrainings.length} disponible(s)',
+                        style: GoogleFonts.cairo(
+                          fontSize: 12,
+                          color: const Color(0xff0D443E),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ✅ Widget pour la liste de sélection des formations
+  Widget _buildTrainingSelectionList(bool isMobile) {
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const BouncingScrollPhysics(),
+      itemCount: _availableTrainings.length,
+      itemBuilder: (context, index) {
+        final training = _availableTrainings[index];
+        final isSelected = _config.mobileSelectedTrainings.contains(
+          training.id,
+        );
+        final isDisabled =
+            !isSelected &&
+            _config.mobileSelectedTrainings.length >=
+                _config.mobileDisplayCount;
+
+        return CheckboxListTile(
+          value: isSelected,
+          onChanged:
+              isDisabled && !isSelected
+                  ? null
+                  : (value) {
+                    setState(() {
+                      if (value == true) {
+                        if (_config.mobileSelectedTrainings.length <
+                            _config.mobileDisplayCount) {
+                          _config.mobileSelectedTrainings.add(training.id);
+                        }
+                      } else {
+                        _config.mobileSelectedTrainings.remove(training.id);
+                      }
+                    });
+                  },
+          title: Text(
+            _isArabic ? training.titleAr : training.titleFr,
+            style: GoogleFonts.cairo(
+              fontSize: 14,
+              color: isDisabled && !isSelected ? Colors.grey[400] : null,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Text(
+            _isArabic ? training.categorieAr : training.categorieFr,
+            style: GoogleFonts.cairo(fontSize: 12, color: Colors.grey[500]),
+          ),
+          secondary: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              image: DecorationImage(
+                image: NetworkImage(training.imageUrl),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          dense: true,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+          selected: isSelected,
+          selectedTileColor: const Color(0xff0D443E).withOpacity(0.08),
+          activeColor: const Color(0xff0D443E),
+          checkboxShape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(4),
+          ),
+        );
+      },
     );
   }
 
@@ -1100,7 +1511,7 @@ class _ApparenceCardPageState extends State<ApparenceCardPage> {
 }
 
 // ============================================
-// MODÈLE DE CONFIGURATION
+// MODÈLE DE CONFIGURATION MIS À JOUR
 // ============================================
 
 class CardConfig {
@@ -1124,6 +1535,11 @@ class CardConfig {
   FontWeight titleFontWeight;
   Color titleColor;
 
+  // ✅ NOUVEAUX CHAMPS : Paramètres d'affichage mobile
+  int mobileDisplayCount;
+  List<String> mobileSelectedTrainings;
+  bool showSeeMoreButton;
+
   CardConfig({
     required this.visibleFields,
     required this.labelFontFamily,
@@ -1138,6 +1554,9 @@ class CardConfig {
     required this.titleFontSize,
     required this.titleFontWeight,
     required this.titleColor,
+    this.mobileDisplayCount = 3,
+    this.mobileSelectedTrainings = const [],
+    this.showSeeMoreButton = true,
   });
 
   factory CardConfig.defaultConfig() {
@@ -1162,6 +1581,9 @@ class CardConfig {
       titleFontSize: 14,
       titleFontWeight: FontWeight.bold,
       titleColor: const Color(0xff2c221e),
+      mobileDisplayCount: 3,
+      mobileSelectedTrainings: [],
+      showSeeMoreButton: true,
     );
   }
 
@@ -1180,6 +1602,11 @@ class CardConfig {
       titleFontSize: (json['titleFontSize'] ?? 14).toDouble(),
       titleFontWeight: _getFontWeight(json['titleFontWeight'] ?? 700),
       titleColor: _getColor(json['titleColor'] ?? '#2c221e'),
+      mobileDisplayCount: json['mobileDisplayCount'] ?? 3,
+      mobileSelectedTrainings: List<String>.from(
+        json['mobileSelectedTrainings'] ?? [],
+      ),
+      showSeeMoreButton: json['showSeeMoreButton'] ?? true,
     );
   }
 
@@ -1198,6 +1625,9 @@ class CardConfig {
       'titleFontSize': titleFontSize,
       'titleFontWeight': titleFontWeight.index,
       'titleColor': _colorToString(titleColor),
+      'mobileDisplayCount': mobileDisplayCount,
+      'mobileSelectedTrainings': mobileSelectedTrainings,
+      'showSeeMoreButton': showSeeMoreButton,
     };
   }
 
@@ -1257,6 +1687,19 @@ class CardConfig {
     }
     return fontWithVariant;
   }
+
+  // ✅ Méthode pour obtenir les formations sélectionnées
+  List<TrainingModel> getSelectedTrainings(List<TrainingModel> allTrainings) {
+    final selected = <TrainingModel>[];
+    for (final id in mobileSelectedTrainings) {
+      final training = allTrainings.firstWhere(
+        (t) => t.id == id,
+        orElse: () => throw Exception('Training not found'),
+      );
+      selected.add(training);
+    }
+    return selected;
+  }
 }
 
 class CardFieldOption {
@@ -1274,3 +1717,6 @@ class CardFieldOption {
     this.defaultVisible = false,
   });
 }
+
+// ✅ Import du service de formation (à ajouter en haut du fichier)
+// import 'package:nafahat/services/training_service.dart';
