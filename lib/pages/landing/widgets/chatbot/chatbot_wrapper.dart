@@ -15,7 +15,7 @@ class ChatbotWrapper extends StatelessWidget {
   const ChatbotWrapper({
     super.key,
     required this.child,
-    this.apiBaseUrl = ApiConfig.baseUrlConst, // ✅ Utiliser baseUrlConst
+    this.apiBaseUrl = ApiConfig.baseUrl, // 👈 MODIFIER
     this.langue = 'fr',
     this.showFloatingButton = true,
     this.buttonSize,
@@ -29,7 +29,7 @@ class ChatbotWrapper extends StatelessWidget {
       children: [
         child,
         ChatbotWidget(
-          apiBaseUrl: apiBaseUrl, // 👈 On passe mais le widget ne l'utilise pas
+          apiBaseUrl: apiBaseUrl,
           langue: langue,
           showFloatingButton: showFloatingButton,
           buttonSize: buttonSize,

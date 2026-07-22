@@ -7,7 +7,7 @@ import 'chatbot_button.dart';
 import 'chatbot_window.dart';
 
 class ChatbotWidget extends StatefulWidget {
-  final String apiBaseUrl; // 👈 On garde mais on ne l'utilise pas
+  final String apiBaseUrl;
   final String langue;
   final bool showFloatingButton;
   final double? buttonSize;
@@ -16,7 +16,7 @@ class ChatbotWidget extends StatefulWidget {
 
   const ChatbotWidget({
     super.key,
-    this.apiBaseUrl = ApiConfig.baseUrlConst, // ✅ Utiliser baseUrlConst
+    this.apiBaseUrl = ApiConfig.baseUrl,
     this.langue = 'fr',
     this.showFloatingButton = true,
     this.buttonSize,
@@ -51,8 +51,8 @@ class _ChatbotWidgetState extends State<ChatbotWidget>
   void initState() {
     super.initState();
 
-    // ✅ Le service utilise déjà TrainingService.apiBaseUrl en interne
-    // On n'a pas besoin de passer baseUrl
+    // ✅ Le ChatbotService utilise maintenant TrainingService.apiBaseUrl en interne
+    // On n'a plus besoin de passer baseUrl
     _chatbotService = ChatbotService(); // 👈 SIMPLIFIÉ
 
     _animationController = AnimationController(
@@ -107,6 +107,7 @@ class _ChatbotWidgetState extends State<ChatbotWidget>
   Future<void> _sendMessage(String message) async {
     if (message.trim().isEmpty) return;
 
+    // Ajouter le message de l'utilisateur
     setState(() {
       _messages.add(ChatMessage.user(message.trim()));
       _messages.add(ChatMessage.loading());
@@ -120,6 +121,7 @@ class _ChatbotWidgetState extends State<ChatbotWidget>
       );
 
       setState(() {
+        // Supprimer le message de chargement
         _messages.removeWhere((msg) => msg.isLoading);
 
         if (result['success'] == true) {
@@ -163,6 +165,7 @@ class _ChatbotWidgetState extends State<ChatbotWidget>
 
     return Stack(
       children: [
+        // Bouton flottant
         if (widget.showFloatingButton)
           Positioned(
             bottom: 20,
@@ -174,6 +177,8 @@ class _ChatbotWidgetState extends State<ChatbotWidget>
               primaryColor: primaryColor,
             ),
           ),
+
+        // Fenêtre du chatbot
         if (_isOpen)
           Positioned(
             bottom: 90,

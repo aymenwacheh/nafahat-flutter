@@ -2,11 +2,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/chatbot_models.dart';
-import 'training_service.dart'; // 👈 Utilise TrainingService.apiBaseUrl
+import 'training_service.dart'; // 👈 AJOUT
 
 class ChatbotService {
-  // ✅ Utilise la même baseUrl que TrainingService
-  // Cette valeur vient de ApiConfig.baseUrl
+  // ✅ Utiliser la même baseUrl que TrainingService
   final String baseUrl = TrainingService.apiBaseUrl;
 
   Future<Map<String, dynamic>> askQuestion(
