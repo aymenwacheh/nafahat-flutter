@@ -92,7 +92,7 @@ class _ApparenceCardPageState extends State<ApparenceCardPage> {
     ),
   ];
 
-  // Prévisualisation
+  // ✅ Prévisualisation - AJOUT des 3 prix
   TrainingModel _previewTraining = TrainingModel(
     id: 'preview',
     titleFr: 'Formation Flutter Avancé',
@@ -100,6 +100,9 @@ class _ApparenceCardPageState extends State<ApparenceCardPage> {
     descriptionFr: 'Maîtrisez Flutter avec des projets concrets',
     descriptionAr: 'إتقان فلاتر من خلال مشاريع عملية',
     price: 15000,
+    priceDt: 15000, // ✅ AJOUTÉ
+    priceEur: 450, // ✅ AJOUTÉ
+    priceUsd: 550, // ✅ AJOUTÉ
     discountValue: 3000,
     hasDiscount: true,
     isPercentageDiscount: true,

@@ -11,6 +11,8 @@ import 'package:nafahat/services/training_service.dart';
 import 'package:nafahat/services/upload_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:nafahat/models/cible_model.dart';
+import 'package:nafahat/services/cible_service.dart';
 
 class AddTrainingCardPage extends StatefulWidget {
   const AddTrainingCardPage({super.key});
@@ -29,7 +31,15 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
   final _descriptionArController = TextEditingController();
   final _targetController = TextEditingController();
   final _imageUrlController = TextEditingController();
+
+  // ✅ ANCIEN CONTROLEUR PRIX (conservé pour compatibilité)
   final _priceController = TextEditingController();
+
+  // ✅ NOUVEAUX CONTROLEURS PRIX MULTI-DEVISES
+  final _priceDtController = TextEditingController();
+  final _priceEurController = TextEditingController();
+  final _priceUsdController = TextEditingController();
+
   final _discountValueController = TextEditingController();
   final TextEditingController _dateDebutController = TextEditingController();
   final TextEditingController _dateFinController = TextEditingController();
@@ -56,6 +66,7 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
   int? _selectedCategorieId;
   int? _selectedSousCategorieId;
   int? _selectedFormateurId;
+  int? _selectedCibleId; // ✅ AJOUTÉ
 
   // Jours de la semaine
   final Map<String, bool> _joursSemaine = {
@@ -75,6 +86,7 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
   List<Map<String, dynamic>> _allSousCategories = [];
   List<Map<String, dynamic>> _filteredSousCategories = [];
   List<Map<String, dynamic>> _formateurs = [];
+  List<CibleModel> _cibles = []; // ✅ AJOUTÉ
 
   static const Color nafahatGreen = Color(0xff0D443E);
   static const Color nafahatOrange = Color(0xffd57653);
@@ -124,6 +136,7 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
       final categories = await TrainingService.getCategories();
       final formateurs = await TrainingService.getFormateurs();
       final sousCategories = await _loadSousCategories();
+      final cibles = await CibleService.getCibles();
 
       setState(() {
         _typesFormation = types;
@@ -132,6 +145,7 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
         _formateurs = formateurs;
         _allSousCategories = sousCategories;
         _filteredSousCategories = [];
+        _cibles = cibles;
       });
     } catch (e) {
       print('❌ Erreur chargement données: $e');
@@ -181,6 +195,10 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
     _targetController.dispose();
     _imageUrlController.dispose();
     _priceController.dispose();
+    // ✅ Dispose des nouveaux contrôleurs
+    _priceDtController.dispose();
+    _priceEurController.dispose();
+    _priceUsdController.dispose();
     _discountValueController.dispose();
     _dateDebutController.dispose();
     _dateFinController.dispose();
@@ -283,8 +301,6 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
       await _pickImageMobile();
     }
   }
-
-  // Dans add_training_card.dart, modifiez la méthode _uploadImageWeb :
 
   // ==================== UPLOAD IMAGE POUR WEB ====================
   Future<void> _uploadImageWeb(html.File file) async {
@@ -456,8 +472,9 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
         'titre_fr': _titleFrController.text,
         'titre_ar': _titleArController.text,
         'id_type_formation': _selectedTypeFormationId,
-        'cible_fr': _targetController.text,
-        'cible_ar': _targetController.text,
+        'id_cible': _selectedCibleId,
+        'cible_fr': null,
+        'cible_ar': null,
         'id_duree': _selectedDureeId,
         'date_debut':
             _dateDebutController.text.isNotEmpty
@@ -465,7 +482,12 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
                 : null,
         'date_fin':
             _dateFinController.text.isNotEmpty ? _dateFinController.text : null,
-        'prix': double.parse(_priceController.text),
+        // ✅ ANCIEN PRIX (conservé pour compatibilité)
+        'prix': double.parse(_priceDtController.text),
+        // ✅ NOUVEAUX PRIX MULTI-DEVISES
+        'prix_dt': double.parse(_priceDtController.text),
+        'prix_eur': double.parse(_priceEurController.text),
+        'prix_usd': double.parse(_priceUsdController.text),
         'discount': _hasDiscount ? 'oui' : 'non',
         'valeur_disc':
             _hasDiscount ? double.parse(_discountValueController.text) : null,
@@ -542,6 +564,7 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
       _selectedCategorieId = null;
       _selectedSousCategorieId = null;
       _selectedFormateurId = null;
+      _selectedCibleId = null;
       _dateDebutController.clear();
       _dateFinController.clear();
       _hasDiscount = false;
@@ -552,6 +575,12 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
       _nbrSeanceController.clear();
       _nbrJourController.clear();
       _joursSemaine.updateAll((key, value) => false);
+
+      // ✅ Réinitialiser les prix
+      _priceDtController.clear();
+      _priceEurController.clear();
+      _priceUsdController.clear();
+      _discountValueController.clear();
 
       // Réinitialiser l'image
       _selectedImageFile = null;
@@ -936,44 +965,72 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
 
                       const Divider(height: 32, color: grey200),
 
-                      // SECTION 7: Prix et Cible
+                      // ==================== SECTION 7: PRIX ET CIBLE ====================
                       _buildSection(
                         icon: Icons.payments_outlined,
                         title: _isArabic ? 'السعر والجمهور' : 'Prix et Cible',
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildField(
-                                  label:
-                                      _isArabic
-                                          ? 'الجمهور المستهدف *'
-                                          : 'Cible *',
-                                  controller: _targetController,
-                                  hint:
-                                      _isArabic
-                                          ? 'مثال: Débutants'
-                                          : 'Ex: Débutants',
-                                  required: true,
-                                ),
+                          // ✅ DROPDOWN POUR LA CIBLE
+                          _buildDropdownField(
+                            label: _isArabic ? 'الجمهور المستهدف *' : 'Cible *',
+                            value: _selectedCibleId,
+                            items: [
+                              const DropdownMenuItem<int>(
+                                value: null,
+                                child: Text('---'),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildField(
-                                  label:
-                                      _isArabic
-                                          ? 'السعر (درهم) *'
-                                          : 'Prix (DH) *',
-                                  controller: _priceController,
-                                  hint: _isArabic ? 'مثال: 15000' : 'Ex: 15000',
-                                  required: true,
-                                  keyboardType: TextInputType.number,
-                                  prefixIcon: Icons.money_rounded,
-                                ),
-                              ),
+                              ..._cibles.map((cible) {
+                                return DropdownMenuItem<int>(
+                                  value: cible.id,
+                                  child: Text(
+                                    cible.nomCible,
+                                    style: GoogleFonts.cairo(),
+                                  ),
+                                );
+                              }).toList(),
                             ],
+                            onChanged:
+                                (value) => setState(
+                                  () => _selectedCibleId = value as int?,
+                                ),
+                            required: true,
+                            isArabic: _isArabic,
                           ),
                           const SizedBox(height: 16),
+
+                          // ✅ PRIX DT
+                          _buildField(
+                            label: _isArabic ? 'السعر (DT) *' : 'Prix (DT) *',
+                            controller: _priceDtController,
+                            hint: _isArabic ? 'مثال: 15000' : 'Ex: 15000',
+                            required: true,
+                            keyboardType: TextInputType.number,
+                            prefixIcon: Icons.money_rounded,
+                          ),
+                          const SizedBox(height: 12),
+
+                          // ✅ PRIX EURO
+                          _buildField(
+                            label: _isArabic ? 'السعر (€) *' : 'Prix (€) *',
+                            controller: _priceEurController,
+                            hint: _isArabic ? 'مثال: 450' : 'Ex: 450',
+                            required: true,
+                            keyboardType: TextInputType.number,
+                            prefixIcon: Icons.euro_rounded,
+                          ),
+                          const SizedBox(height: 12),
+
+                          // ✅ PRIX USD - AVEC ÉCHAPPEMENT DU $
+                          _buildField(
+                            label: _isArabic ? 'السعر (\$) *' : 'Prix (\$) *',
+                            controller: _priceUsdController,
+                            hint: _isArabic ? 'مثال: 550' : 'Ex: 550',
+                            required: true,
+                            keyboardType: TextInputType.number,
+                            prefixIcon: Icons.attach_money_rounded,
+                          ),
+                          const SizedBox(height: 16),
+
                           _buildDiscountSection(),
                         ],
                       ),

@@ -7,6 +7,7 @@ import 'package:nafahat/models/training_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nafahat/pages/formation/formation_detail_page.dart';
 import 'package:nafahat/services/card_config_manager.dart';
+import 'package:nafahat/services/geo_service.dart';
 
 class TrainingCard extends StatefulWidget {
   final TrainingModel training;
@@ -30,6 +31,8 @@ class _TrainingCardState extends State<TrainingCard> {
   bool isHovered = false;
   CardConfig? _cardConfig;
   late ValueNotifier<CardConfig?> _configNotifier;
+  String _countryCode = 'TN';
+  bool _isLoadingCountry = true;
 
   @override
   void initState() {
@@ -37,6 +40,7 @@ class _TrainingCardState extends State<TrainingCard> {
     _configNotifier = CardConfigManager().configNotifier;
     _loadCardConfig();
     _configNotifier.addListener(_onConfigChanged);
+    _detectCountry();
   }
 
   @override
@@ -50,6 +54,33 @@ class _TrainingCardState extends State<TrainingCard> {
     if (newConfig != null) {
       setState(() {
         _cardConfig = newConfig;
+      });
+    }
+  }
+
+  Future<void> _detectCountry() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      String? savedCountry = prefs.getString('user_country');
+
+      if (savedCountry != null && savedCountry.isNotEmpty) {
+        setState(() {
+          _countryCode = savedCountry;
+          _isLoadingCountry = false;
+        });
+      } else {
+        final countryCode = await GeoService.getUserCountryCode();
+        await prefs.setString('user_country', countryCode);
+        setState(() {
+          _countryCode = countryCode;
+          _isLoadingCountry = false;
+        });
+      }
+    } catch (e) {
+      print('❌ Erreur détection pays: $e');
+      setState(() {
+        _countryCode = 'TN';
+        _isLoadingCountry = false;
       });
     }
   }
@@ -107,13 +138,19 @@ class _TrainingCardState extends State<TrainingCard> {
 
   @override
   Widget build(BuildContext context) {
-    if (_cardConfig == null) {
+    if (_cardConfig == null || _isLoadingCountry) {
       return const SizedBox.shrink();
     }
 
     final config = _cardConfig!;
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = widget.isMobile || screenWidth < 600;
+
+    // ✅ Récupérer le prix selon la devise du pays
+    final price = widget.training.getPriceForCurrency(_countryCode);
+    final symbol = TrainingModel.getCurrencySymbol(_countryCode);
+    final finalPrice = widget.training.getFinalPriceForCurrency(_countryCode);
+    final hasDiscount = widget.training.hasDiscount;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -207,7 +244,7 @@ class _TrainingCardState extends State<TrainingCard> {
                         fit: StackFit.expand,
                         children: [
                           _buildImage(imageUrl),
-                          if (widget.training.hasDiscount &&
+                          if (hasDiscount &&
                               widget.training.discountValue != null)
                             Positioned(
                               top: 8,
@@ -368,9 +405,10 @@ class _TrainingCardState extends State<TrainingCard> {
                                       ],
                                     ),
                                   if (config.visibleFields.contains('price'))
+                                    // ✅ PRIX DYNAMIQUE AVEC DÉTECTION DE DEVISE
                                     Row(
                                       children: [
-                                        if (widget.training.hasDiscount &&
+                                        if (hasDiscount &&
                                             widget.training.discountValue !=
                                                 null)
                                           Padding(
@@ -378,7 +416,7 @@ class _TrainingCardState extends State<TrainingCard> {
                                               right: 4,
                                             ),
                                             child: Text(
-                                              '${widget.training.price.toInt()} DH',
+                                              '${price.toInt()} $symbol',
                                               style: GoogleFonts.cairo(
                                                 fontSize: isMobile ? 8 : 10,
                                                 fontWeight: FontWeight.w400,
@@ -389,7 +427,7 @@ class _TrainingCardState extends State<TrainingCard> {
                                             ),
                                           ),
                                         Text(
-                                          '${widget.training.finalPrice.toInt()} DH',
+                                          '${finalPrice.toInt()} $symbol',
                                           style: GoogleFonts.cairo(
                                             fontSize: isMobile ? 13 : 15,
                                             fontWeight: FontWeight.w800,

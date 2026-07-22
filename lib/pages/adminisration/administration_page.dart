@@ -22,6 +22,9 @@ import 'package:nafahat/providers/language_provider.dart';
 import 'package:provider/provider.dart';
 import 'edit_formateur.dart';
 import 'dart:convert';
+import 'package:nafahat/pages/adminisration/add_cible_page.dart';
+import 'package:nafahat/services/cible_service.dart';
+import 'package:nafahat/models/cible_model.dart';
 import 'package:http/http.dart' as http;
 import 'package:nafahat/pages/adminisration/add_typeFormation.dart';
 
@@ -44,6 +47,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     const AdherentsManagementPage(),
     const DureesManagementPage(),
     const TypesFormationManagementPage(),
+    const CiblesManagementPage(),
     const ApparenceCardPage(),
     const ApparenceHeroPageWrapper(),
   ];
@@ -57,6 +61,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     'Adhérents',
     'Durées',
     'Types de formation',
+    'Cibles',
     'Apparence des cartes',
     'Apparence Hero',
   ];
@@ -70,6 +75,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     'المنخرطين',
     'المدد',
     'أنواع التكوين',
+    'الجمهور المستهدف',
     'مظهر البطاقات',
     'مظهر الهيرو',
   ];
@@ -124,16 +130,22 @@ class _AdministrationPageState extends State<AdministrationPage> {
       'page': 7,
     },
     {
+      'icon': Icons.people_rounded, // ✅ NOUVEAU
+      'title': 'Cibles',
+      'titleAr': 'الجمهور المستهدف',
+      'page': 8,
+    },
+    {
       'icon': Icons.palette_outlined,
       'title': 'Apparence Cartes',
       'titleAr': 'مظهر البطاقات',
-      'page': 8,
+      'page': 9,
     },
     {
       'icon': Icons.slideshow_outlined,
       'title': 'Apparence Hero',
       'titleAr': 'مظهر الهيرو',
-      'page': 9,
+      'page': 10,
     },
   ];
 
@@ -2954,6 +2966,276 @@ class _TypesFormationManagementPageState
                                   onPressed: () {
                                     _deleteTypeFormation(type['id'].toString());
                                   },
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+// lib/pages/adminisration/administration_page.dart
+// Ajouter cette classe après TypesFormationManagementPage
+
+// ============================================================
+// CIBLES MANAGEMENT PAGE
+// ============================================================
+class CiblesManagementPage extends StatefulWidget {
+  const CiblesManagementPage({super.key});
+
+  @override
+  State<CiblesManagementPage> createState() => _CiblesManagementPageState();
+}
+
+class _CiblesManagementPageState extends State<CiblesManagementPage> {
+  List<CibleModel> _cibles = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCibles();
+  }
+
+  Future<void> _loadCibles() async {
+    setState(() => _isLoading = true);
+    try {
+      final cibles = await CibleService.getCibles();
+      setState(() {
+        _cibles = cibles;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      final isArabic =
+          Provider.of<LanguageProvider>(context, listen: false).isArabic;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isArabic
+                ? '❌ Erreur de chargement des cibles'
+                : '❌ Erreur de chargement des cibles',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _deleteCible(CibleModel cible) async {
+    final isArabic =
+        Provider.of<LanguageProvider>(context, listen: false).isArabic;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text(isArabic ? 'تأكيد الحذف' : 'Confirmation'),
+            content: Text(
+              isArabic
+                  ? 'هل أنت sûr de vouloir supprimer "${cible.nomCible}" ?'
+                  : 'Voulez-vous vraiment supprimer "${cible.nomCible}" ?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(isArabic ? 'إلغاء' : 'Annuler'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: Text(isArabic ? 'حذف' : 'Supprimer'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirm == true && cible.id != null) {
+      setState(() => _isLoading = true);
+      final success = await CibleService.deleteCible(cible.id!);
+      if (success) {
+        setState(() {
+          _cibles.removeWhere((c) => c.id == cible.id);
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isArabic
+                  ? '✅ تم حذف "${cible.nomCible}" بنجاح'
+                  : '✅ "${cible.nomCible}" supprimée avec succès',
+            ),
+            backgroundColor: const Color(0xff0D443E),
+          ),
+        );
+      } else {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _navigateToAddCible({CibleModel? cible}) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => AddCiblePage(cible: cible)),
+    );
+    if (result == true) {
+      _loadCibles();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isArabic = Provider.of<LanguageProvider>(context).isArabic;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                isArabic ? 'إدارة الجمهور المستهدف' : 'Gestion des cibles',
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xff2c221e),
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: () => _navigateToAddCible(),
+                icon: const Icon(Icons.add),
+                label: Text(isArabic ? 'إضافة' : 'Ajouter'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xff0D443E),
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child:
+                _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _cibles.isEmpty
+                    ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.people_outline,
+                            size: 80,
+                            color: Colors.grey[300],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            isArabic
+                                ? 'لا توجد cibles'
+                                : 'Aucune cible trouvée',
+                            style: GoogleFonts.poppins(color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                    )
+                    : Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey[200]!),
+                      ),
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(8),
+                        itemCount: _cibles.length,
+                        itemBuilder: (context, index) {
+                          final cible = _cibles[index];
+                          final fields = cible.nonEmptyFields;
+
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: const Color(
+                                0xff0D443E,
+                              ).withOpacity(0.1),
+                              child: Text(
+                                '${index + 1}',
+                                style: TextStyle(
+                                  color: const Color(0xff0D443E),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            title: Text(
+                              cible.nomCible,
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            subtitle:
+                                fields.isNotEmpty
+                                    ? Wrap(
+                                      spacing: 6,
+                                      runSpacing: 4,
+                                      children:
+                                          fields.map((field) {
+                                            return Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 2,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: const Color(
+                                                  0xffd57653,
+                                                ).withOpacity(0.1),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              child: Text(
+                                                field,
+                                                style: GoogleFonts.poppins(
+                                                  fontSize: 11,
+                                                  color: const Color(
+                                                    0xffd57653,
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          }).toList(),
+                                    )
+                                    : Text(
+                                      isArabic ? 'Aucun champ' : 'Aucun champ',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade400,
+                                        fontSize: 12,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.edit,
+                                    color: Color(0xffd57653),
+                                    size: 20,
+                                  ),
+                                  onPressed:
+                                      () => _navigateToAddCible(cible: cible),
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    color: Colors.red,
+                                    size: 20,
+                                  ),
+                                  onPressed: () => _deleteCible(cible),
                                 ),
                               ],
                             ),

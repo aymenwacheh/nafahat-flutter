@@ -4,18 +4,26 @@ class TrainingModel {
   final String titleFr;
   final String titleAr;
   final int? idTypeFormation;
-  final String typeFormation; // nom du type depuis la table type_formation
+  final String typeFormation;
   final String descriptionFr;
   final String descriptionAr;
   final int? idDuree;
-  final String typeDuree; // nom de la durée depuis la table duree
+  final String typeDuree;
   final String trainer;
   final String target;
   final String period;
   final String dateDebut;
   final String dateFin;
   final String imageUrl;
+
+  // ✅ ANCIEN CHAMP (conservé pour compatibilité)
   final double price;
+
+  // ✅ NOUVEAUX CHAMPS PRIX MULTI-DEVISES
+  final double priceDt;
+  final double priceEur;
+  final double priceUsd;
+
   final bool hasDiscount;
   final double? discountValue;
   final bool isPercentageDiscount;
@@ -41,6 +49,9 @@ class TrainingModel {
     this.dateFin = '',
     required this.imageUrl,
     required this.price,
+    required this.priceDt,
+    required this.priceEur,
+    required this.priceUsd,
     required this.hasDiscount,
     this.discountValue,
     required this.isPercentageDiscount,
@@ -49,6 +60,77 @@ class TrainingModel {
     this.categorieId,
     this.formateurId,
   });
+
+  // ✅ METHODE POUR OBTENIR LE PRIX SELON LA DEVISE
+  double getPriceForCurrency(String currencyCode) {
+    switch (currencyCode.toUpperCase()) {
+      case 'TN':
+        return priceDt;
+      case 'FR':
+        return priceEur;
+      case 'BE':
+        return priceEur;
+      case 'CH':
+        return priceEur;
+      case 'US':
+        return priceUsd;
+      case 'CA':
+        return priceUsd;
+      default:
+        return priceDt;
+    }
+  }
+
+  // ✅ METHODE POUR OBTENIR LE SYMBOLE DE LA DEVISE
+  // ⚠️ Utilisation d'une méthode statique (non const) pour éviter l'erreur
+  static String getCurrencySymbol(String countryCode) {
+    // Map non-const car on ne peut pas avoir de const avec des symboles comme '$'
+    final symbols = {
+      'TN': 'DT',
+      'FR': '€',
+      'BE': '€',
+      'CH': 'CHF',
+      'US': '\$', // ✅ Échappement du $ avec \
+      'CA': 'CA\$', // ✅ Échappement du $ avec \
+      'GB': '£',
+      'MA': 'DH',
+      'DZ': 'DA',
+      'EG': 'EGP',
+      'SA': 'SAR',
+      'AE': 'AED',
+      'KW': 'KWD',
+      'QA': 'QAR',
+      'BH': 'BHD',
+      'OM': 'OMR',
+      'JO': 'JOD',
+      'LB': 'LBP',
+      'SY': 'SYP',
+      'IQ': 'IQD',
+      'YE': 'YER',
+      'LY': 'LYD',
+      'MR': 'MRU',
+      'SN': 'XOF',
+      'CI': 'XOF',
+      'BF': 'XOF',
+      'BJ': 'XOF',
+      'NE': 'XOF',
+      'TG': 'XOF',
+      'ML': 'XOF',
+      'CM': 'XAF',
+      'CF': 'XAF',
+      'CG': 'XAF',
+      'GA': 'XAF',
+      'GQ': 'XAF',
+    };
+    return symbols[countryCode.toUpperCase()] ?? 'DT';
+  }
+
+  // ✅ METHODE POUR OBTENIR LE PRIX AVEC SYMBOLE
+  String getPriceWithSymbol(String countryCode) {
+    final price = getPriceForCurrency(countryCode);
+    final symbol = TrainingModel.getCurrencySymbol(countryCode);
+    return '${price.toInt()} $symbol';
+  }
 
   Map<String, dynamic> toJson() => {
     'titre_fr': titleFr,
@@ -59,7 +141,11 @@ class TrainingModel {
     'id_duree': idDuree,
     'date_debut': dateDebut,
     'date_fin': dateFin,
-    'prix': price,
+    // ✅ Envoyer les 3 prix
+    'prix_dt': priceDt,
+    'prix_eur': priceEur,
+    'prix_usd': priceUsd,
+    'prix': price, // Pour compatibilité
     'discount': hasDiscount ? 'oui' : 'non',
     'valeur_disc': discountValue,
     'descri_fr': descriptionFr,
@@ -87,6 +173,9 @@ class TrainingModel {
       dateFin: json['dateFin'] ?? '',
       imageUrl: json['imageUrl'] ?? '',
       price: (json['price'] ?? 0).toDouble(),
+      priceDt: (json['priceDt'] ?? 0).toDouble(),
+      priceEur: (json['priceEur'] ?? 0).toDouble(),
+      priceUsd: (json['priceUsd'] ?? 0).toDouble(),
       hasDiscount: json['hasDiscount'] ?? false,
       discountValue: json['discountValue']?.toDouble(),
       isPercentageDiscount: json['isPercentageDiscount'] ?? true,
@@ -117,7 +206,11 @@ class TrainingModel {
           json['photo'] != null
               ? 'http://localhost:3000${json['photo']}'
               : 'https://picsum.photos/800/450',
-      price: double.parse(json['prix']?.toString() ?? '0'),
+      // ✅ Lire les 3 prix depuis l'API
+      price: double.parse(json['prix_dt']?.toString() ?? '0'),
+      priceDt: double.parse(json['prix_dt']?.toString() ?? '0'),
+      priceEur: double.parse(json['prix_eur']?.toString() ?? '0'),
+      priceUsd: double.parse(json['prix_usd']?.toString() ?? '0'),
       hasDiscount: json['discount'] == 'oui',
       discountValue:
           json['valeur_disc'] != null
@@ -137,6 +230,17 @@ class TrainingModel {
       return price - (price * discountValue! / 100);
     } else {
       return price - discountValue!;
+    }
+  }
+
+  // ✅ PRIX FINAL PAR DEVISE
+  double getFinalPriceForCurrency(String currencyCode) {
+    final basePrice = getPriceForCurrency(currencyCode);
+    if (!hasDiscount || discountValue == null) return basePrice;
+    if (isPercentageDiscount) {
+      return basePrice - (basePrice * discountValue! / 100);
+    } else {
+      return basePrice - discountValue!;
     }
   }
 
