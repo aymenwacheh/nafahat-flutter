@@ -119,21 +119,39 @@ class _TrainingCardState extends State<TrainingCard> {
     return fontWithVariant;
   }
 
+  // ✅ FONCTION CORRIGÉE
   String _getValidImageUrl(String imageUrl) {
-    if (imageUrl.contains('C:\\') || imageUrl.contains('\\')) {
+    // 🔍 Debug - afficher l'URL originale
+    print('📸 [Debug] URL originale: "$imageUrl"');
+    print('📸 [Debug] Type: ${imageUrl.runtimeType}');
+    print('📸 [Debug] Est vide? ${imageUrl.isEmpty}');
+    print('📸 [Debug] Commence par http? ${imageUrl.startsWith('http')}');
+
+    String result;
+
+    if (imageUrl.isEmpty) {
+      result = 'https://picsum.photos/seed/${widget.training.id}/800/450';
+    } else if (imageUrl.startsWith('http://') ||
+        imageUrl.startsWith('https://')) {
+      result = imageUrl;
+    } else if (imageUrl.contains('C:\\') || imageUrl.contains('\\')) {
       String fileName = imageUrl.split('\\').last;
-      return 'assets/images/$fileName';
+      result = 'http://localhost:3000/uploads/formations/$fileName';
+    } else if (imageUrl.startsWith('/uploads')) {
+      result = 'http://localhost:3000$imageUrl';
+    } else if (imageUrl.startsWith('assets/')) {
+      result = imageUrl;
+    } else if (imageUrl.contains('.jpg') ||
+        imageUrl.contains('.png') ||
+        imageUrl.contains('.jpeg') ||
+        imageUrl.contains('.gif')) {
+      result = 'http://localhost:3000/uploads/formations/$imageUrl';
+    } else {
+      result = 'https://picsum.photos/seed/${widget.training.id}/800/450';
     }
-    if (imageUrl.contains('/') && imageUrl.startsWith('assets/')) {
-      return imageUrl;
-    }
-    if (imageUrl.isEmpty ||
-        imageUrl.startsWith('file://') ||
-        imageUrl.startsWith('C:') ||
-        (!imageUrl.startsWith('assets/') && !imageUrl.startsWith('http'))) {
-      return 'https://picsum.photos/seed/${widget.training.id}/800/450';
-    }
-    return imageUrl;
+
+    print('📸 [Debug] URL finale: "$result"');
+    return result;
   }
 
   @override
@@ -146,7 +164,6 @@ class _TrainingCardState extends State<TrainingCard> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = widget.isMobile || screenWidth < 600;
 
-    // ✅ Récupérer le prix selon la devise du pays
     final price = widget.training.getPriceForCurrency(_countryCode);
     final symbol = TrainingModel.getCurrencySymbol(_countryCode);
     final finalPrice = widget.training.getFinalPriceForCurrency(_countryCode);
@@ -232,7 +249,6 @@ class _TrainingCardState extends State<TrainingCard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Image
                   SizedBox(
                     height: imageHeight,
                     width: double.infinity,
@@ -298,8 +314,6 @@ class _TrainingCardState extends State<TrainingCard> {
                       ),
                     ),
                   ),
-
-                  // Contenu principal ajustable
                   Expanded(
                     child: SingleChildScrollView(
                       physics: const NeverScrollableScrollPhysics(),
@@ -311,7 +325,6 @@ class _TrainingCardState extends State<TrainingCard> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Titre
                             if (config.visibleFields.contains('title'))
                               Text(
                                 title,
@@ -328,8 +341,6 @@ class _TrainingCardState extends State<TrainingCard> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             const SizedBox(height: 4),
-
-                            // Informations de la formation
                             if (config.visibleFields.contains('duration'))
                               _buildInfoRowWithConfig(
                                 Icons.access_time_rounded,
@@ -372,10 +383,7 @@ class _TrainingCardState extends State<TrainingCard> {
                                 isMobile,
                                 config,
                               ),
-
                             const SizedBox(height: 8),
-
-                            // Bas de carte (Prix & Flèche d'action)
                             Padding(
                               padding: EdgeInsets.only(
                                 top: isMobile ? 4 : 6,
@@ -405,7 +413,6 @@ class _TrainingCardState extends State<TrainingCard> {
                                       ],
                                     ),
                                   if (config.visibleFields.contains('price'))
-                                    // ✅ PRIX DYNAMIQUE AVEC DÉTECTION DE DEVISE
                                     Row(
                                       children: [
                                         if (hasDiscount &&

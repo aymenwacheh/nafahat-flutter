@@ -16,10 +16,7 @@ class TrainingModel {
   final String dateFin;
   final String imageUrl;
 
-  // ✅ ANCIEN CHAMP (conservé pour compatibilité)
   final double price;
-
-  // ✅ NOUVEAUX CHAMPS PRIX MULTI-DEVISES
   final double priceDt;
   final double priceEur;
   final double priceUsd;
@@ -31,6 +28,12 @@ class TrainingModel {
   final String categorieAr;
   final int? categorieId;
   final int? formateurId;
+
+  final int? cibleId;
+  final String cibleNom;
+  final String? cibleCh1;
+  final String? cibleCh2;
+  final String? cibleCh3;
 
   TrainingModel({
     required this.id,
@@ -59,9 +62,13 @@ class TrainingModel {
     this.categorieAr = '',
     this.categorieId,
     this.formateurId,
+    this.cibleId,
+    this.cibleNom = '',
+    this.cibleCh1,
+    this.cibleCh2,
+    this.cibleCh3,
   });
 
-  // ✅ METHODE POUR OBTENIR LE PRIX SELON LA DEVISE
   double getPriceForCurrency(String currencyCode) {
     switch (currencyCode.toUpperCase()) {
       case 'TN':
@@ -81,17 +88,14 @@ class TrainingModel {
     }
   }
 
-  // ✅ METHODE POUR OBTENIR LE SYMBOLE DE LA DEVISE
-  // ⚠️ Utilisation d'une méthode statique (non const) pour éviter l'erreur
   static String getCurrencySymbol(String countryCode) {
-    // Map non-const car on ne peut pas avoir de const avec des symboles comme '$'
     final symbols = {
       'TN': 'DT',
       'FR': '€',
       'BE': '€',
       'CH': 'CHF',
-      'US': '\$', // ✅ Échappement du $ avec \
-      'CA': 'CA\$', // ✅ Échappement du $ avec \
+      'US': '\$',
+      'CA': 'CA\$',
       'GB': '£',
       'MA': 'DH',
       'DZ': 'DA',
@@ -125,7 +129,6 @@ class TrainingModel {
     return symbols[countryCode.toUpperCase()] ?? 'DT';
   }
 
-  // ✅ METHODE POUR OBTENIR LE PRIX AVEC SYMBOLE
   String getPriceWithSymbol(String countryCode) {
     final price = getPriceForCurrency(countryCode);
     final symbol = TrainingModel.getCurrencySymbol(countryCode);
@@ -141,11 +144,10 @@ class TrainingModel {
     'id_duree': idDuree,
     'date_debut': dateDebut,
     'date_fin': dateFin,
-    // ✅ Envoyer les 3 prix
     'prix_dt': priceDt,
     'prix_eur': priceEur,
     'prix_usd': priceUsd,
-    'prix': price, // Pour compatibilité
+    'prix': price,
     'discount': hasDiscount ? 'oui' : 'non',
     'valeur_disc': discountValue,
     'descri_fr': descriptionFr,
@@ -183,10 +185,61 @@ class TrainingModel {
       categorieAr: json['categorieAr'] ?? '',
       categorieId: json['categorieId'],
       formateurId: json['formateurId'],
+      cibleId: json['cibleId'],
+      cibleNom: json['cibleNom'] ?? '',
+      cibleCh1: json['cibleCh1'],
+      cibleCh2: json['cibleCh2'],
+      cibleCh3: json['cibleCh3'],
     );
   }
 
+  // ✅ CORRECTION PRINCIPALE ICI
   factory TrainingModel.fromApiJson(Map<String, dynamic> json) {
+    // 🔍 Debug - afficher la valeur brute
+    print('📸 [Debug] fromApiJson - photo brute: "${json['photo']}"');
+
+    String imageUrl;
+
+    if (json['photo'] != null && json['photo'].toString().isNotEmpty) {
+      String photo = json['photo'].toString();
+
+      // ✅ SI L'URL CONTIENT DÉJÀ http://localhost:3000, LA NETTOYER
+      if (photo.contains('http://localhost:3000http://localhost:3000')) {
+        // Enlever le double http://localhost:3000
+        imageUrl = photo.replaceAll(
+          'http://localhost:3000http://localhost:3000',
+          'http://localhost:3000',
+        );
+        print('📸 [Debug] URL après nettoyage du double: $imageUrl');
+      }
+      // ✅ Si l'URL commence déjà par http, l'utiliser telle quelle
+      else if (photo.startsWith('http://') || photo.startsWith('https://')) {
+        imageUrl = photo;
+        print('📸 [Debug] URL déjà complète: $imageUrl');
+      }
+      // ✅ Si l'URL commence par /uploads, ajouter le domaine
+      else if (photo.startsWith('/uploads')) {
+        imageUrl = 'http://localhost:3000$photo';
+        print('📸 [Debug] URL avec /uploads: $imageUrl');
+      }
+      // ✅ Si l'URL est un chemin Windows (C:\), extraire le nom du fichier
+      else if (photo.contains('C:\\') || photo.contains('\\')) {
+        String fileName = photo.split('\\').last;
+        imageUrl = 'http://localhost:3000/uploads/formations/$fileName';
+        print('📸 [Debug] URL depuis chemin Windows: $imageUrl');
+      }
+      // ✅ Si l'URL est un nom de fichier simple
+      else {
+        imageUrl = 'http://localhost:3000/uploads/formations/$photo';
+        print('📸 [Debug] URL depuis nom de fichier: $imageUrl');
+      }
+    } else {
+      imageUrl = 'https://picsum.photos/800/450';
+      print('📸 [Debug] URL par défaut: $imageUrl');
+    }
+
+    print('📸 [Debug] URL finale: "$imageUrl"');
+
     return TrainingModel(
       id: json['id'].toString(),
       titleFr: json['titre_fr'] ?? '',
@@ -198,15 +251,11 @@ class TrainingModel {
       idDuree: json['id_duree'],
       typeDuree: json['type_duree'] ?? '',
       trainer: json['formateur_nom_fr'] ?? '',
-      target: json['cible_fr'] ?? '',
+      target: json['cible_nom'] ?? json['cible_fr'] ?? '',
       period: json['periode'] ?? '',
       dateDebut: json['date_debut'] ?? '',
       dateFin: json['date_fin'] ?? '',
-      imageUrl:
-          json['photo'] != null
-              ? 'http://localhost:3000${json['photo']}'
-              : 'https://picsum.photos/800/450',
-      // ✅ Lire les 3 prix depuis l'API
+      imageUrl: imageUrl,
       price: double.parse(json['prix_dt']?.toString() ?? '0'),
       priceDt: double.parse(json['prix_dt']?.toString() ?? '0'),
       priceEur: double.parse(json['prix_eur']?.toString() ?? '0'),
@@ -221,6 +270,11 @@ class TrainingModel {
       categorieAr: json['categorie_ar'] ?? '',
       categorieId: json['id_categorie'],
       formateurId: json['id_formateur'],
+      cibleId: json['id_cible'],
+      cibleNom: json['cible_nom'] ?? '',
+      cibleCh1: json['cible_ch1'],
+      cibleCh2: json['cible_ch2'],
+      cibleCh3: json['cible_ch3'],
     );
   }
 
@@ -233,7 +287,6 @@ class TrainingModel {
     }
   }
 
-  // ✅ PRIX FINAL PAR DEVISE
   double getFinalPriceForCurrency(String currencyCode) {
     final basePrice = getPriceForCurrency(currencyCode);
     if (!hasDiscount || discountValue == null) return basePrice;
@@ -253,5 +306,17 @@ class TrainingModel {
           ? 'خصم ${discountValue!.toInt()} د.م'
           : '-${discountValue!.toInt()} DH';
     }
+  }
+
+  String getCibleName(bool isArabic) {
+    return cibleNom;
+  }
+
+  List<String> get cibleDetails {
+    return [
+      cibleCh1,
+      cibleCh2,
+      cibleCh3,
+    ].where((e) => e != null && e!.isNotEmpty).map((e) => e!).toList();
   }
 }
