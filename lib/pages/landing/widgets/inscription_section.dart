@@ -166,129 +166,136 @@ class _InscriptionSectionState extends State<InscriptionSection>
           ),
         ],
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Stack(
+        clipBehavior:
+            Clip.none, // Permet à l'effet de débordement de s'afficher
         children: [
-          // Titre
-          Text(
-            getText('title'),
-            style: GoogleFonts.cairo(
-              fontSize: isMobile ? 22 : (isTablet ? 28 : 32),
-              fontWeight: FontWeight.bold,
-              color: AppColors.primaryDark,
-            ),
-            textAlign: TextAlign.center,
-          ),
-
-          const SizedBox(height: 12),
-
-          // Sous-titre
-          if (widget.showSubtitle)
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: isMobile ? 0 : 20),
-              child: Text(
-                getText('subtitle'),
+          // Contenu principal
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Titre
+              Text(
+                getText('title'),
                 style: GoogleFonts.cairo(
-                  fontSize: isMobile ? 14 : 16,
-                  color: AppColors.textMuted,
-                  height: 1.5,
+                  fontSize: isMobile ? 22 : (isTablet ? 28 : 32),
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryDark,
                 ),
                 textAlign: TextAlign.center,
               ),
-            ),
 
-          const SizedBox(height: 24),
+              const SizedBox(height: 12),
 
-          // Bouton animé
-          MouseRegion(
-            onEnter: (_) => setState(() => _isHovered = true),
-            onExit: (_) => setState(() => _isHovered = false),
-            child: AnimatedBuilder(
-              animation: _animationController,
-              builder: (context, child) {
-                return Transform.scale(
-                  scale: _isHovered ? 1.05 : _pulseAnimation.value,
-                  child: SizedBox(
-                    width: buttonWidth,
-                    height: buttonHeight,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        _navigateToInscription(context);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            widget.buttonColor ?? AppColors.primary,
-                        foregroundColor: widget.textColor ?? Colors.white,
-                        elevation: _isHovered ? 8 : 4,
-                        shadowColor: AppColors.primary.withOpacity(0.3),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            isMobile ? 25 : 30,
+              // Sous-titre
+              if (widget.showSubtitle)
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: isMobile ? 0 : 20),
+                  child: Text(
+                    getText('subtitle'),
+                    style: GoogleFonts.cairo(
+                      fontSize: isMobile ? 14 : 16,
+                      color: AppColors.textMuted,
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+
+              const SizedBox(height: 24),
+
+              // Bouton animé
+              MouseRegion(
+                onEnter: (_) => setState(() => _isHovered = true),
+                onExit: (_) => setState(() => _isHovered = false),
+                child: AnimatedBuilder(
+                  animation: _animationController,
+                  builder: (context, child) {
+                    return Transform.scale(
+                      scale: _isHovered ? 1.05 : _pulseAnimation.value,
+                      child: SizedBox(
+                        width: buttonWidth,
+                        height: buttonHeight,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            _navigateToInscription(context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                widget.buttonColor ?? AppColors.primary,
+                            foregroundColor: widget.textColor ?? Colors.white,
+                            elevation: _isHovered ? 8 : 4,
+                            shadowColor: AppColors.primary.withOpacity(0.3),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                isMobile ? 25 : 30,
+                              ),
+                            ),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isMobile ? 20 : 28,
+                              vertical: isMobile ? 12 : 16,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (widget.showIcon && !isArabic) ...[
+                                Flexible(
+                                  child: Text(
+                                    displayText,
+                                    style: GoogleFonts.cairo(
+                                      fontSize: fontSize,
+                                      fontWeight: FontWeight.w600,
+                                      color: widget.textColor ?? Colors.white,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                _buildIcon(isMobile, isArabic),
+                              ] else if (widget.showIcon && isArabic) ...[
+                                _buildIcon(isMobile, isArabic),
+                                const SizedBox(width: 10),
+                                Flexible(
+                                  child: Text(
+                                    displayText,
+                                    style: GoogleFonts.cairo(
+                                      fontSize: fontSize,
+                                      fontWeight: FontWeight.w600,
+                                      color: widget.textColor ?? Colors.white,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ] else ...[
+                                Flexible(
+                                  child: Text(
+                                    displayText,
+                                    style: GoogleFonts.cairo(
+                                      fontSize: fontSize,
+                                      fontWeight: FontWeight.w600,
+                                      color: widget.textColor ?? Colors.white,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: isMobile ? 20 : 28,
-                          vertical: isMobile ? 12 : 16,
-                        ),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (widget.showIcon && !isArabic) ...[
-                            Flexible(
-                              child: Text(
-                                displayText,
-                                style: GoogleFonts.cairo(
-                                  fontSize: fontSize,
-                                  fontWeight: FontWeight.w600,
-                                  color: widget.textColor ?? Colors.white,
-                                ),
-                                textAlign: TextAlign.center,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            _buildIcon(isMobile, isArabic),
-                          ] else if (widget.showIcon && isArabic) ...[
-                            _buildIcon(isMobile, isArabic),
-                            const SizedBox(width: 10),
-                            Flexible(
-                              child: Text(
-                                displayText,
-                                style: GoogleFonts.cairo(
-                                  fontSize: fontSize,
-                                  fontWeight: FontWeight.w600,
-                                  color: widget.textColor ?? Colors.white,
-                                ),
-                                textAlign: TextAlign.center,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ] else ...[
-                            Flexible(
-                              child: Text(
-                                displayText,
-                                style: GoogleFonts.cairo(
-                                  fontSize: fontSize,
-                                  fontWeight: FontWeight.w600,
-                                  color: widget.textColor ?? Colors.white,
-                                ),
-                                textAlign: TextAlign.center,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
 
-          // Effet de brillance animé
+          // Effet de brillance animé (maintenant correctement placé dans un Stack)
           if (_isHovered)
             Positioned.fill(
               child: Container(
