@@ -1,84 +1,79 @@
-// lib/providers/card_config_provider.dart
-import 'package:flutter/material.dart';
-import 'package:nafahat/services/card_config_service.dart';
+// lib/services/card_config_service.dart
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:nafahat/models/card_config_model.dart';
 
-class CardConfigProvider extends ChangeNotifier {
-  final CardConfigService _service = CardConfigService();
+export 'package:nafahat/models/card_config_model.dart';
 
-  CardConfig? _config;
-  bool _isLoading = true;
+class CardConfigService {
+  static const String _configKey = 'card_config_apparence';
 
-  CardConfig? get config => _config;
-  bool get isLoading => _isLoading;
+  // Singleton
+  static final CardConfigService _instance = CardConfigService._internal();
+  factory CardConfigService() => _instance;
+  CardConfigService._internal();
 
-  CardConfigProvider() {
-    _loadConfig();
-  }
+  CardConfig? _cachedConfig;
 
-  /// Charge la configuration depuis le service
-  Future<void> _loadConfig() async {
+  /// Charge la configuration depuis SharedPreferences
+  Future<CardConfig> loadConfig() async {
     try {
-      _isLoading = true;
-      _config = await _service.loadConfig();
-      _isLoading = false;
-      notifyListeners();
+      // Retourner le cache si disponible
+      if (_cachedConfig != null) {
+        return _cachedConfig!;
+      }
+
+      final prefs = await SharedPreferences.getInstance();
+      final configJson = prefs.getString(_configKey);
+
+      if (configJson != null && configJson.isNotEmpty) {
+        final Map<String, dynamic> data = json.decode(configJson);
+        _cachedConfig = CardConfig.fromJson(data);
+        return _cachedConfig!;
+      }
     } catch (e) {
-      print('❌ Erreur chargement provider: $e');
-      _isLoading = false;
+      print('❌ Erreur chargement config: $e');
     }
+
+    // Configuration par défaut
+    _cachedConfig = CardConfig.defaultConfig();
+    return _cachedConfig!;
   }
 
-  /// Met à jour la configuration
-  Future<bool> updateConfig(CardConfig newConfig) async {
+  /// Sauvegarde la configuration
+  Future<bool> saveConfig(CardConfig config) async {
     try {
-      final success = await _service.saveConfig(newConfig);
-      if (success) {
-        _config = newConfig;
-        notifyListeners();
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = json.encode(config.toJson());
+      final result = await prefs.setString(_configKey, jsonString);
+
+      if (result) {
+        _cachedConfig = config;
         return true;
       }
       return false;
     } catch (e) {
-      print('❌ Erreur mise à jour config: $e');
+      print('❌ Erreur sauvegarde config: $e');
       return false;
     }
   }
 
-  /// Réinitialise la configuration
+  /// Réinitialise la configuration par défaut
   Future<CardConfig> resetConfig() async {
-    final defaultConfig = await _service.resetConfig();
-    _config = defaultConfig;
-    notifyListeners();
+    final defaultConfig = CardConfig.defaultConfig();
+    await saveConfig(defaultConfig);
     return defaultConfig;
   }
 
   /// Vérifie si un champ est visible
-  bool isFieldVisible(String fieldId) {
-    return _config?.visibleFields.contains(fieldId) ?? false;
+  Future<bool> isFieldVisible(String fieldId) async {
+    final config = await loadConfig();
+    return config.visibleFields.contains(fieldId);
   }
 
   /// Récupère les champs visibles
-  List<String> getVisibleFields() {
-    return _config?.visibleFields ?? [];
-  }
-
-  /// Récupère le style du titre
-  TextStyle getTitleStyle() {
-    return _config?.getTitleStyle() ?? const TextStyle();
-  }
-
-  /// Récupère le style des libellés
-  TextStyle getLabelStyle() {
-    return _config?.getLabelStyle() ?? const TextStyle();
-  }
-
-  /// Récupère le style des valeurs
-  TextStyle getValueStyle() {
-    return _config?.getValueStyle() ?? const TextStyle();
-  }
-
-  /// Recharge la configuration depuis le stockage
-  Future<void> refreshConfig() async {
-    await _loadConfig();
+  Future<List<String>> getVisibleFields() async {
+    final config = await loadConfig();
+    return config.visibleFields;
   }
 }

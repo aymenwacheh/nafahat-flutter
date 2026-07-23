@@ -15,6 +15,7 @@ import 'package:nafahat/providers/chatbot_provider.dart'; // 👈 NOUVEAU: Impor
 import 'pages/landing/widgets/chatbot/chatbot_widget.dart';
 import 'package:nafahat/config/api_config.dart';
 import 'pages/landing/landing_page.dart'; // 👈 NOUVEAU: Import pour la landing page
+import 'package:nafahat/models/card_config_model.dart';
 
 void main() {
   runApp(const MyApp());
@@ -51,7 +52,6 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => LanguageProvider()),
-        ChangeNotifierProvider(create: (_) => CardConfigProvider()),
         ChangeNotifierProvider(
           create: (_) => ChatbotProvider(),
         ), // 👈 NOUVEAU: Ajout du ChatbotProvider

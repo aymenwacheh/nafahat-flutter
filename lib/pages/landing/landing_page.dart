@@ -2,6 +2,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:nafahat/models/card_config_model.dart';
 import 'package:nafahat/pages/formation/formation_detail_page.dart';
 import 'package:nafahat/pages/landing/widgets/inscription_section.dart';
 import 'package:provider/provider.dart';
@@ -15,6 +16,7 @@ import 'package:nafahat/pages/adminisration/add_training_card.dart';
 import 'widgets/training_card.dart';
 import 'package:nafahat/pages/landing/widgets/navbar.dart';
 import 'package:nafahat/services/card_config_service.dart';
+import 'package:nafahat/pages/adminisration/apparence_card.dart';
 
 // --- PALETTE DE COULEURS ---
 class AppColors {
@@ -139,7 +141,7 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
   List<TrainingModel> _displayedTrainings = [];
   bool _isLoading = true;
 
-  // ✅ Configuration
+  // Configuration
   CardConfig _config = CardConfig.defaultConfig();
   bool _isConfigLoaded = false;
 
@@ -163,7 +165,7 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
     _loadConfig();
   }
 
-  // ✅ Charger la configuration
+  // Charger la configuration
   Future<void> _loadConfig() async {
     try {
       final config = await CardConfigService().loadConfig();
@@ -201,19 +203,37 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
     }
   }
 
-  // ✅ Récupérer les formations à afficher selon la config
+  // Récupérer les formations à afficher selon la config
   List<TrainingModel> _getTrainingsToDisplay() {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
+    if (_allTrainings.isEmpty) return [];
+
     if (isMobile && _isConfigLoaded) {
-      // Récupérer les IDs sélectionnés depuis la config
-      // Note : Votre CardConfig actuel n'a pas ces champs, je vais utiliser les champs par défaut
-      // Pour l'instant, on affiche les 3 premières formations
-      // Plus tard, vous pourrez ajouter ces champs dans CardConfig
-      return _allTrainings.take(3).toList();
+      // MOBILE : Utiliser la configuration
+      final displayCount = _config.mobileDisplayCount;
+      final selectedIds = _config.mobileSelectedTrainings;
+
+      // Si des formations sont sélectionnées explicitement
+      if (selectedIds.isNotEmpty) {
+        final selected = <TrainingModel>[];
+        for (final id in selectedIds) {
+          try {
+            final training = _allTrainings.firstWhere((t) => t.id == id);
+            selected.add(training);
+          } catch (e) {
+            // Formation non trouvée, ignorer
+          }
+        }
+        if (selected.isNotEmpty) return selected;
+      }
+
+      // Sinon, prendre les N dernières formations créées
+      return _allTrainings.take(displayCount).toList();
     }
 
-    return _filteredTrainings;
+    // WEB : Toujours les 6 dernières formations
+    return _allTrainings.take(6).toList();
   }
 
   Future<void> _loadTrainings() async {
@@ -223,7 +243,10 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
         _allTrainings = trainings.reversed.toList();
         _extractFilters();
         _applyFilters();
+
+        // Appliquer la configuration selon l'appareil
         _updateDisplayedTrainings();
+
         _isLoading = false;
       });
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -243,9 +266,11 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     if (isMobile) {
+      // Mobile : utiliser la configuration
       _displayedTrainings = _getTrainingsToDisplay();
     } else {
-      _displayedTrainings = _filteredTrainings;
+      // Web : toujours les 6 dernières formations
+      _displayedTrainings = _allTrainings.take(6).toList();
     }
   }
 
@@ -370,7 +395,7 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
                 ),
                 Row(
                   children: [
-                    // ✅ Bouton "Voir plus" en version mobile
+                    // Bouton "Voir plus" en version mobile
                     if (isMobile && _allTrainings.length > 3)
                       TextButton(
                         onPressed: () {
@@ -407,7 +432,7 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
           ),
           const SizedBox(height: 16),
 
-          // ✅ Filtres (uniquement en version desktop)
+          // Filtres (uniquement en version desktop)
           if (!isMobile && !_isLoading && _allTrainings.isNotEmpty) ...[
             Padding(
               padding: EdgeInsets.symmetric(horizontal: isMobile ? 16.0 : 0.0),

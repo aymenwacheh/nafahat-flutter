@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nafahat/pages/formation/formation_detail_page.dart';
 import 'package:nafahat/services/card_config_manager.dart';
 import 'package:nafahat/services/geo_service.dart';
+import 'package:nafahat/models/card_config_model.dart';
 
 class TrainingCard extends StatefulWidget {
   final TrainingModel training;

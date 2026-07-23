@@ -1,6 +1,6 @@
 // lib/services/card_config_manager.dart
 import 'package:flutter/material.dart';
-import 'package:nafahat/pages/adminisration/apparence_card.dart';
+import 'package:nafahat/models/card_config_model.dart';
 
 class CardConfigManager {
   static final CardConfigManager _instance = CardConfigManager._internal();
