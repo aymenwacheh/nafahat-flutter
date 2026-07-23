@@ -145,10 +145,6 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
   CardConfig _config = CardConfig.defaultConfig();
   bool _isConfigLoaded = false;
 
-  // Pagination (version desktop)
-  int _currentPage = 0;
-  final int _itemsPerPage = 6;
-
   // Filtres
   String _selectedCategorie = 'Toutes';
   String _selectedTypeFormation = 'Tous';
@@ -156,8 +152,6 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
   List<String> _categories = ['Toutes'];
   List<String> _typesFormation = ['Tous'];
   List<String> _formateurs = ['Tous'];
-
-  PageController? _pageController;
 
   @override
   void initState() {
@@ -185,22 +179,7 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
 
   @override
   void dispose() {
-    _pageController?.dispose();
     super.dispose();
-  }
-
-  void _initPageController() {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-    if (isMobile) {
-      _pageController?.dispose();
-      _pageController = null;
-      return;
-    }
-
-    final totalPages = _getTotalPages();
-    if (_pageController == null && totalPages > 1) {
-      _pageController = PageController(initialPage: _currentPage);
-    }
   }
 
   // Récupérer les formations à afficher selon la config
@@ -225,14 +204,17 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
             // Formation non trouvée, ignorer
           }
         }
-        if (selected.isNotEmpty) return selected;
+        if (selected.isNotEmpty) {
+          // Limiter au nombre demandé
+          return selected.take(displayCount).toList();
+        }
       }
 
-      // Sinon, prendre les N dernières formations créées
+      // Sinon, prendre les N premières formations (les plus récentes car reversed)
       return _allTrainings.take(displayCount).toList();
     }
 
-    // WEB : Toujours les 6 dernières formations
+    // WEB : Toujours les 6 dernières formations (les plus récentes)
     return _allTrainings.take(6).toList();
   }
 
@@ -244,13 +226,10 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
         _extractFilters();
         _applyFilters();
 
-        // Appliquer la configuration selon l'appareil
+        // Mettre à jour l'affichage avec la nouvelle config
         _updateDisplayedTrainings();
 
         _isLoading = false;
-      });
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _initPageController();
       });
     } catch (e) {
       setState(() {
@@ -316,48 +295,13 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
           return matchCategorie && matchType && matchFormateur;
         }).toList();
 
-    _currentPage = 0;
-    _pageController?.dispose();
-    _pageController = null;
-
+    // Mettre à jour l'affichage selon le contexte (mobile ou web)
     _updateDisplayedTrainings();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initPageController();
-    });
   }
 
   Future<void> refreshTrainings() async {
     setState(() => _isLoading = true);
     await _loadConfig();
-  }
-
-  int _getTotalPages() {
-    if (_displayedTrainings.isEmpty) return 0;
-    return (_displayedTrainings.length / _itemsPerPage).ceil();
-  }
-
-  void _nextPage() {
-    final totalPages = _getTotalPages();
-    if (_pageController != null && _currentPage < totalPages - 1) {
-      setState(() => _currentPage++);
-      _pageController!.animateToPage(
-        _currentPage,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
-      );
-    }
-  }
-
-  void _prevPage() {
-    if (_pageController != null && _currentPage > 0) {
-      setState(() => _currentPage--);
-      _pageController!.animateToPage(
-        _currentPage,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
-      );
-    }
   }
 
   @override
@@ -368,6 +312,7 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
     final isTablet = screenWidth >= 600 && screenWidth < 900;
     final paddingHorizontal = isMobile ? 0.0 : (isTablet ? 32.0 : 50.0);
 
+    // Mettre à jour l'affichage à chaque build
     _updateDisplayedTrainings();
 
     return Container(
@@ -514,6 +459,26 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
                       ),
                       textAlign: TextAlign.center,
                     ),
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const AllTrainingsPage(),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        widget.isArabic
+                            ? 'Voir toutes les formations'
+                            : 'Voir toutes les formations',
+                        style: GoogleFonts.cairo(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -550,33 +515,18 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
 
     double cardWidth;
     double cardHeight;
-    int rowsPerPage;
 
     final trainings = isMobile ? _displayedTrainings : _filteredTrainings;
 
     if (isMobile) {
       cardWidth = screenWidth;
       cardHeight = 310.0;
-      rowsPerPage = 100;
     } else if (isTablet) {
       cardWidth = (screenWidth - 80) / 2 - 20;
       cardHeight = screenHeight * 0.45 > 400 ? 400 : screenHeight * 0.45;
-      rowsPerPage = 2;
     } else {
       cardWidth = (screenWidth - 140) / 3 - 20;
       cardHeight = screenHeight * 0.45 > 420 ? 420 : screenHeight * 0.45;
-      rowsPerPage = 2;
-    }
-
-    final itemsPerPage = rowsPerPage * crossAxisCount;
-    final totalPages = (trainings.length / itemsPerPage).ceil();
-
-    double gridHeight;
-    if (isMobile) {
-      gridHeight =
-          (cardHeight * trainings.length) + (20 * (trainings.length - 1));
-    } else {
-      gridHeight = (cardHeight * rowsPerPage) + (20 * (rowsPerPage - 1));
     }
 
     return Column(
@@ -595,14 +545,42 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
                   fontSize: 14,
                 ),
               ),
-              if (totalPages > 1 && !isMobile)
-                Text(
-                  widget.isArabic
-                      ? 'صفحة ${_currentPage + 1} / $totalPages'
-                      : 'Page ${_currentPage + 1} / $totalPages',
-                  style: GoogleFonts.cairo(
-                    color: AppColors.textMuted,
-                    fontSize: 14,
+              // 🔥 Bouton "Découvrir plus" pour la version web
+              if (!isMobile && _allTrainings.length > 6)
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AllTrainingsPage(),
+                      ),
+                    );
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        widget.isArabic
+                            ? 'اكتشف المزيد من الدورات'
+                            : 'Découvrir plus de formations',
+                        style: GoogleFonts.cairo(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        widget.isArabic
+                            ? Icons.arrow_forward_rounded
+                            : Icons.arrow_forward_rounded,
+                        color: AppColors.primary,
+                        size: 18,
+                      ),
+                    ],
                   ),
                 ),
             ],
@@ -612,7 +590,7 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
         Container(
           constraints: BoxConstraints(
             minHeight: cardHeight,
-            maxHeight: isMobile ? double.infinity : gridHeight,
+            maxHeight: isMobile ? double.infinity : cardHeight * 2 + 20,
           ),
           child:
               isMobile
@@ -637,140 +615,67 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
                       );
                     },
                   )
-                  : (totalPages > 1 && _pageController != null
-                      ? PageView(
-                        controller: _pageController,
-                        onPageChanged: (index) {
-                          setState(() => _currentPage = index);
-                        },
-                        children: List.generate(totalPages, (pageIndex) {
-                          final start = pageIndex * itemsPerPage;
-                          final end = start + itemsPerPage;
-                          final pageItems = trainings.sublist(
-                            start,
-                            end > trainings.length ? trainings.length : end,
-                          );
-                          return GridView.builder(
-                            physics: const NeverScrollableScrollPhysics(),
-                            gridDelegate:
-                                SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: crossAxisCount,
-                                  childAspectRatio: cardWidth / cardHeight,
-                                  crossAxisSpacing: 20.0,
-                                  mainAxisSpacing: 20.0,
-                                ),
-                            itemCount: pageItems.length,
-                            itemBuilder: (context, index) {
-                              return TrainingCard(
-                                training: pageItems[index],
-                                isArabic: widget.isArabic,
-                                onRefresh: refreshTrainings,
-                                isMobile: false,
-                              );
-                            },
-                          );
-                        }),
-                      )
-                      : GridView.builder(
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: crossAxisCount,
-                          childAspectRatio: cardWidth / cardHeight,
-                          crossAxisSpacing: 20.0,
-                          mainAxisSpacing: 20.0,
-                        ),
-                        itemCount: trainings.length,
-                        itemBuilder: (context, index) {
-                          return TrainingCard(
-                            training: trainings[index],
-                            isArabic: widget.isArabic,
-                            onRefresh: refreshTrainings,
-                            isMobile: false,
-                          );
-                        },
-                      )),
+                  : GridView.builder(
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      childAspectRatio: cardWidth / cardHeight,
+                      crossAxisSpacing: 20.0,
+                      mainAxisSpacing: 20.0,
+                    ),
+                    itemCount: trainings.length,
+                    itemBuilder: (context, index) {
+                      return TrainingCard(
+                        training: trainings[index],
+                        isArabic: widget.isArabic,
+                        onRefresh: refreshTrainings,
+                        isMobile: false,
+                      );
+                    },
+                  ),
         ),
-        if (totalPages > 1 && !isMobile)
+        // 🔥 Bouton "Voir toutes les formations" en bas de la grille (web uniquement)
+        if (!isMobile && _allTrainings.length > 6)
           Padding(
-            padding: const EdgeInsets.only(top: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  onPressed: _prevPage,
-                  icon: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color:
-                          _currentPage > 0
-                              ? AppColors.primary
-                              : Colors.grey.shade300,
-                      shape: BoxShape.circle,
+            padding: const EdgeInsets.only(top: 24),
+            child: Center(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AllTrainingsPage(),
                     ),
-                    child: Icon(
-                      widget.isArabic
-                          ? Icons.arrow_forward_rounded
-                          : Icons.arrow_back_rounded,
-                      color:
-                          _currentPage > 0
-                              ? Colors.white
-                              : Colors.grey.shade600,
-                      size: 20,
-                    ),
-                  ),
-                  style: IconButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(0, 0),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  );
+                },
+                icon: Icon(
+                  widget.isArabic
+                      ? Icons.arrow_forward_rounded
+                      : Icons.arrow_forward_rounded,
+                  size: 20,
+                ),
+                label: Text(
+                  widget.isArabic
+                      ? 'اكتشف جميع الدورات التدريبية'
+                      : 'Découvrir toutes les formations',
+                  style: GoogleFonts.cairo(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(width: 16),
-                Row(
-                  children: List.generate(totalPages, (index) {
-                    return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color:
-                            _currentPage == index
-                                ? AppColors.primary
-                                : Colors.grey.shade300,
-                      ),
-                    );
-                  }),
-                ),
-                const SizedBox(width: 16),
-                IconButton(
-                  onPressed: _nextPage,
-                  icon: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color:
-                          _currentPage < totalPages - 1
-                              ? AppColors.primary
-                              : Colors.grey.shade300,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      widget.isArabic
-                          ? Icons.arrow_back_rounded
-                          : Icons.arrow_forward_rounded,
-                      color:
-                          _currentPage < totalPages - 1
-                              ? Colors.white
-                              : Colors.grey.shade600,
-                      size: 20,
-                    ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 14,
                   ),
-                  style: IconButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(0, 0),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
+                  elevation: 2,
                 ),
-              ],
+              ),
             ),
           ),
       ],
@@ -943,6 +848,13 @@ class _AllTrainingsPageState extends State<AllTrainingsPage> {
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadAllTrainings,
+            tooltip: isArabic ? 'تحديث' : 'Rafraîchir',
+          ),
+        ],
       ),
       body:
           _isLoading
