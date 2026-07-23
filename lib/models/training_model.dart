@@ -173,7 +173,7 @@ class TrainingModel {
       period: json['period'] ?? '',
       dateDebut: json['dateDebut'] ?? '',
       dateFin: json['dateFin'] ?? '',
-      imageUrl: json['imageUrl'] ?? '',
+      imageUrl: json['imageUrl'] ?? 'https://picsum.photos/800/450',
       price: (json['price'] ?? 0).toDouble(),
       priceDt: (json['priceDt'] ?? 0).toDouble(),
       priceEur: (json['priceEur'] ?? 0).toDouble(),
@@ -193,47 +193,66 @@ class TrainingModel {
     );
   }
 
-  // ✅ CORRECTION PRINCIPALE ICI
+  // ✅ VERSION CORRIGÉE DE fromApiJson
   factory TrainingModel.fromApiJson(Map<String, dynamic> json) {
     // 🔍 Debug - afficher la valeur brute
     print('📸 [Debug] fromApiJson - photo brute: "${json['photo']}"');
 
     String imageUrl;
 
-    if (json['photo'] != null && json['photo'].toString().isNotEmpty) {
-      String photo = json['photo'].toString();
+    // ✅ Récupérer la valeur de 'photo' ou 'imageUrl' selon ce qui est disponible
+    String? photoValue = json['photo']?.toString();
+    if (photoValue == null || photoValue.isEmpty || photoValue == 'null') {
+      photoValue = json['imageUrl']?.toString();
+    }
 
-      // ✅ SI L'URL CONTIENT DÉJÀ http://localhost:3000, LA NETTOYER
-      if (photo.contains('http://localhost:3000http://localhost:3000')) {
-        // Enlever le double http://localhost:3000
-        imageUrl = photo.replaceAll(
-          'http://localhost:3000http://localhost:3000',
-          'http://localhost:3000',
-        );
-        print('📸 [Debug] URL après nettoyage du double: $imageUrl');
+    if (photoValue != null && photoValue.isNotEmpty && photoValue != 'null') {
+      String photo = photoValue;
+
+      // ✅ SI L'URL CONTIENT DÉJÀ http://www.nafahat-academy.com (production)
+      if (photo.contains('http://www.nafahat-academy.com')) {
+        imageUrl = photo;
+        print('📸 [Debug] URL production: $imageUrl');
       }
-      // ✅ Si l'URL commence déjà par http, l'utiliser telle quelle
+      // ✅ SI L'URL CONTIENT DÉJÀ localhost (développement)
+      else if (photo.contains('http://localhost:3000')) {
+        // Nettoyer le double http://localhost:3000 si présent
+        if (photo.contains('http://localhost:3000http://localhost:3000')) {
+          imageUrl = photo.replaceAll(
+            'http://localhost:3000http://localhost:3000',
+            'http://localhost:3000',
+          );
+        } else {
+          imageUrl = photo;
+        }
+        print('📸 [Debug] URL localhost: $imageUrl');
+      }
+      // ✅ Si l'URL commence déjà par http (autre domaine)
       else if (photo.startsWith('http://') || photo.startsWith('https://')) {
         imageUrl = photo;
         print('📸 [Debug] URL déjà complète: $imageUrl');
       }
-      // ✅ Si l'URL commence par /uploads, ajouter le domaine
+      // ✅ Si l'URL commence par /uploads, ajouter le domaine de production
       else if (photo.startsWith('/uploads')) {
-        imageUrl = 'http://localhost:3000$photo';
+        imageUrl = 'http://www.nafahat-academy.com$photo';
         print('📸 [Debug] URL avec /uploads: $imageUrl');
       }
       // ✅ Si l'URL est un chemin Windows (C:\), extraire le nom du fichier
       else if (photo.contains('C:\\') || photo.contains('\\')) {
         String fileName = photo.split('\\').last;
-        imageUrl = 'http://localhost:3000/uploads/formations/$fileName';
+        // En production, utiliser le domaine principal
+        imageUrl =
+            'http://www.nafahat-academy.com/uploads/formations/$fileName';
         print('📸 [Debug] URL depuis chemin Windows: $imageUrl');
       }
       // ✅ Si l'URL est un nom de fichier simple
       else {
-        imageUrl = 'http://localhost:3000/uploads/formations/$photo';
+        // En production, utiliser le domaine principal
+        imageUrl = 'http://www.nafahat-academy.com/uploads/formations/$photo';
         print('📸 [Debug] URL depuis nom de fichier: $imageUrl');
       }
     } else {
+      // ✅ Image par défaut si aucune photo n'est fournie
       imageUrl = 'https://picsum.photos/800/450';
       print('📸 [Debug] URL par défaut: $imageUrl');
     }
@@ -241,7 +260,7 @@ class TrainingModel {
     print('📸 [Debug] URL finale: "$imageUrl"');
 
     return TrainingModel(
-      id: json['id'].toString(),
+      id: json['id']?.toString() ?? '',
       titleFr: json['titre_fr'] ?? '',
       titleAr: json['titre_ar'] ?? '',
       idTypeFormation: json['id_type_formation'],
@@ -250,22 +269,22 @@ class TrainingModel {
       descriptionAr: json['descri_ar'] ?? '',
       idDuree: json['id_duree'],
       typeDuree: json['type_duree'] ?? '',
-      trainer: json['formateur_nom_fr'] ?? '',
+      trainer: json['formateur_nom_fr'] ?? json['trainer'] ?? '',
       target: json['cible_nom'] ?? json['cible_fr'] ?? '',
-      period: json['periode'] ?? '',
+      period: json['periode'] ?? json['period'] ?? '',
       dateDebut: json['date_debut'] ?? '',
       dateFin: json['date_fin'] ?? '',
       imageUrl: imageUrl,
-      price: double.parse(json['prix_dt']?.toString() ?? '0'),
-      priceDt: double.parse(json['prix_dt']?.toString() ?? '0'),
-      priceEur: double.parse(json['prix_eur']?.toString() ?? '0'),
-      priceUsd: double.parse(json['prix_usd']?.toString() ?? '0'),
-      hasDiscount: json['discount'] == 'oui',
+      price: double.tryParse(json['prix_dt']?.toString() ?? '0') ?? 0,
+      priceDt: double.tryParse(json['prix_dt']?.toString() ?? '0') ?? 0,
+      priceEur: double.tryParse(json['prix_eur']?.toString() ?? '0') ?? 0,
+      priceUsd: double.tryParse(json['prix_usd']?.toString() ?? '0') ?? 0,
+      hasDiscount: json['discount'] == 'oui' || json['hasDiscount'] == true,
       discountValue:
           json['valeur_disc'] != null
-              ? double.parse(json['valeur_disc'].toString())
+              ? double.tryParse(json['valeur_disc'].toString())
               : null,
-      isPercentageDiscount: false,
+      isPercentageDiscount: json['isPercentageDiscount'] ?? false,
       categorieFr: json['categorie_fr'] ?? '',
       categorieAr: json['categorie_ar'] ?? '',
       categorieId: json['id_categorie'],

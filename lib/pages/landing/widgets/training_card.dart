@@ -35,6 +35,10 @@ class _TrainingCardState extends State<TrainingCard> {
   String _countryCode = 'TN';
   bool _isLoadingCountry = true;
 
+  // ✅ CONSTANTE POUR L'URL DE PRODUCTION
+  static const String BASE_URL = 'http://www.nafahat-academy.com';
+  static const String FALLBACK_IMAGE = 'https://picsum.photos/800/450';
+
   @override
   void initState() {
     super.initState();
@@ -120,35 +124,84 @@ class _TrainingCardState extends State<TrainingCard> {
     return fontWithVariant;
   }
 
-  // ✅ FONCTION CORRIGÉE
+  // ✅ FONCTION CORRIGÉE AVEC URL DE PRODUCTION
   String _getValidImageUrl(String imageUrl) {
     // 🔍 Debug - afficher l'URL originale
     print('📸 [Debug] URL originale: "$imageUrl"');
     print('📸 [Debug] Type: ${imageUrl.runtimeType}');
     print('📸 [Debug] Est vide? ${imageUrl.isEmpty}');
-    print('📸 [Debug] Commence par http? ${imageUrl.startsWith('http')}');
 
     String result;
 
-    if (imageUrl.isEmpty) {
+    // ✅ Si l'URL est vide, null ou "null", utiliser une image aléatoire
+    if (imageUrl.isEmpty || imageUrl == 'null' || imageUrl == 'NULL') {
       result = 'https://picsum.photos/seed/${widget.training.id}/800/450';
-    } else if (imageUrl.startsWith('http://') ||
+    }
+    // ✅ Si l'URL contient déjà le domaine de production
+    else if (imageUrl.contains('http://www.nafahat-academy.com') ||
+        imageUrl.contains('https://www.nafahat-academy.com')) {
+      result = imageUrl;
+      print('📸 [Debug] URL production déjà complète');
+    }
+    // ✅ Si l'URL contient localhost (développement)
+    else if (imageUrl.contains('http://localhost:3000')) {
+      // Nettoyer le double localhost si présent
+      if (imageUrl.contains('http://localhost:3000http://localhost:3000')) {
+        result = imageUrl.replaceAll(
+          'http://localhost:3000http://localhost:3000',
+          'http://localhost:3000',
+        );
+      } else {
+        result = imageUrl;
+      }
+      print('📸 [Debug] URL localhost conservée');
+    }
+    // ✅ Si l'URL commence déjà par http (autre domaine)
+    else if (imageUrl.startsWith('http://') ||
         imageUrl.startsWith('https://')) {
       result = imageUrl;
-    } else if (imageUrl.contains('C:\\') || imageUrl.contains('\\')) {
+      print('📸 [Debug] URL déjà complète: $imageUrl');
+    }
+    // ✅ Si l'URL est un chemin Windows (C:\)
+    else if (imageUrl.contains('C:\\') || imageUrl.contains('\\')) {
       String fileName = imageUrl.split('\\').last;
-      result = 'http://localhost:3000/uploads/formations/$fileName';
-    } else if (imageUrl.startsWith('/uploads')) {
-      result = 'http://localhost:3000$imageUrl';
-    } else if (imageUrl.startsWith('assets/')) {
+      // ✅ Utiliser le domaine de production
+      result = '$BASE_URL/uploads/formations/$fileName';
+      print('📸 [Debug] URL depuis chemin Windows: $result');
+    }
+    // ✅ Si l'URL commence par /uploads
+    else if (imageUrl.startsWith('/uploads')) {
+      // ✅ Utiliser le domaine de production
+      result = '$BASE_URL$imageUrl';
+      print('📸 [Debug] URL avec /uploads: $result');
+    }
+    // ✅ Si l'URL est un chemin assets
+    else if (imageUrl.startsWith('assets/')) {
       result = imageUrl;
-    } else if (imageUrl.contains('.jpg') ||
+      print('📸 [Debug] URL assets conservée');
+    }
+    // ✅ Si l'URL contient une extension d'image (nom de fichier seul)
+    else if (imageUrl.contains('.jpg') ||
         imageUrl.contains('.png') ||
         imageUrl.contains('.jpeg') ||
-        imageUrl.contains('.gif')) {
-      result = 'http://localhost:3000/uploads/formations/$imageUrl';
-    } else {
+        imageUrl.contains('.gif') ||
+        imageUrl.contains('.webp')) {
+      // ✅ Utiliser le domaine de production
+      result = '$BASE_URL/uploads/formations/$imageUrl';
+      print('📸 [Debug] URL depuis nom de fichier: $result');
+    }
+    // ✅ Fallback : utiliser une image aléatoire
+    else {
       result = 'https://picsum.photos/seed/${widget.training.id}/800/450';
+      print('📸 [Debug] Fallback vers image aléatoire');
+    }
+
+    // ✅ Vérification finale : si l'URL n'est pas valide, utiliser le fallback
+    if (!result.startsWith('http://') &&
+        !result.startsWith('https://') &&
+        !result.startsWith('assets/')) {
+      result = 'https://picsum.photos/seed/${widget.training.id}/800/450';
+      print('📸 [Debug] URL invalide, fallback appliqué');
     }
 
     print('📸 [Debug] URL finale: "$result"');
@@ -537,6 +590,8 @@ class _TrainingCardState extends State<TrainingCard> {
         errorBuilder: (context, error, stackTrace) => _buildErrorWidget(),
       );
     }
+
+    // ✅ Utilisation de Image.network avec gestion d'erreur améliorée
     return Image.network(
       imageUrl,
       fit: BoxFit.cover,
@@ -556,7 +611,24 @@ class _TrainingCardState extends State<TrainingCard> {
           ),
         );
       },
-      errorBuilder: (context, error, stackTrace) => _buildErrorWidget(),
+      errorBuilder: (context, error, stackTrace) {
+        // ✅ En cas d'erreur, essayer le fallback
+        print('❌ Erreur chargement image: $error');
+        print('❌ URL qui a échoué: $imageUrl');
+
+        // ✅ Si l'URL échoue, essayer avec picsum
+        final fallbackUrl =
+            'https://picsum.photos/seed/${widget.training.id}/800/450';
+        if (imageUrl != fallbackUrl) {
+          print('📸 [Debug] Tentative avec fallback: $fallbackUrl');
+          return Image.network(
+            fallbackUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => _buildErrorWidget(),
+          );
+        }
+        return _buildErrorWidget();
+      },
     );
   }
 
