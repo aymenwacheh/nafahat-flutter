@@ -85,27 +85,46 @@ class _EditProfilePageState extends State<EditProfilePage> {
     super.dispose();
   }
 
+  // Dans EditProfilePage - correction de la méthode _saveProfile
   Future<void> _saveProfile() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
       try {
+        // ✅ Parse correctement la date de naissance
+        DateTime dateNaissance;
+        try {
+          final dateParts = _dateNaissanceController.text.split('/');
+          if (dateParts.length == 3) {
+            dateNaissance = DateTime(
+              int.parse(dateParts[2]), // année
+              int.parse(dateParts[1]), // mois
+              int.parse(dateParts[0]), // jour
+            );
+          } else {
+            dateNaissance = DateTime.now();
+          }
+        } catch (e) {
+          dateNaissance = DateTime.now();
+        }
+
         final updatedAdherent = Adherent(
           id: widget.adherentId != null ? int.parse(widget.adherentId!) : null,
-          whatsapp: _phoneController.text,
-          nomPrenom: _nameController.text,
-          pays: _paysController.text,
-          ville: _villeController.text,
-          email: _emailController.text,
-          dateNaissance: DateTime.now(),
+          whatsapp: _phoneController.text.trim(),
+          nomPrenom: _nameController.text.trim(),
+          pays: _paysController.text.trim(),
+          ville: _villeController.text.trim(),
+          email: _emailController.text.trim(),
+          dateNaissance: dateNaissance,
           genre: _selectedGenre,
           sourceConnaissance: _selectedSourceConnaissance,
-          sourceAutreDetail: _sourceConnaissanceController.text,
-          objectif: _objectifController.text,
-          suggestions: _suggestionsController.text,
+          sourceAutreDetail: _sourceConnaissanceController.text.trim(),
+          objectif: _objectifController.text.trim(),
+          suggestions: _suggestionsController.text.trim(),
           accordPublication: _accordPublication,
         );
 
+        // ✅ Si un ID existe, on met à jour
         if (widget.adherentId != null) {
           await AdherentService.updateAdherent(
             int.parse(widget.adherentId!),
@@ -116,24 +135,39 @@ class _EditProfilePageState extends State<EditProfilePage> {
         final isArabic =
             Provider.of<LanguageProvider>(context, listen: false).isArabic;
 
+        // ✅ Message de succès
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               isArabic
                   ? "✅ تم تحديث الحساب بنجاح"
                   : "✅ Profil mis à jour avec succès !",
+              style: GoogleFonts.cairo(),
             ),
             backgroundColor: const Color(0xff0D443E),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
+
         Navigator.pop(context, true);
       } catch (e) {
         final isArabic =
             Provider.of<LanguageProvider>(context, listen: false).isArabic;
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isArabic ? "❌ خطأ: $e" : "❌ Erreur: $e"),
+            content: Text(
+              isArabic ? "❌ خطأ: ${e.toString()}" : "❌ Erreur: ${e.toString()}",
+              style: GoogleFonts.cairo(),
+            ),
             backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       } finally {
