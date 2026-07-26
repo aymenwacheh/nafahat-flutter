@@ -1,3 +1,4 @@
+// lib/pages/users/auth_page.dart
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -7,7 +8,9 @@ import '../landing/widgets/navbar.dart';
 import 'profile_dashboard_page.dart';
 import 'inscription_adherent.dart';
 import '../../providers/language_provider.dart';
+import '../../providers/user_provider.dart';
 import '../../services/adherent_service.dart';
+import '../../models/role.dart';
 import '../landing/widgets/chatbot/chatbot_wrapper.dart';
 
 class AuthPage extends StatefulWidget {
@@ -43,14 +46,57 @@ class _AuthPageState extends State<AuthPage> {
         );
 
         if (mounted) {
+          // ✅ Récupérer les informations du rôle
+          Role? userRole;
+          if (userData['role'] != null) {
+            userRole = Role(
+              id: userData['role']['id'] ?? 4,
+              nom: userData['role']['nom'] ?? 'adherent',
+              libelle: userData['role']['libelle'] ?? 'Adhérent',
+              description:
+                  userData['role']['description'] ?? 'Accès à l\'espace membre',
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+            );
+          } else {
+            // Rôle par défaut pour les adhérents
+            userRole = Role(
+              id: 4,
+              nom: 'adherent',
+              libelle: 'Adhérent',
+              description: 'Accès à l\'espace membre',
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+            );
+          }
+
+          // ✅ Sauvegarder l'utilisateur dans le provider
+          final userProvider = Provider.of<UserProvider>(
+            context,
+            listen: false,
+          );
+          userProvider.setUser(
+            id: userData['adherent_id'].toString(),
+            name: userData['nom_prenom'],
+            whatsapp: userData['whatsapp'],
+            email: userData['email'],
+            role: userRole,
+          );
+
+          final isArabic =
+              Provider.of<LanguageProvider>(context, listen: false).isArabic;
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                Provider.of<LanguageProvider>(context, listen: false).isArabic
-                    ? "✅ تم تسجيل الدخول بنجاح"
-                    : "✅ Connexion réussie !",
+                isArabic ? "✅ تم تسجيل الدخول بنجاح" : "✅ Connexion réussie !",
+                style: GoogleFonts.cairo(),
               ),
               backgroundColor: nafahatGreen,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           );
 
@@ -71,8 +117,13 @@ class _AuthPageState extends State<AuthPage> {
                 isArabic
                     ? "❌ ${e.toString().replaceFirst('Exception: ', '')}"
                     : "❌ ${e.toString().replaceFirst('Exception: ', '')}",
+                style: GoogleFonts.cairo(),
               ),
               backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           );
         }
@@ -85,32 +136,39 @@ class _AuthPageState extends State<AuthPage> {
   // ---- RÉINITIALISATION DU MOT DE PASSE ----
   Future<void> _resetPassword() async {
     final whatsapp = _whatsappController.text.trim();
+    final isArabic =
+        Provider.of<LanguageProvider>(context, listen: false).isArabic;
+
     if (whatsapp.isEmpty) {
-      final isArabic =
-          Provider.of<LanguageProvider>(context, listen: false).isArabic;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             isArabic
                 ? "يرجى إدخال رقم WhatsApp pour réinitialiser"
                 : "Veuillez entrer votre numéro WhatsApp",
+            style: GoogleFonts.cairo(),
           ),
           backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
       return;
     }
 
-    final isArabic =
-        Provider.of<LanguageProvider>(context, listen: false).isArabic;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           isArabic
               ? "📧 Un lien de réinitialisation sera envoyé sur votre WhatsApp"
               : "📧 Un lien de réinitialisation vous sera envoyé sur WhatsApp",
+          style: GoogleFonts.cairo(),
         ),
         backgroundColor: nafahatGold,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -448,7 +506,7 @@ class _AuthPageState extends State<AuthPage> {
                   ],
                 ),
 
-                // --- NAVBAR (CORRIGÉE) ---
+                // --- NAVBAR ---
                 Positioned(
                   top: 0,
                   left: 0,
@@ -511,7 +569,7 @@ class _AuthPageState extends State<AuthPage> {
   }
 }
 
-// 👈 AJOUT : Définition de AppColors si non défini ailleurs
+// 👈 AppColors
 class AppColors {
   static const Color surface = Color(0xfffcfbfa);
   static const Color primary = Color(0xffd57653);
