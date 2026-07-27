@@ -1074,7 +1074,7 @@ class _CreerUserPageState extends State<CreerUserPage> {
   }
 
   // ============================================================
-  // BUILD
+  // BUILD - VERSION CORRIGÉE
   // ============================================================
   @override
   Widget build(BuildContext context) {
@@ -1102,6 +1102,11 @@ class _CreerUserPageState extends State<CreerUserPage> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: Colors.grey.shade50,
+      // ✅ Ajout du drawer pour la version mobile
+      drawer: Navbar(
+        isMobile: isMobile,
+        scaffoldKey: _scaffoldKey,
+      ).buildDrawer(context),
       body: SafeArea(
         top: false,
         child: Stack(
@@ -1352,7 +1357,20 @@ class _CreerUserPageState extends State<CreerUserPage> {
               top: 0,
               left: 0,
               right: 0,
-              child: Navbar(isMobile: isMobile, scaffoldKey: _scaffoldKey),
+              child: Container(
+                height: 85,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.02),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Navbar(isMobile: isMobile, scaffoldKey: _scaffoldKey),
+              ),
             ),
 
             if (isLoading)
@@ -1370,9 +1388,23 @@ class _CreerUserPageState extends State<CreerUserPage> {
   // ============================================================
   // SÉLECTEUR DE RÔLE
   // ============================================================
+  // ============================================================
+  // SÉLECTEUR DE RÔLE - VERSION SIMPLIFIÉE
+  // ============================================================
   Widget _buildRoleSelector(bool isArabic, double fontSize) {
+    // ✅ S'assurer que les rôles ont des IDs uniques
+    final uniqueRoles = _roles.toSet().toList();
+
+    // ✅ Vérifier que la valeur sélectionnée existe
+    final bool hasValidRole = uniqueRoles.any(
+      (role) => role.id == _selectedRole?.id,
+    );
+    final Role? effectiveRole = hasValidRole ? _selectedRole : null;
+
     return DropdownButtonFormField<Role>(
-      value: _selectedRole,
+      key: ValueKey('role_dropdown_${effectiveRole?.id ?? 'none'}'),
+      value: effectiveRole,
+      isExpanded: true,
       decoration: InputDecoration(
         labelText: isArabic ? 'الدور *' : 'Rôle *',
         border: const OutlineInputBorder(),
@@ -1381,32 +1413,24 @@ class _CreerUserPageState extends State<CreerUserPage> {
           Icons.admin_panel_settings_rounded,
           color: const Color(0xff0D443E),
         ),
+        // ✅ Réduire le padding vertical
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
       style: GoogleFonts.cairo(fontSize: fontSize, color: Colors.black87),
+      // ✅ Limiter la hauteur du menu déroulant
+      menuMaxHeight: 200,
+      // ✅ UNIQUEMENT le libellé du rôle, pas de description
       items:
-          _roles.map((role) {
+          uniqueRoles.map((role) {
             return DropdownMenuItem<Role>(
+              key: ValueKey('role_${role.id}'),
               value: role,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    role.libelle,
-                    style: GoogleFonts.cairo(
-                      fontSize: fontSize,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  if (role.description != null)
-                    Text(
-                      role.description!,
-                      style: GoogleFonts.cairo(
-                        fontSize: fontSize - 2,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                ],
+              child: Text(
+                role.libelle,
+                style: GoogleFonts.cairo(
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             );
           }).toList(),
@@ -1414,6 +1438,18 @@ class _CreerUserPageState extends State<CreerUserPage> {
         if (value != null) {
           setState(() => _selectedRole = value);
         }
+      },
+      hint: Text(
+        isArabic ? 'اختر دوراً' : 'Sélectionnez un rôle',
+        style: GoogleFonts.cairo(fontSize: fontSize),
+      ),
+      validator: (value) {
+        if (value == null) {
+          return isArabic
+              ? 'الرجاء اختيار دور'
+              : 'Veuillez sélectionner un rôle';
+        }
+        return null;
       },
     );
   }

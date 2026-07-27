@@ -28,12 +28,12 @@ import 'package:nafahat/services/training_service.dart';
 
 class Navbar extends StatelessWidget {
   final bool isMobile;
-  final GlobalKey<ScaffoldState> scaffoldKey;
+  final GlobalKey<ScaffoldState>? scaffoldKey;
 
   static const Color nafahatGreen = Color(0xff0D443E);
   static const Color nafahatGold = Color(0xffC4A46C);
 
-  const Navbar({super.key, required this.isMobile, required this.scaffoldKey});
+  const Navbar({super.key, required this.isMobile, this.scaffoldKey});
 
   // ============================================================
   // MÉTHODES DE PERMISSION
@@ -139,7 +139,6 @@ class Navbar extends StatelessWidget {
       },
     ];
 
-    // ✅ Ajouter la création d'utilisateur UNIQUEMENT pour SUPER ADMIN
     if (canCreateUser) {
       items.addAll([
         {'isDivider': true},
@@ -156,15 +155,53 @@ class Navbar extends StatelessWidget {
   }
 
   // ============================================================
-  // BUILD PRINCIPAL
+  // OUVRIR LE DRAWER DE MANIÈRE SÉCURISÉE AVEC LOGS
+  // ============================================================
+  void _openDrawer() {
+    debugPrint('🔍 [MENU MOBILE] _openDrawer() appelé');
+    debugPrint('🔍 [MENU MOBILE] scaffoldKey = $scaffoldKey');
+
+    if (scaffoldKey == null) {
+      debugPrint('❌ [MENU MOBILE] scaffoldKey est null!');
+      return;
+    }
+
+    debugPrint(
+      '🔍 [MENU MOBILE] scaffoldKey.currentState = ${scaffoldKey!.currentState}',
+    );
+
+    if (scaffoldKey!.currentState != null) {
+      debugPrint('✅ [MENU MOBILE] Ouverture du drawer...');
+      scaffoldKey!.currentState!.openDrawer();
+      debugPrint('✅ [MENU MOBILE] Drawer ouvert avec succès');
+    } else {
+      debugPrint('❌ [MENU MOBILE] scaffoldKey.currentState est null!');
+      debugPrint('❌ [MENU MOBILE] Vérifiez que le Scaffold a bien une clé');
+    }
+  }
+
+  // ============================================================
+  // BUILD PRINCIPAL AVEC LOGS
   // ============================================================
   @override
   Widget build(BuildContext context) {
+    debugPrint('🔍 [NAVBAR] build() - isMobile: $isMobile');
+
     final languageProvider = Provider.of<LanguageProvider>(context);
     final userProvider = Provider.of<UserProvider>(context);
     final isArabic = languageProvider.isArabic;
     final canViewAdmin = _canViewAdmin(context);
     final isLoggedIn = userProvider.isLoggedIn;
+
+    debugPrint('🔍 [NAVBAR] isArabic: $isArabic, isLoggedIn: $isLoggedIn');
+
+    // Logs pour le mode d'affichage
+    if (isMobile) {
+      debugPrint('🔍 [NAVBAR] 📱 Mode mobile - affichage du bouton hamburger');
+      debugPrint('🔍 [NAVBAR] 📱 scaffoldKey = $scaffoldKey');
+    } else {
+      debugPrint('💻 [NAVBAR] Mode desktop - affichage du menu complet');
+    }
 
     return ClipRRect(
       child: BackdropFilter(
@@ -172,8 +209,8 @@ class Navbar extends StatelessWidget {
         child: Container(
           height: 85,
           padding: EdgeInsets.symmetric(
-            horizontal: isMobile ? 20 : 50,
-            vertical: 15,
+            horizontal: isMobile ? 12 : 50,
+            vertical: 12,
           ),
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.75),
@@ -188,9 +225,10 @@ class Navbar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _buildLogo(isArabic),
-              if (isMobile)
-                _buildMobileMenuButton()
-              else
+              // Mode mobile - bouton hamburger
+              if (isMobile) _buildMobileMenuButton(),
+              // Mode desktop - menu complet
+              if (!isMobile)
                 _buildDesktopMenu(
                   context,
                   isArabic,
@@ -250,13 +288,11 @@ class Navbar extends StatelessWidget {
         ),
         const SizedBox(width: 15),
 
-        // ✅ Menu Admin - UNIQUEMENT si l'utilisateur a les droits
         if (canViewAdmin) ...[
           _buildAdminMenu(context, isArabic),
           const SizedBox(width: 15),
         ],
 
-        // ✅ "Hello, Nom" + Menu Compte
         _buildAccountSection(context, isArabic, userProvider, isLoggedIn),
       ],
     );
@@ -274,7 +310,6 @@ class Navbar extends StatelessWidget {
     return Row(
       children: [
         if (isLoggedIn) ...[
-          // ✅ Affichage "Hello, Nom"
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
@@ -283,7 +318,6 @@ class Navbar extends StatelessWidget {
             ),
             child: Row(
               children: [
-                // Avatar avec initiales
                 CircleAvatar(
                   radius: 14,
                   backgroundColor: nafahatGreen,
@@ -297,7 +331,6 @@ class Navbar extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                // Texte "Bonjour, Nom"
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -320,7 +353,6 @@ class Navbar extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(width: 4),
-                // Badge rôle
                 if (userProvider.userRole != null)
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -345,7 +377,6 @@ class Navbar extends StatelessWidget {
           ),
           const SizedBox(width: 10),
         ],
-        // Menu compte
         _buildAccountMenu(context, isArabic, userProvider),
       ],
     );
@@ -450,7 +481,6 @@ class Navbar extends StatelessWidget {
         continue;
       }
 
-      // ✅ Vérifier si l'item est réservé au Super Admin
       if (item['isAdminOnly'] == true && !_canCreateUser(context)) {
         continue;
       }
@@ -594,7 +624,6 @@ class Navbar extends StatelessWidget {
         'isDanger': true,
       });
     } else {
-      // ✅ Utilisateur NON connecté - Afficher "Créer un compte" et "Authentification"
       items.addAll([
         {
           'value': 'create_account',
@@ -735,15 +764,39 @@ class Navbar extends StatelessWidget {
   }
 
   // ============================================================
-  // DRAWER MOBILE
+  // BOUTON MOBILE HAMBURGER AVEC LOGS
+  // ============================================================
+  Widget _buildMobileMenuButton() {
+    debugPrint(
+      '🔍 [MENU MOBILE] _buildMobileMenuButton() - création du bouton',
+    );
+    debugPrint('🔍 [MENU MOBILE] scaffoldKey = $scaffoldKey');
+
+    return IconButton(
+      icon: const Icon(Icons.menu_rounded, color: nafahatGreen, size: 30),
+      onPressed: () {
+        debugPrint('🔍 [MENU MOBILE] 🔘 Bouton hamburger CLICKÉ!');
+        _openDrawer();
+      },
+      tooltip: 'Menu',
+      splashColor: nafahatGreen.withOpacity(0.2),
+    );
+  }
+
+  // ============================================================
+  // DRAWER MOBILE AVEC LOGS
   // ============================================================
   Widget buildDrawer(BuildContext context) {
+    debugPrint('🔍 [DRAWER] buildDrawer() appelé');
+
     final isArabic = Provider.of<LanguageProvider>(context).isArabic;
     final userProvider = Provider.of<UserProvider>(context);
     final canViewAdmin = _canViewAdmin(context);
     final isLoggedIn = userProvider.isLoggedIn;
     final isAdherentOrFormateur =
         userProvider.isAdherent || userProvider.isFormateur;
+
+    debugPrint('🔍 [DRAWER] isArabic: $isArabic, isLoggedIn: $isLoggedIn');
 
     return Drawer(
       backgroundColor: Colors.white.withOpacity(0.92),
@@ -785,17 +838,14 @@ class Navbar extends StatelessWidget {
                   ),
                   const Divider(height: 30, thickness: 1),
 
-                  // ✅ Section Admin - UNIQUEMENT si l'utilisateur a les droits
                   if (canViewAdmin) _buildDrawerAdminSection(context, isArabic),
 
                   const Divider(height: 30, thickness: 1),
 
-                  // ✅ Section Compte - pour tous les utilisateurs (connectés ou non)
                   _buildDrawerAccountSection(context, isArabic, userProvider),
 
                   const Divider(height: 30, thickness: 1),
 
-                  // ✅ Gestion de compte - pour Adhérent ou Formateur (connecté)
                   if (isLoggedIn && isAdherentOrFormateur)
                     _drawerTile(
                       icon: Icons.settings_outlined,
@@ -835,7 +885,6 @@ class Navbar extends StatelessWidget {
                   ),
                   const Divider(height: 30, thickness: 1),
 
-                  // ✅ Déconnexion - UNIQUEMENT si connecté
                   if (isLoggedIn)
                     _drawerTile(
                       icon: Icons.logout_rounded,
@@ -858,7 +907,6 @@ class Navbar extends StatelessWidget {
                     ),
                   const SizedBox(height: 20),
 
-                  // ✅ Bouton de langue
                   ListTile(
                     leading: const Icon(Icons.language, color: nafahatGreen),
                     title: Text(
@@ -1132,13 +1180,6 @@ class Navbar extends StatelessWidget {
     );
   }
 
-  Widget _buildMobileMenuButton() {
-    return IconButton(
-      icon: const Icon(Icons.menu_rounded, color: nafahatGreen, size: 30),
-      onPressed: () => scaffoldKey.currentState?.openDrawer(),
-    );
-  }
-
   Widget _navLink({
     required BuildContext context,
     required String title,
@@ -1165,11 +1206,15 @@ class Navbar extends StatelessWidget {
   }
 
   void _closeDrawer(BuildContext context) {
+    debugPrint('🔍 [DRAWER] _closeDrawer() appelé');
     Navigator.of(context).pop();
+    debugPrint('✅ [DRAWER] Drawer fermé');
   }
 
   void _closeDrawerAndNavigate(BuildContext context, Widget page) {
+    debugPrint('🔍 [DRAWER] _closeDrawerAndNavigate() appelé');
     Navigator.of(context).pop();
+    debugPrint('✅ [DRAWER] Drawer fermé, navigation vers: $page');
     Navigator.push(context, MaterialPageRoute(builder: (context) => page));
   }
 
@@ -1352,7 +1397,7 @@ class Navbar extends StatelessWidget {
       }
       return [];
     } catch (e) {
-      print('❌ Erreur chargement formations: $e');
+      debugPrint('❌ Erreur chargement formations: $e');
       return [];
     }
   }
@@ -1504,7 +1549,7 @@ class Navbar extends StatelessWidget {
       }
       return [];
     } catch (e) {
-      print('❌ Erreur chargement catégories: $e');
+      debugPrint('❌ Erreur chargement catégories: $e');
       return [];
     }
   }
@@ -1660,7 +1705,7 @@ class Navbar extends StatelessWidget {
       }
       return [];
     } catch (e) {
-      print('❌ Erreur chargement types de formation: $e');
+      debugPrint('❌ Erreur chargement types de formation: $e');
       return [];
     }
   }

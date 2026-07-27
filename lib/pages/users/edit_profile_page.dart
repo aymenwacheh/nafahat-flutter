@@ -56,20 +56,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
     setState(() => _isDataLoading = true);
 
     try {
-      // Récupérer les données depuis UserProvider si adherentData est null
       Adherent? data = widget.adherentData;
 
       if (data == null) {
         final userProvider = Provider.of<UserProvider>(context, listen: false);
         if (userProvider.isLoggedIn) {
-          // Essayer de récupérer les données depuis l'API
           try {
             final userId = int.parse(userProvider.userId!);
             final adherent = await AdherentService.getAdherentById(userId);
             data = adherent;
           } catch (e) {
-            print('❌ Erreur récupération données: $e');
-            // Utiliser les données du UserProvider comme fallback
+            debugPrint('❌ Erreur récupération données: $e');
             data = Adherent(
               id: int.parse(userProvider.userId!),
               whatsapp: userProvider.userWhatsapp ?? '',
@@ -152,7 +149,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
     super.dispose();
   }
 
-  // ---- VÉRIFICATION DES MODIFICATIONS ----
   bool _hasChanges() {
     if (_originalData == null) return true;
 
@@ -172,11 +168,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
         _passwordController.text.trim().isNotEmpty;
   }
 
-  // ---- SAUVEGARDE DU PROFIL ----
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Vérifier si des modifications ont été apportées
     if (!_hasChanges()) {
       final isArabic =
           Provider.of<LanguageProvider>(context, listen: false).isArabic;
@@ -201,15 +195,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
     setState(() => _isLoading = true);
 
     try {
-      // Parse correctement la date de naissance
       DateTime dateNaissance;
       try {
         final dateParts = _dateNaissanceController.text.split('/');
         if (dateParts.length == 3) {
           dateNaissance = DateTime(
-            int.parse(dateParts[2]), // année
-            int.parse(dateParts[1]), // mois
-            int.parse(dateParts[0]), // jour
+            int.parse(dateParts[2]),
+            int.parse(dateParts[1]),
+            int.parse(dateParts[0]),
           );
         } else {
           dateNaissance = DateTime.now();
@@ -243,7 +236,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
         accordPublication: _accordPublication,
       );
 
-      // Si un ID existe, on met à jour
       String? idToUpdate = widget.adherentId;
       if (idToUpdate == null) {
         final userProvider = Provider.of<UserProvider>(context, listen: false);
@@ -262,7 +254,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
       final isArabic =
           Provider.of<LanguageProvider>(context, listen: false).isArabic;
 
-      // ✅ Mettre à jour le UserProvider avec les nouvelles informations
       final userProvider = Provider.of<UserProvider>(context, listen: false);
       if (userProvider.isLoggedIn && userProvider.userRole != null) {
         userProvider.setUser(
@@ -324,7 +315,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
     final double topMargin = isMobile ? 100 : 90;
 
-    // ✅ Récupérer les données depuis UserProvider si pas de données
     final bool hasData =
         _originalData != null ||
         (userProvider.isLoggedIn && userProvider.userName != null);
@@ -334,6 +324,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
       child: Scaffold(
         key: _scaffoldKey,
         backgroundColor: AppColors.surface,
+        // ✅ Ajout du drawer pour la version mobile
+        drawer: Navbar(
+          isMobile: isMobile,
+          scaffoldKey: _scaffoldKey,
+        ).buildDrawer(context),
         body: SafeArea(
           top: false,
           child: Stack(
@@ -406,7 +401,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
-                                    // ---- Avatar avec initiales ----
+                                    // ---- Avatar ----
                                     Center(
                                       child: Stack(
                                         children: [
@@ -478,7 +473,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                       ),
                                     const SizedBox(height: 35),
 
-                                    // ---- Nom ----
+                                    // ---- Champs du formulaire ----
                                     _buildEditField(
                                       controller: _nameController,
                                       labelFr: "Nom et Prénom",
@@ -492,7 +487,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                     ),
                                     const SizedBox(height: 16),
 
-                                    // ---- WhatsApp ----
                                     _buildEditField(
                                       controller: _phoneController,
                                       labelFr: "WhatsApp (avec indicatif)",
@@ -507,7 +501,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                     ),
                                     const SizedBox(height: 16),
 
-                                    // ---- Email ----
                                     _buildEditField(
                                       controller: _emailController,
                                       labelFr: "Adresse E-mail",
@@ -522,7 +515,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                     ),
                                     const SizedBox(height: 16),
 
-                                    // ---- Pays ----
                                     _buildEditField(
                                       controller: _paysController,
                                       labelFr: "Pays",
@@ -536,7 +528,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                     ),
                                     const SizedBox(height: 16),
 
-                                    // ---- Ville ----
                                     _buildEditField(
                                       controller: _villeController,
                                       labelFr: "Ville",
@@ -550,7 +541,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                     ),
                                     const SizedBox(height: 16),
 
-                                    // ---- Date de naissance ----
                                     _buildEditField(
                                       controller: _dateNaissanceController,
                                       labelFr: "Date de naissance",
@@ -580,65 +570,77 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                     ),
                                     const SizedBox(height: 16),
 
-                                    // ---- Genre ----
+                                    // ---- Genre (Dropdown corrigé) ----
                                     _buildDropdown(
                                       labelFr: "Genre",
                                       labelAr: "الجنس",
                                       value: _selectedGenre,
                                       items: const [
                                         DropdownMenuItem<String>(
+                                          key: ValueKey('genre_homme'),
                                           value: 'homme',
                                           child: Text('Homme'),
                                         ),
                                         DropdownMenuItem<String>(
+                                          key: ValueKey('genre_femme'),
                                           value: 'femme',
                                           child: Text('Femme'),
                                         ),
                                       ],
                                       onChanged: (value) {
-                                        setState(() => _selectedGenre = value!);
+                                        if (value != null) {
+                                          setState(
+                                            () => _selectedGenre = value,
+                                          );
+                                        }
                                       },
                                     ),
                                     const SizedBox(height: 16),
 
-                                    // ---- Source ----
+                                    // ---- Source (Dropdown corrigé) ----
                                     _buildDropdown(
                                       labelFr: "Source de connaissance",
                                       labelAr: "كيف تعرفت على الأكاديمية؟",
                                       value: _selectedSourceConnaissance,
                                       items: const [
                                         DropdownMenuItem<String>(
+                                          key: ValueKey('source_instagram'),
                                           value: 'instagram',
                                           child: Text('Instagram'),
                                         ),
                                         DropdownMenuItem<String>(
+                                          key: ValueKey('source_facebook'),
                                           value: 'facebook',
                                           child: Text('Facebook'),
                                         ),
                                         DropdownMenuItem<String>(
+                                          key: ValueKey('source_ami'),
                                           value: 'ami',
                                           child: Text('Ami(e)'),
                                         ),
                                         DropdownMenuItem<String>(
+                                          key: ValueKey('source_annonce'),
                                           value: 'annonce',
                                           child: Text('Annonce'),
                                         ),
                                         DropdownMenuItem<String>(
+                                          key: ValueKey('source_autre'),
                                           value: 'autre',
                                           child: Text('Autre'),
                                         ),
                                       ],
                                       onChanged: (value) {
-                                        setState(
-                                          () =>
-                                              _selectedSourceConnaissance =
-                                                  value!,
-                                        );
+                                        if (value != null) {
+                                          setState(
+                                            () =>
+                                                _selectedSourceConnaissance =
+                                                    value,
+                                          );
+                                        }
                                       },
                                     ),
                                     const SizedBox(height: 16),
 
-                                    // ---- Objectif ----
                                     _buildEditField(
                                       controller: _objectifController,
                                       labelFr: "Objectif",
@@ -649,7 +651,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                     ),
                                     const SizedBox(height: 16),
 
-                                    // ---- Suggestions ----
                                     _buildEditField(
                                       controller: _suggestionsController,
                                       labelFr: "Suggestions",
@@ -659,7 +660,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                     ),
                                     const SizedBox(height: 16),
 
-                                    // ---- Accord publication ----
                                     _buildCheckbox(
                                       labelFr:
                                           "J'accepte la publication du contenu",
@@ -673,7 +673,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                     ),
                                     const SizedBox(height: 16),
 
-                                    // ---- Mot de passe ----
                                     _buildEditField(
                                       controller: _passwordController,
                                       labelFr:
@@ -782,7 +781,20 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 top: 0,
                 left: 0,
                 right: 0,
-                child: Navbar(isMobile: isMobile, scaffoldKey: _scaffoldKey),
+                child: Container(
+                  height: 85,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.02),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Navbar(isMobile: isMobile, scaffoldKey: _scaffoldKey),
+                ),
               ),
 
               // ---- Overlay chargement ----
@@ -853,6 +865,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
+  // ---- DROPDOWN CORRIGÉ AVEC VÉRIFICATION ----
   Widget _buildDropdown({
     required String labelFr,
     required String labelAr,
@@ -863,8 +876,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final isArabic =
         Provider.of<LanguageProvider>(context, listen: false).isArabic;
 
+    // ✅ Vérifier que la valeur existe dans les items
+    final bool hasValidValue = items.any((item) => item.value == value);
+    final String? effectiveValue = hasValidValue ? value : null;
+
     return DropdownButtonFormField<String>(
-      value: value,
+      key: ValueKey('dropdown_${labelFr}_${effectiveValue ?? 'none'}'),
+      value: effectiveValue,
       decoration: InputDecoration(
         labelText: isArabic ? labelAr : labelFr,
         labelStyle: GoogleFonts.cairo(color: AppColors.textMuted),
@@ -882,10 +900,29 @@ class _EditProfilePageState extends State<EditProfilePage> {
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 1),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+        ),
       ),
       items: items,
       onChanged: onChanged,
       style: GoogleFonts.cairo(color: AppColors.textDark, fontSize: 15),
+      isExpanded: true,
+      hint: Text(
+        isArabic ? 'اختر...' : 'Sélectionnez...',
+        style: GoogleFonts.cairo(color: Colors.grey.shade500, fontSize: 15),
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return isArabic ? 'الرجاء الاختيار' : 'Veuillez sélectionner';
+        }
+        return null;
+      },
     );
   }
 

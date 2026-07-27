@@ -20,7 +20,6 @@ class ProfileDashboardPage extends StatefulWidget {
 class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // Liste des cycles payés par cet utilisateur
   final List<Map<String, String>> paidCycles = [
     {
       "titleFr": "Excellence Executive MBA",
@@ -53,19 +52,26 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
         child: Scaffold(
           key: _scaffoldKey,
           backgroundColor: AppColors.surface,
+          // ✅ Ajout du drawer pour la version mobile
+          drawer: Navbar(
+            isMobile: isMobile,
+            scaffoldKey: _scaffoldKey,
+          ).buildDrawer(context),
           body: SafeArea(
             top: false,
             child: Stack(
               children: [
-                // Contenu principal du Dashboard
+                // Contenu principal
                 SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.only(
+                    top: 100,
+                  ), // ✅ Évite le chevauchement avec la Navbar
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 120),
                         // 1. BLOC PROFIL / BIENVENUE
                         _buildHeaderSection(isArabic, isMobile, userProvider),
                         const SizedBox(height: 40),
@@ -82,12 +88,28 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
                   ),
                 ),
 
-                // Navbar
+                // ✅ Navbar en Positioned avec gestion du chevauchement
                 Positioned(
                   top: 0,
                   left: 0,
                   right: 0,
-                  child: Navbar(isMobile: isMobile, scaffoldKey: _scaffoldKey),
+                  child: Container(
+                    height: 85,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.02),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Navbar(
+                      isMobile: isMobile,
+                      scaffoldKey: _scaffoldKey,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -142,12 +164,16 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
               children: [
                 Row(
                   children: [
-                    Text(
-                      isArabic ? "مرحباً، $userName" : "Bienvenue, $userName",
-                      style: GoogleFonts.cairo(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textDark,
+                    Flexible(
+                      // ✅ Ajout de Flexible pour éviter le débordement
+                      child: Text(
+                        isArabic ? "مرحباً، $userName" : "Bienvenue, $userName",
+                        style: GoogleFonts.cairo(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textDark,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 8),

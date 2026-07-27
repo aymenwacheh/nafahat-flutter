@@ -1,6 +1,7 @@
 // lib/services/training_service.dart
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/training_model.dart';
@@ -31,7 +32,7 @@ class TrainingService {
       final List<dynamic> jsonList = jsonDecode(data);
       return jsonList.map((json) => TrainingModel.fromJson(json)).toList();
     } catch (e) {
-      print('Erreur de décodage local: $e');
+      debugPrint('Erreur de décodage local: $e');
       return [];
     }
   }
@@ -51,11 +52,11 @@ class TrainingService {
   static Future<void> clearLocalCache() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_storageKey);
-    print('Cache local vidé');
+    debugPrint('Cache local vidé');
   }
 
   // =============================================
-  // MÉTHODES API
+  // MÉTHODES API - FORMATIONS
   // =============================================
 
   static Future<List<TrainingModel>> getTrainings() async {
@@ -74,11 +75,11 @@ class TrainingService {
         await saveTrainingsLocally(trainings);
         return trainings;
       } else {
-        print('Erreur API: ${response.statusCode}');
+        debugPrint('Erreur API: ${response.statusCode}');
         return await getTrainingsLocally();
       }
     } catch (e) {
-      print('Erreur réseau: $e');
+      debugPrint('Erreur réseau: $e');
       return await getTrainingsLocally();
     }
   }
@@ -98,7 +99,7 @@ class TrainingService {
       }
       return [];
     } catch (e) {
-      print('Erreur récupération promotions: $e');
+      debugPrint('Erreur récupération promotions: $e');
       return [];
     }
   }
@@ -120,7 +121,43 @@ class TrainingService {
       }
       return [];
     } catch (e) {
-      print('Erreur récupération par catégorie: $e');
+      debugPrint('Erreur récupération par catégorie: $e');
+      return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getFormationById(String id) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/formations/$id'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['data'];
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Erreur récupération formation: $e');
+      return null;
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getAllFormationsAdmin() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/formations/admin/all'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        if (data['success'] == true) {
+          return List<Map<String, dynamic>>.from(data['data']);
+        }
+      }
+      return [];
+    } catch (e) {
+      debugPrint('❌ Erreur getAllFormationsAdmin: $e');
       return [];
     }
   }
@@ -135,7 +172,7 @@ class TrainingService {
       final Map<String, dynamic> data = json.decode(response.body);
       return data['success'] == true;
     } catch (e) {
-      print('Erreur création formation: $e');
+      debugPrint('Erreur création formation: $e');
       return false;
     }
   }
@@ -153,7 +190,7 @@ class TrainingService {
       final Map<String, dynamic> data = json.decode(response.body);
       return data['success'] == true;
     } catch (e) {
-      print('Erreur mise à jour formation: $e');
+      debugPrint('Erreur mise à jour formation: $e');
       return false;
     }
   }
@@ -171,28 +208,314 @@ class TrainingService {
       }
       return false;
     } catch (e) {
-      print('Erreur suppression formation: $e');
+      debugPrint('Erreur suppression formation: $e');
+      return false;
+    }
+  }
+
+  static Future<int> getTrainingsCount() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/formations/active'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        final List<dynamic> formationsJson = data['data'];
+        return formationsJson.length;
+      }
+      return 0;
+    } catch (e) {
+      debugPrint('Erreur comptage formations: $e');
+      return 0;
+    }
+  }
+
+  // =============================================
+  // MÉTHODES API - CIBLES
+  // =============================================
+
+  static Future<List<Map<String, dynamic>>> getCibles() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/cibles'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        if (data['success'] == true) {
+          return List<Map<String, dynamic>>.from(data['data']);
+        }
+      }
+      debugPrint('❌ Erreur getCibles - Status: ${response.statusCode}');
+      return [];
+    } catch (e) {
+      debugPrint('❌ Erreur getCibles: $e');
+      return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getCibleById(int id) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/cibles/$id'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        if (data['success'] == true) {
+          return data['data'];
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('❌ Erreur getCibleById: $e');
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> createCible(
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/cibles'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(data),
+      );
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('❌ Erreur createCible: $e');
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> updateCible(
+    int id,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$apiBaseUrl/cibles/$id'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(data),
+      );
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('❌ Erreur updateCible: $e');
+      return null;
+    }
+  }
+
+  static Future<bool> deleteCible(int id) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$apiBaseUrl/cibles/$id'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('❌ Erreur deleteCible: $e');
       return false;
     }
   }
 
   // =============================================
-  // MÉTHODE POUR UPLOADER UNE IMAGE (CORRIGÉE)
+  // MÉTHODES API - SOUS-CATÉGORIES
   // =============================================
+
+  static Future<List<Map<String, dynamic>>> getSousCategories() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/sous-categories'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        if (data['success'] == true) {
+          return List<Map<String, dynamic>>.from(data['data']);
+        }
+      }
+      debugPrint('❌ Erreur getSousCategories - Status: ${response.statusCode}');
+      return [];
+    } catch (e) {
+      debugPrint('❌ Erreur getSousCategories: $e');
+      return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getSousCategorieById(int id) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/sous-categories/$id'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        if (data['success'] == true) {
+          return data['data'];
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('❌ Erreur getSousCategorieById: $e');
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> createSousCategorie(
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/sous-categories'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(data),
+      );
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('❌ Erreur createSousCategorie: $e');
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> updateSousCategorie(
+    int id,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$apiBaseUrl/sous-categories/$id'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(data),
+      );
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('❌ Erreur updateSousCategorie: $e');
+      return null;
+    }
+  }
+
+  static Future<bool> deleteSousCategorie(int id) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$apiBaseUrl/sous-categories/$id'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('❌ Erreur deleteSousCategorie: $e');
+      return false;
+    }
+  }
+
+  // =============================================
+  // MÉTHODES API - DONNÉES DE RÉFÉRENCE
+  // =============================================
+
+  static Future<List<Map<String, dynamic>>> getCategories() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/categories'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        if (data['success'] == true) {
+          return List<Map<String, dynamic>>.from(data['data']);
+        }
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Erreur chargement catégories: $e');
+      return [];
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getFormateurs() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/formateurs'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        if (data['success'] == true) {
+          return List<Map<String, dynamic>>.from(data['data']);
+        }
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Erreur chargement formateurs: $e');
+      return [];
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getDurees() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/duree'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        if (data['success'] == true) {
+          return List<Map<String, dynamic>>.from(data['data']);
+        }
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Erreur chargement durées: $e');
+      return [];
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getTypesFormation() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/types-formation'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        if (data['success'] == true) {
+          return List<Map<String, dynamic>>.from(data['data']);
+        }
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Erreur chargement types de formation: $e');
+      return [];
+    }
+  }
+
+  // =============================================
+  // MÉTHODES D'UPLOAD D'IMAGES
+  // =============================================
+
   static Future<Map<String, dynamic>> uploadImage(File imageFile) async {
     try {
-      print('📤 [Upload] Début de l\'upload...');
+      debugPrint('📤 [Upload] Début de l\'upload...');
 
-      // Lire les bytes du fichier
       final bytes = await imageFile.readAsBytes();
 
-      // Créer une requête multipart
       var request = http.MultipartRequest(
         'POST',
         Uri.parse('$apiBaseUrl/upload/image'),
       );
 
-      // Ajouter le fichier image avec les bytes
       var multipartFile = http.MultipartFile.fromBytes(
         'image',
         bytes,
@@ -200,16 +523,13 @@ class TrainingService {
       );
 
       request.files.add(multipartFile);
-
-      // Ajouter les headers
       request.headers['Accept'] = 'application/json';
 
-      // Envoyer la requête
       var response = await request.send();
       var responseBody = await response.stream.bytesToString();
 
-      print('📤 [Upload] Status: ${response.statusCode}');
-      print('📤 [Upload] Response: $responseBody');
+      debugPrint('📤 [Upload] Status: ${response.statusCode}');
+      debugPrint('📤 [Upload] Response: $responseBody');
 
       if (response.statusCode == 200) {
         return json.decode(responseBody);
@@ -217,29 +537,23 @@ class TrainingService {
         throw Exception('Upload failed: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ [Upload] Erreur: $e');
+      debugPrint('❌ [Upload] Erreur: $e');
       rethrow;
     }
   }
 
-  // =============================================
-  // MÉTHODE POUR UPLOADER UNE IMAGE (VIA XFile)
-  // =============================================
   static Future<Map<String, dynamic>> uploadXFileImage(dynamic xFile) async {
     try {
-      print('📤 [Upload] Début de l\'upload XFile...');
+      debugPrint('📤 [Upload] Début de l\'upload XFile...');
 
-      // Lire les bytes du XFile
       final bytes = await xFile.readAsBytes();
       final String fileName = xFile.name;
 
-      // Créer une requête multipart
       var request = http.MultipartRequest(
         'POST',
         Uri.parse('$apiBaseUrl/upload/image'),
       );
 
-      // Ajouter le fichier image avec les bytes
       var multipartFile = http.MultipartFile.fromBytes(
         'image',
         bytes,
@@ -247,16 +561,13 @@ class TrainingService {
       );
 
       request.files.add(multipartFile);
-
-      // Ajouter les headers
       request.headers['Accept'] = 'application/json';
 
-      // Envoyer la requête
       var response = await request.send();
       var responseBody = await response.stream.bytesToString();
 
-      print('📤 [Upload] Status: ${response.statusCode}');
-      print('📤 [Upload] Response: $responseBody');
+      debugPrint('📤 [Upload] Status: ${response.statusCode}');
+      debugPrint('📤 [Upload] Response: $responseBody');
 
       if (response.statusCode == 200) {
         return json.decode(responseBody);
@@ -264,28 +575,24 @@ class TrainingService {
         throw Exception('Upload failed: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ [Upload] Erreur: $e');
+      debugPrint('❌ [Upload] Erreur: $e');
       rethrow;
     }
   }
 
-  // =============================================
-  // MÉTHODE POUR SUPPRIMER UNE IMAGE
-  // =============================================
   static Future<bool> deleteImage(String filename) async {
     try {
       final response = await http.delete(
         Uri.parse('$apiBaseUrl/upload/image/$filename'),
         headers: {'Content-Type': 'application/json'},
       );
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return data['success'] == true;
       }
       return false;
     } catch (e) {
-      print('❌ [Delete] Erreur: $e');
+      debugPrint('❌ [Delete] Erreur: $e');
       return false;
     }
   }
@@ -308,115 +615,8 @@ class TrainingService {
       }
       return null;
     } catch (e) {
-      print('Erreur upload image: $e');
+      debugPrint('Erreur upload image: $e');
       return null;
-    }
-  }
-
-  // =============================================
-  // DONNÉES DE RÉFÉRENCE
-  // =============================================
-
-  static Future<List<Map<String, dynamic>>> getCategories() async {
-    try {
-      final response = await http.get(
-        Uri.parse('$apiBaseUrl/categories'),
-        headers: {'Content-Type': 'application/json'},
-      );
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        return List<Map<String, dynamic>>.from(data['data']);
-      }
-      return [];
-    } catch (e) {
-      print('Erreur chargement catégories: $e');
-      return [];
-    }
-  }
-
-  static Future<List<Map<String, dynamic>>> getFormateurs() async {
-    try {
-      final response = await http.get(
-        Uri.parse('$apiBaseUrl/formateurs'),
-        headers: {'Content-Type': 'application/json'},
-      );
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        return List<Map<String, dynamic>>.from(data['data']);
-      }
-      return [];
-    } catch (e) {
-      print('Erreur chargement formateurs: $e');
-      return [];
-    }
-  }
-
-  static Future<List<Map<String, dynamic>>> getDurees() async {
-    try {
-      final response = await http.get(
-        Uri.parse('$apiBaseUrl/duree'),
-        headers: {'Content-Type': 'application/json'},
-      );
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        return List<Map<String, dynamic>>.from(data['data']);
-      }
-      return [];
-    } catch (e) {
-      print('Erreur chargement durées: $e');
-      return [];
-    }
-  }
-
-  static Future<List<Map<String, dynamic>>> getTypesFormation() async {
-    try {
-      final response = await http.get(
-        Uri.parse('$apiBaseUrl/types-formation'),
-        headers: {'Content-Type': 'application/json'},
-      );
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        return List<Map<String, dynamic>>.from(data['data']);
-      }
-      return [];
-    } catch (e) {
-      print('Erreur chargement types de formation: $e');
-      return [];
-    }
-  }
-
-  static Future<Map<String, dynamic>?> getFormationById(String id) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$apiBaseUrl/formations/$id'),
-        headers: {'Content-Type': 'application/json'},
-      );
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['data'];
-      }
-      return null;
-    } catch (e) {
-      print('Erreur récupération formation: $e');
-      return null;
-    }
-  }
-
-  static Future<int> getTrainingsCount() async {
-    try {
-      final response = await http.get(
-        Uri.parse('$apiBaseUrl/formations/active'),
-        headers: {'Content-Type': 'application/json'},
-      );
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        final List<dynamic> formationsJson = data['data'];
-        return formationsJson.length;
-      }
-      return 0;
-    } catch (e) {
-      print('Erreur comptage formations: $e');
-      return 0;
     }
   }
 }
