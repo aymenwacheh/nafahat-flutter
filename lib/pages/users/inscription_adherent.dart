@@ -16,7 +16,12 @@ import '../../config/api_config.dart';
 
 // ----- PAGE PRINCIPALE -----
 class InscriptionAdherentPage extends StatefulWidget {
-  const InscriptionAdherentPage({super.key});
+  // ✅ true quand cette page est ouverte depuis FormationDetailPage (achat
+  // d'une formation) : après succès, on doit revenir directement vers le
+  // paiement de la formation source, PAS vers /login.
+  final bool fromFormationDetail;
+
+  const InscriptionAdherentPage({super.key, this.fromFormationDetail = false});
 
   @override
   State<InscriptionAdherentPage> createState() =>
@@ -67,7 +72,7 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
   // ✅ Debounce
   Timer? _debounceTimer;
 
-  List<Enfant> _enfants = [];
+  final List<Enfant> _enfants = [];
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   final List<Map<String, String>> _countryCodes = [
@@ -596,6 +601,7 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
     bool isArabic,
     String identifiant,
     String motDePasse,
+    dynamic adherentId,
   ) {
     showDialog(
       context: context,
@@ -750,9 +756,22 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.pop(context);
-                        // ✅ Rediriger vers la page de connexion
-                        Navigator.pushReplacementNamed(context, '/login');
+                        Navigator.pop(context); // ferme le popup de succès
+
+                        if (widget.fromFormationDetail) {
+                          // ✅ Cas "achat de formation" : on revient
+                          // directement sur FormationDetailPage avec l'ID
+                          // du nouvel adhérent pour enchaîner sur le
+                          // paiement de la formation source.
+                          Navigator.pop(context, {
+                            'success': true,
+                            'adherentId': adherentId?.toString(),
+                          });
+                        } else {
+                          // ✅ Cas normal (inscription depuis la landing
+                          // page) : redirection vers la page de connexion.
+                          Navigator.pushReplacementNamed(context, '/login');
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xff0D443E),
@@ -764,7 +783,11 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
                         elevation: 0,
                       ),
                       child: Text(
-                        isArabic ? 'تسجيل الدخول' : 'Se connecter',
+                        widget.fromFormationDetail
+                            ? (isArabic
+                                ? 'متابعة الدفع'
+                                : 'Continuer vers le paiement')
+                            : (isArabic ? 'تسجيل الدخول' : 'Se connecter'),
                         style: GoogleFonts.cairo(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -970,6 +993,7 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
           isArabic,
           result['credentials']['identifiant'],
           result['motDePasse'],
+          result['adherentId'],
         );
       }
     } catch (e) {
@@ -2060,7 +2084,7 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
       child: DropdownButtonFormField<String>(
-        value: value,
+        initialValue: value,
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),

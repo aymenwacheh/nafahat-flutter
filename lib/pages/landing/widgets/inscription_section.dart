@@ -1,9 +1,7 @@
 // lib/widgets/inscription_section.dart
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/pages/users/inscription_adherent.dart';
-import 'package:provider/provider.dart';
 
 // --- PALETTE DE COULEURS (même que landing) ---
 class AppColors {

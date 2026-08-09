@@ -39,6 +39,6 @@ class CibleModel {
       ch1,
       ch2,
       ch3,
-    ].where((f) => f != null && f!.isNotEmpty).map((f) => f!).toList();
+    ].where((f) => f != null && f.isNotEmpty).map((f) => f!).toList();
   }
 }

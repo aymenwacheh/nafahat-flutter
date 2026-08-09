@@ -1079,7 +1079,7 @@ class _EditFormationPageState extends State<EditFormationPage> {
                                             style: GoogleFonts.cairo(),
                                           ),
                                         );
-                                      }).toList(),
+                                      }),
                                     ],
                                     onChanged:
                                         (value) => setState(
@@ -1643,7 +1643,7 @@ class _EditFormationPageState extends State<EditFormationPage> {
               Switch(
                 value: _isRepetitive,
                 onChanged: (value) => setState(() => _isRepetitive = value),
-                activeColor: nafahatGreen,
+                activeThumbColor: nafahatGreen,
                 activeTrackColor: nafahatGreen.withOpacity(0.3),
               ),
             ],
@@ -1750,7 +1750,7 @@ class _EditFormationPageState extends State<EditFormationPage> {
               Switch(
                 value: _hasDiscount,
                 onChanged: (value) => setState(() => _hasDiscount = value),
-                activeColor: nafahatOrange,
+                activeThumbColor: nafahatOrange,
                 activeTrackColor: nafahatOrange.withOpacity(0.3),
               ),
             ],

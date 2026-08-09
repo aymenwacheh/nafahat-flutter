@@ -11,8 +11,7 @@ import '../../services/training_service.dart';
 class EditFormateurScreen extends StatefulWidget {
   final Formateur formateur;
 
-  const EditFormateurScreen({Key? key, required this.formateur})
-    : super(key: key);
+  const EditFormateurScreen({super.key, required this.formateur});
 
   @override
   State<EditFormateurScreen> createState() => _EditFormateurScreenState();
@@ -423,7 +422,7 @@ class _EditFormateurScreenState extends State<EditFormateurScreen> {
 
                       // Catégorie
                       DropdownButtonFormField<int>(
-                        value: _selectedCategorieId,
+                        initialValue: _selectedCategorieId,
                         decoration: InputDecoration(
                           labelText: 'Catégorie',
                           border: OutlineInputBorder(

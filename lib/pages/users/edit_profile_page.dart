@@ -882,7 +882,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
     return DropdownButtonFormField<String>(
       key: ValueKey('dropdown_${labelFr}_${effectiveValue ?? 'none'}'),
-      value: effectiveValue,
+      initialValue: effectiveValue,
       decoration: InputDecoration(
         labelText: isArabic ? labelAr : labelFr,
         labelStyle: GoogleFonts.cairo(color: AppColors.textMuted),

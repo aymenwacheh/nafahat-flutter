@@ -795,7 +795,7 @@ class _ApparenceHeroState extends State<ApparenceHero> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _animationType,
+              initialValue: _animationType,
               decoration: InputDecoration(
                 labelText: widget.isArabic ? 'نوع الحركة' : 'Type d\'animation',
                 border: OutlineInputBorder(
@@ -822,7 +822,7 @@ class _ApparenceHeroState extends State<ApparenceHero> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _animationDirection,
+              initialValue: _animationDirection,
               decoration: InputDecoration(
                 labelText:
                     widget.isArabic ? 'اتجاه الحركة' : 'Direction d\'animation',

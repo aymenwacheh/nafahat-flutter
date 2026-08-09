@@ -52,7 +52,7 @@ class _CreerUserPageState extends State<CreerUserPage> {
   bool _utiliserMotDePassePersonnalise = false;
 
   // ---- Enfants ----
-  List<Enfant> _enfants = [];
+  final List<Enfant> _enfants = [];
   bool _ajouterEnfants = false;
 
   // ---- Contrôleurs ----
@@ -1403,7 +1403,7 @@ class _CreerUserPageState extends State<CreerUserPage> {
 
     return DropdownButtonFormField<Role>(
       key: ValueKey('role_dropdown_${effectiveRole?.id ?? 'none'}'),
-      value: effectiveRole,
+      initialValue: effectiveRole,
       isExpanded: true,
       decoration: InputDecoration(
         labelText: isArabic ? 'الدور *' : 'Rôle *',
@@ -2309,7 +2309,7 @@ class _CreerUserPageState extends State<CreerUserPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
       child: DropdownButtonFormField<String>(
-        value: value,
+        initialValue: value,
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),

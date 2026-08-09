@@ -387,6 +387,10 @@ class Navbar extends StatelessWidget {
   // ============================================================
   Widget _buildAdminMenu(BuildContext context, bool isArabic) {
     return PopupMenuButton<String>(
+      tooltip: isArabic ? "لوحة التحكم" : "Administration",
+      offset: const Offset(0, 50),
+      onSelected: (value) => _handleAdminAction(context, value, isArabic),
+      itemBuilder: (context) => _buildAdminPopupItems(context, isArabic),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
@@ -412,10 +416,6 @@ class Navbar extends StatelessWidget {
           ],
         ),
       ),
-      tooltip: isArabic ? "لوحة التحكم" : "Administration",
-      offset: const Offset(0, 50),
-      onSelected: (value) => _handleAdminAction(context, value, isArabic),
-      itemBuilder: (context) => _buildAdminPopupItems(context, isArabic),
     );
   }
 
@@ -647,6 +647,11 @@ class Navbar extends StatelessWidget {
     UserProvider userProvider,
   ) {
     return PopupMenuButton<String>(
+      tooltip: isArabic ? "حسابي" : "Mon compte",
+      offset: const Offset(0, 50),
+      onSelected: (value) => _handleAccountAction(context, value, isArabic),
+      itemBuilder:
+          (context) => _buildAccountPopupItems(context, isArabic, userProvider),
       child: CircleAvatar(
         backgroundColor: nafahatGreen.withOpacity(0.1),
         child: Icon(
@@ -656,11 +661,6 @@ class Navbar extends StatelessWidget {
           color: nafahatGreen,
         ),
       ),
-      tooltip: isArabic ? "حسابي" : "Mon compte",
-      offset: const Offset(0, 50),
-      onSelected: (value) => _handleAccountAction(context, value, isArabic),
-      itemBuilder:
-          (context) => _buildAccountPopupItems(context, isArabic, userProvider),
     );
   }
 
@@ -1068,8 +1068,7 @@ class Navbar extends StatelessWidget {
                   _handleAdminAction(context, item['value'], isArabic);
                 },
               );
-            })
-            .toList(),
+            }),
       ],
     );
   }

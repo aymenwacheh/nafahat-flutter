@@ -32,7 +32,7 @@ class _ChatbotWidgetState extends State<ChatbotWidget>
     with SingleTickerProviderStateMixin {
   bool _isOpen = false;
   late ChatbotService _chatbotService;
-  List<ChatMessage> _messages = [];
+  final List<ChatMessage> _messages = [];
   bool _isLoading = false;
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;

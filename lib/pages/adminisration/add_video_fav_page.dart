@@ -251,7 +251,7 @@ class _AddVideoFavPageState extends State<AddVideoFavPage> {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        activeColor: nafahatGreen,
+                        activeThumbColor: nafahatGreen,
                         contentPadding: EdgeInsets.zero,
                       ),
                     ],

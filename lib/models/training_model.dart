@@ -69,31 +69,63 @@ class TrainingModel {
     this.cibleCh3,
   });
 
-  double getPriceForCurrency(String currencyCode) {
-    switch (currencyCode.toUpperCase()) {
+  // ============================================================
+  // MÉTHODES DE PRIX PAR DEVISE
+  // ============================================================
+
+  /// Obtenir le prix selon le pays (code pays ISO)
+  double getPriceForCurrency(String countryCode) {
+    switch (countryCode.toUpperCase()) {
       case 'TN':
         return priceDt;
       case 'FR':
-        return priceEur;
       case 'BE':
-        return priceEur;
       case 'CH':
+      case 'DE':
+      case 'IT':
+      case 'ES':
+      case 'PT':
+      case 'NL':
+      case 'LU':
+      case 'AT':
+      case 'IE':
         return priceEur;
       case 'US':
-        return priceUsd;
       case 'CA':
         return priceUsd;
       default:
+        // Pour les autres pays, utiliser la devise par défaut (DT)
         return priceDt;
     }
   }
 
+  /// Obtenir le prix final avec réduction appliquée
+  double getFinalPriceForCurrency(String countryCode) {
+    final basePrice = getPriceForCurrency(countryCode);
+    if (!hasDiscount || discountValue == null) return basePrice;
+    if (isPercentageDiscount) {
+      return basePrice - (basePrice * discountValue! / 100);
+    } else {
+      // Réduction en montant fixe
+      return basePrice - discountValue!;
+    }
+  }
+
+  /// Obtenir le symbole de la devise pour un pays
   static String getCurrencySymbol(String countryCode) {
     final symbols = {
       'TN': 'DT',
       'FR': '€',
       'BE': '€',
       'CH': 'CHF',
+      'DE': '€',
+      'IT': '€',
+      'ES': '€',
+      'PT': '€',
+      'NL': '€',
+      'LU': '€',
+      'AT': '€',
+      'IE': '€',
       'US': '\$',
       'CA': 'CA\$',
       'GB': '£',
@@ -129,11 +161,131 @@ class TrainingModel {
     return symbols[countryCode.toUpperCase()] ?? 'DT';
   }
 
+  /// Obtenir le nom complet de la devise
+  static String getCurrencyName(String countryCode) {
+    final names = {
+      'TN': 'Dinar Tunisien',
+      'FR': 'Euro',
+      'BE': 'Euro',
+      'CH': 'Franc Suisse',
+      'DE': 'Euro',
+      'IT': 'Euro',
+      'ES': 'Euro',
+      'PT': 'Euro',
+      'NL': 'Euro',
+      'LU': 'Euro',
+      'AT': 'Euro',
+      'IE': 'Euro',
+      'US': 'Dollar US',
+      'CA': 'Dollar Canadien',
+      'GB': 'Livre Sterling',
+      'MA': 'Dirham Marocain',
+      'DZ': 'Dinar Algérien',
+      'EG': 'Livre Égyptienne',
+      'SA': 'Riyal Saoudien',
+      'AE': 'Dirham Émirati',
+      'KW': 'Dinar Koweïtien',
+      'QA': 'Riyal Qatari',
+      'BH': 'Dinar Bahreïni',
+      'OM': 'Rial Omani',
+      'JO': 'Dinar Jordanien',
+      'LB': 'Livre Libanaise',
+      'SY': 'Livre Syrienne',
+      'IQ': 'Dinar Irakien',
+      'YE': 'Rial Yéménite',
+      'LY': 'Dinar Libyen',
+      'MR': 'Ouguiya Mauritanienne',
+      'SN': 'Franc CFA',
+      'CI': 'Franc CFA',
+      'BF': 'Franc CFA',
+      'BJ': 'Franc CFA',
+      'NE': 'Franc CFA',
+      'TG': 'Franc CFA',
+      'ML': 'Franc CFA',
+      'CM': 'Franc CFA',
+      'CF': 'Franc CFA',
+      'CG': 'Franc CFA',
+      'GA': 'Franc CFA',
+      'GQ': 'Franc CFA',
+    };
+    return names[countryCode.toUpperCase()] ?? 'Dinar Tunisien';
+  }
+
+  /// Obtenir le prix formaté avec symbole
   String getPriceWithSymbol(String countryCode) {
     final price = getPriceForCurrency(countryCode);
-    final symbol = TrainingModel.getCurrencySymbol(countryCode);
-    return '${price.toInt()} $symbol';
+    final symbol = getCurrencySymbol(countryCode);
+    return '${price.toStringAsFixed(0)} $symbol';
   }
+
+  /// Obtenir le prix final formaté avec symbole
+  String getFinalPriceWithSymbol(String countryCode) {
+    final price = getFinalPriceForCurrency(countryCode);
+    final symbol = getCurrencySymbol(countryCode);
+    return '${price.toStringAsFixed(0)} $symbol';
+  }
+
+  // ============================================================
+  // MÉTHODES DE RÉDUCTION
+  // ============================================================
+
+  double get finalPrice {
+    if (!hasDiscount || discountValue == null) return price;
+    if (isPercentageDiscount) {
+      return price - (price * discountValue! / 100);
+    } else {
+      return price - discountValue!;
+    }
+  }
+
+  String getDiscountText(bool isArabic) {
+    if (!hasDiscount || discountValue == null) return '';
+    if (isPercentageDiscount) {
+      return isArabic ? 'خصم $discountValue%' : '-$discountValue%';
+    } else {
+      final symbol = 'DT';
+      return isArabic
+          ? 'خصم ${discountValue!.toInt()} $symbol'
+          : '-${discountValue!.toInt()} $symbol';
+    }
+  }
+
+  String getDiscountTextForCurrency(String countryCode, bool isArabic) {
+    if (!hasDiscount || discountValue == null) return '';
+    final symbol = getCurrencySymbol(countryCode);
+    if (isPercentageDiscount) {
+      return isArabic ? 'خصم $discountValue%' : '-$discountValue%';
+    } else {
+      // Convertir le montant de la réduction pour la devise
+      final basePrice = getPriceForCurrency(countryCode);
+      final originalPrice = getPriceForCurrency('TN');
+      final ratio = originalPrice > 0 ? basePrice / originalPrice : 1;
+      final discountAmount = discountValue! * ratio;
+      return isArabic
+          ? 'خصم ${discountAmount.toInt()} $symbol'
+          : '-${discountAmount.toInt()} $symbol';
+    }
+  }
+
+  // ============================================================
+  // MÉTHODES DE CIBLE
+  // ============================================================
+
+  String getCibleName(bool isArabic) {
+    return cibleNom;
+  }
+
+  List<String> get cibleDetails {
+    return [
+      cibleCh1,
+      cibleCh2,
+      cibleCh3,
+    ].where((e) => e != null && e.isNotEmpty).map((e) => e!).toList();
+  }
+
+  // ============================================================
+  // JSON
+  // ============================================================
 
   Map<String, dynamic> toJson() => {
     'titre_fr': titleFr,
@@ -193,15 +345,11 @@ class TrainingModel {
     );
   }
 
-  // ✅ VERSION CORRIGÉE DE fromApiJson
   factory TrainingModel.fromApiJson(Map<String, dynamic> json) {
-    // 🔍 Debug - afficher la valeur brute
-    print('📸 [Debug] fromApiJson - photo brute: "${json['photo']}"');
-
+    // Traitement de l'image
     String imageUrl;
-
-    // ✅ Récupérer la valeur de 'photo' ou 'imageUrl' selon ce qui est disponible
     String? photoValue = json['photo']?.toString();
+
     if (photoValue == null || photoValue.isEmpty || photoValue == 'null') {
       photoValue = json['imageUrl']?.toString();
     }
@@ -209,14 +357,9 @@ class TrainingModel {
     if (photoValue != null && photoValue.isNotEmpty && photoValue != 'null') {
       String photo = photoValue;
 
-      // ✅ SI L'URL CONTIENT DÉJÀ http://www.nafahat-academy.com (production)
       if (photo.contains('http://www.nafahat-academy.com')) {
         imageUrl = photo;
-        print('📸 [Debug] URL production: $imageUrl');
-      }
-      // ✅ SI L'URL CONTIENT DÉJÀ localhost (développement)
-      else if (photo.contains('http://localhost:3000')) {
-        // Nettoyer le double http://localhost:3000 si présent
+      } else if (photo.contains('http://localhost:3000')) {
         if (photo.contains('http://localhost:3000http://localhost:3000')) {
           imageUrl = photo.replaceAll(
             'http://localhost:3000http://localhost:3000',
@@ -225,39 +368,20 @@ class TrainingModel {
         } else {
           imageUrl = photo;
         }
-        print('📸 [Debug] URL localhost: $imageUrl');
-      }
-      // ✅ Si l'URL commence déjà par http (autre domaine)
-      else if (photo.startsWith('http://') || photo.startsWith('https://')) {
+      } else if (photo.startsWith('http://') || photo.startsWith('https://')) {
         imageUrl = photo;
-        print('📸 [Debug] URL déjà complète: $imageUrl');
-      }
-      // ✅ Si l'URL commence par /uploads, ajouter le domaine de production
-      else if (photo.startsWith('/uploads')) {
+      } else if (photo.startsWith('/uploads')) {
         imageUrl = 'http://www.nafahat-academy.com$photo';
-        print('📸 [Debug] URL avec /uploads: $imageUrl');
-      }
-      // ✅ Si l'URL est un chemin Windows (C:\), extraire le nom du fichier
-      else if (photo.contains('C:\\') || photo.contains('\\')) {
+      } else if (photo.contains('C:\\') || photo.contains('\\')) {
         String fileName = photo.split('\\').last;
-        // En production, utiliser le domaine principal
         imageUrl =
             'http://www.nafahat-academy.com/uploads/formations/$fileName';
-        print('📸 [Debug] URL depuis chemin Windows: $imageUrl');
-      }
-      // ✅ Si l'URL est un nom de fichier simple
-      else {
-        // En production, utiliser le domaine principal
+      } else {
         imageUrl = 'http://www.nafahat-academy.com/uploads/formations/$photo';
-        print('📸 [Debug] URL depuis nom de fichier: $imageUrl');
       }
     } else {
-      // ✅ Image par défaut si aucune photo n'est fournie
       imageUrl = 'https://picsum.photos/800/450';
-      print('📸 [Debug] URL par défaut: $imageUrl');
     }
-
-    print('📸 [Debug] URL finale: "$imageUrl"');
 
     return TrainingModel(
       id: json['id']?.toString() ?? '',
@@ -295,47 +419,5 @@ class TrainingModel {
       cibleCh2: json['cible_ch2'],
       cibleCh3: json['cible_ch3'],
     );
-  }
-
-  double get finalPrice {
-    if (!hasDiscount || discountValue == null) return price;
-    if (isPercentageDiscount) {
-      return price - (price * discountValue! / 100);
-    } else {
-      return price - discountValue!;
-    }
-  }
-
-  double getFinalPriceForCurrency(String currencyCode) {
-    final basePrice = getPriceForCurrency(currencyCode);
-    if (!hasDiscount || discountValue == null) return basePrice;
-    if (isPercentageDiscount) {
-      return basePrice - (basePrice * discountValue! / 100);
-    } else {
-      return basePrice - discountValue!;
-    }
-  }
-
-  String getDiscountText(bool isArabic) {
-    if (!hasDiscount || discountValue == null) return '';
-    if (isPercentageDiscount) {
-      return isArabic ? 'خصم $discountValue%' : '-$discountValue%';
-    } else {
-      return isArabic
-          ? 'خصم ${discountValue!.toInt()} د.م'
-          : '-${discountValue!.toInt()} DH';
-    }
-  }
-
-  String getCibleName(bool isArabic) {
-    return cibleNom;
-  }
-
-  List<String> get cibleDetails {
-    return [
-      cibleCh1,
-      cibleCh2,
-      cibleCh3,
-    ].where((e) => e != null && e!.isNotEmpty).map((e) => e!).toList();
   }
 }

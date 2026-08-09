@@ -225,7 +225,7 @@ class _HeroSectionState extends State<HeroSection>
     final isMobile = screenWidth < 600;
     final isRtl = widget.isArabic;
 
-    return Container(
+    return SizedBox(
       width: double.infinity,
       child: Stack(
         fit: StackFit.expand,
@@ -541,7 +541,7 @@ class _HeroSectionState extends State<HeroSection>
       );
     }
 
-    return Container(
+    return SizedBox(
       width: double.infinity,
       height: sliderHeight,
       child: ClipRRect(

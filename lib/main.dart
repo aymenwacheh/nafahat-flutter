@@ -105,18 +105,20 @@ class MyApp extends StatelessWidget {
             routes: {
               '/landing':
                   (context) => const ChatbotGlobalWrapper(
-                    child: LandingPage(),
-                    hideOnRoute: true, // 👈 Cacher le chatbot sur LandingPage
+                    hideOnRoute: true,
+                    child:
+                        LandingPage(), // 👈 Cacher le chatbot sur LandingPage
                   ),
               '/splash':
                   (context) => const ChatbotGlobalWrapper(
-                    child: SplashScreen(),
-                    hideOnRoute: true, // 👈 Cacher le chatbot sur SplashScreen
+                    hideOnRoute: true,
+                    child:
+                        SplashScreen(), // 👈 Cacher le chatbot sur SplashScreen
                   ),
               '/auth':
                   (context) => const ChatbotGlobalWrapper(
-                    child: AuthPage(),
-                    hideOnRoute: false, // 👈 Afficher le chatbot sur AuthPage
+                    hideOnRoute: false,
+                    child: AuthPage(), // 👈 Afficher le chatbot sur AuthPage
                   ),
             },
           );

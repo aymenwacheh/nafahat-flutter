@@ -1,9 +1,7 @@
 // lib/pages/landing/landing_page.dart
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/models/card_config_model.dart';
-import 'package:nafahat/pages/formation/formation_detail_page.dart';
 import 'package:nafahat/pages/landing/widgets/inscription_section.dart';
 import 'package:provider/provider.dart';
 import 'package:nafahat/providers/language_provider.dart';
@@ -14,9 +12,7 @@ import 'package:nafahat/models/training_model.dart';
 import 'package:nafahat/services/training_service.dart';
 import 'package:nafahat/pages/adminisration/add_training_card.dart';
 import 'widgets/training_card.dart';
-import 'package:nafahat/pages/landing/widgets/navbar.dart';
 import 'package:nafahat/services/card_config_service.dart';
-import 'package:nafahat/pages/adminisration/apparence_card.dart';
 
 // --- PALETTE DE COULEURS ---
 class AppColors {

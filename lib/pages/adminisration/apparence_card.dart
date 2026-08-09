@@ -94,7 +94,7 @@ class _ApparenceCardPageState extends State<ApparenceCardPage> {
   ];
 
   // ✅ Prévisualisation - AJOUT des 3 prix
-  TrainingModel _previewTraining = TrainingModel(
+  final TrainingModel _previewTraining = TrainingModel(
     id: 'preview',
     titleFr: 'Formation Flutter Avancé',
     titleAr: 'دورة فلاتر المتقدمة',

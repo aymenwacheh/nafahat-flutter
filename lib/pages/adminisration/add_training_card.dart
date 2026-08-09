@@ -987,7 +987,7 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
                                     style: GoogleFonts.cairo(),
                                   ),
                                 );
-                              }).toList(),
+                              }),
                             ],
                             onChanged:
                                 (value) => setState(
@@ -1482,7 +1482,7 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
               Switch(
                 value: _isRepetitive,
                 onChanged: (value) => setState(() => _isRepetitive = value),
-                activeColor: nafahatGreen,
+                activeThumbColor: nafahatGreen,
                 activeTrackColor: nafahatGreen.withOpacity(0.3),
               ),
             ],
@@ -1589,7 +1589,7 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
               Switch(
                 value: _hasDiscount,
                 onChanged: (value) => setState(() => _hasDiscount = value),
-                activeColor: nafahatOrange,
+                activeThumbColor: nafahatOrange,
                 activeTrackColor: nafahatOrange.withOpacity(0.3),
               ),
             ],

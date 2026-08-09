@@ -289,7 +289,7 @@ class _EditCategoriePageState extends State<EditCategoriePage> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: _selectedCategorieId,
+          initialValue: _selectedCategorieId,
           hint: Text(
             _isArabic
                 ? '-- اختر تصنيفًا --'

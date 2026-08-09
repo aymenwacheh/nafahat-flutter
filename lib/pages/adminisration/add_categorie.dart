@@ -318,7 +318,7 @@ class _AddCategoriePageState extends State<AddCategoriePage> {
               child: Center(child: CircularProgressIndicator()),
             )
             : DropdownButtonFormField<String>(
-              value: _selectedCategorieId,
+              initialValue: _selectedCategorieId,
               hint: Text(
                 _isArabic
                     ? '-- اختر تصنيفًا --'

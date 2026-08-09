@@ -1,9 +1,7 @@
 // lib/pages/users/auth_page.dart
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../landing/landing_page.dart';
 import '../landing/widgets/navbar.dart';
 import 'profile_dashboard_page.dart';
 import 'inscription_adherent.dart';

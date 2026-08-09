@@ -1,107 +1,104 @@
 // lib/services/upload_service.dart
+
 import 'dart:convert';
-import 'dart:html' as html;
+import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart'; // ✅ AJOUTER CET IMPORT
+import 'package:http_parser/http_parser.dart';
+import 'package:mime/mime.dart';
 import 'package:nafahat/config/api_config.dart';
 
+// ✅ Import pour Web uniquement
+// Sur Mobile, ce fichier ne sera pas utilisé pour les méthodes Web
+import 'dart:html' as html;
+
 class UploadService {
-  static String get apiBaseUrl => ApiConfig.baseUrl;
+  // ✅ Utiliser ApiConfig.apiUrl qui inclut déjà /api
+  static String get apiBaseUrl => ApiConfig.apiUrl;
 
-  /// Upload une image depuis un fichier HTML (Web)
-  static Future<Map<String, dynamic>> uploadImageWeb(html.File file) async {
+  // ============================================================
+  // UPLOAD DE FICHIER (UNIFIÉ - WEB + MOBILE)
+  // ============================================================
+
+  static Future<Map<String, dynamic>> uploadFile({
+    required dynamic fileData,
+    required String fileName,
+    required String fieldName,
+    required String endpoint,
+    Map<String, String>? additionalFields,
+    String? mimeType,
+  }) async {
     try {
-      print('📤 [Upload Web] Début de l\'upload...');
-      print('📄 [Upload Web] Nom du fichier: ${file.name}');
-      print('📄 [Upload Web] Taille: ${file.size} bytes');
-      print('📄 [Upload Web] Type MIME: ${file.type}');
+      print('🔵 [UploadService] Upload de fichier...');
+      print('   📋 fileName: $fileName');
+      print('   📋 fieldName: $fieldName');
+      print('   📋 endpoint: $endpoint');
+      print('   📋 Platform: ${kIsWeb ? "Web" : "Mobile/Desktop"}');
 
-      // Lire le fichier en bytes
-      final reader = html.FileReader();
-      reader.readAsArrayBuffer(file);
+      // ✅ URL complète : apiBaseUrl + endpoint
+      // apiBaseUrl = http://localhost:3000/api
+      // endpoint = /payments/upload-quittance
+      // URL finale = http://localhost:3000/api/payments/upload-quittance
+      final fullUrl = '$apiBaseUrl$endpoint';
+      print('   📋 URL: $fullUrl');
 
-      await reader.onLoad.first;
+      final String finalMimeType =
+          mimeType ?? lookupMimeType(fileName) ?? 'application/octet-stream';
+      print('   📋 MIME Type: $finalMimeType');
 
-      final bytes = reader.result as Uint8List;
+      var request = http.MultipartRequest('POST', Uri.parse(fullUrl));
 
-      print('📄 [Upload Web] Bytes lus: ${bytes.length} bytes');
-
-      // ✅ Déterminer l'extension du fichier
-      String getExtension(String filename) {
-        final parts = filename.split('.');
-        return parts.length > 1 ? '.${parts.last}' : '.jpg';
+      if (additionalFields != null) {
+        request.fields.addAll(additionalFields);
       }
 
-      // ✅ Obtenir le MediaType
-      MediaType getMediaType(String filename, String mimeType) {
-        // Si le type MIME est fourni et valide, l'utiliser
-        if (mimeType.isNotEmpty && mimeType.contains('/')) {
-          final parts = mimeType.split('/');
-          if (parts.length == 2) {
-            return MediaType(parts[0].trim(), parts[1].trim());
-          }
+      if (kIsWeb) {
+        if (fileData is! Uint8List) {
+          throw Exception('Format de fichier Web invalide. Attendu: Uint8List');
         }
 
-        // Sinon, déduire du nom de fichier
-        final ext = getExtension(filename).toLowerCase();
-        switch (ext) {
-          case '.jpg':
-          case '.jpeg':
-            return MediaType('image', 'jpeg');
-          case '.png':
-            return MediaType('image', 'png');
-          case '.gif':
-            return MediaType('image', 'gif');
-          case '.webp':
-            return MediaType('image', 'webp');
-          case '.svg':
-            return MediaType('image', 'svg+xml');
-          case '.bmp':
-            return MediaType('image', 'bmp');
-          default:
-            return MediaType('image', 'jpeg'); // Valeur par défaut
+        final multipartFile = http.MultipartFile.fromBytes(
+          fieldName,
+          fileData,
+          filename: fileName,
+          contentType: MediaType.parse(finalMimeType),
+        );
+        request.files.add(multipartFile);
+
+        print('   📋 Upload Web: ${fileData.length} bytes');
+      } else {
+        if (fileData is! File) {
+          throw Exception('Format de fichier Mobile invalide. Attendu: File');
         }
+
+        if (!await fileData.exists()) {
+          throw Exception('Le fichier n\'existe pas: ${fileData.path}');
+        }
+
+        final fileSize = await fileData.length();
+        if (fileSize > 5 * 1024 * 1024) {
+          throw Exception('Le fichier dépasse 5MB');
+        }
+
+        final multipartFile = await http.MultipartFile.fromPath(
+          fieldName,
+          fileData.path,
+          contentType: MediaType.parse(finalMimeType),
+        );
+        request.files.add(multipartFile);
+
+        print('   📋 Upload Mobile: $fileSize bytes');
       }
 
-      // ✅ Créer le MediaType
-      final mediaType = getMediaType(file.name, file.type);
-      print(
-        '📄 [Upload Web] MediaType: ${mediaType.type}/${mediaType.subtype}',
-      );
-
-      // Créer une requête multipart
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('$apiBaseUrl/upload/image'),
-      );
-
-      // ✅ Ajouter le fichier avec le bon MediaType
-      final filename = file.name.isNotEmpty ? file.name : 'image.jpg';
-
-      var multipartFile = http.MultipartFile.fromBytes(
-        'image',
-        bytes,
-        filename: filename,
-        contentType: mediaType, // ✅ Maintenant c'est un MediaType
-      );
-
-      request.files.add(multipartFile);
-
-      // Ajouter les headers
-      request.headers['Accept'] = 'application/json';
-
-      // Envoyer la requête
       var response = await request.send();
       var responseBody = await response.stream.bytesToString();
 
-      print('📤 [Upload Web] Status: ${response.statusCode}');
-      print('📤 [Upload Web] Response: $responseBody');
+      print('🔵 [UploadService] Response status: ${response.statusCode}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(responseBody);
       } else {
-        // Meilleure gestion des erreurs
         try {
           final errorData = json.decode(responseBody);
           throw Exception(
@@ -114,67 +111,69 @@ class UploadService {
         }
       }
     } catch (e) {
+      print('❌ [UploadService] Erreur: $e');
+      rethrow;
+    }
+  }
+
+  // ============================================================
+  // UPLOAD D'IMAGE (SPÉCIFIQUE WEB)
+  // ============================================================
+
+  static Future<Map<String, dynamic>> uploadImageWeb(html.File file) async {
+    try {
+      print('📤 [Upload Web] Début de l\'upload...');
+      print('📄 [Upload Web] Nom du fichier: ${file.name}');
+
+      final reader = html.FileReader();
+      reader.readAsArrayBuffer(file);
+      await reader.onLoad.first;
+
+      final bytes = reader.result as Uint8List;
+      print('📄 [Upload Web] Bytes lus: ${bytes.length} bytes');
+
+      return await uploadFile(
+        fileData: bytes,
+        fileName: file.name.isNotEmpty ? file.name : 'image.jpg',
+        fieldName: 'image',
+        endpoint: '/upload/image',
+        mimeType: file.type.isNotEmpty ? file.type : null,
+      );
+    } catch (e) {
       print('❌ [Upload Web] Erreur: $e');
       rethrow;
     }
   }
 
-  /// Upload avec fallback sur l'endpoint auto
   static Future<Map<String, dynamic>> uploadImageWebAuto(html.File file) async {
     try {
       print('📤 [Upload Web Auto] Début de l\'upload...');
 
       final reader = html.FileReader();
       reader.readAsArrayBuffer(file);
-
       await reader.onLoad.first;
 
       final bytes = reader.result as Uint8List;
 
-      // ✅ MediaType par défaut
-      final mediaType = MediaType('image', 'jpeg');
-
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('$apiBaseUrl/upload/image-auto'),
+      return await uploadFile(
+        fileData: bytes,
+        fileName: file.name.isNotEmpty ? file.name : 'image.jpg',
+        fieldName: 'image',
+        endpoint: '/upload/image-auto',
+        mimeType: file.type.isNotEmpty ? file.type : null,
       );
-
-      var multipartFile = http.MultipartFile.fromBytes(
-        'image',
-        bytes,
-        filename: file.name.isNotEmpty ? file.name : 'image.jpg',
-        contentType: mediaType,
-      );
-
-      request.files.add(multipartFile);
-      request.headers['Accept'] = 'application/json';
-
-      var response = await request.send();
-      var responseBody = await response.stream.bytesToString();
-
-      print('📤 [Upload Web Auto] Status: ${response.statusCode}');
-      print('📤 [Upload Web Auto] Response: $responseBody');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return json.decode(responseBody);
-      } else {
-        throw Exception('Upload failed: ${response.statusCode}');
-      }
     } catch (e) {
       print('❌ [Upload Web Auto] Erreur: $e');
       rethrow;
     }
   }
 
-  /// Upload avec détection automatique (essaye plusieurs endpoints)
   static Future<Map<String, dynamic>> uploadImageSmart(html.File file) async {
     try {
-      // Essayer d'abord l'endpoint standard
       try {
         return await uploadImageWeb(file);
       } catch (e) {
         print('⚠️ [Upload] Endpoint standard échoué, tentative avec auto...');
-        // Si ça échoue, essayer l'endpoint auto
         return await uploadImageWebAuto(file);
       }
     } catch (e) {
@@ -183,46 +182,33 @@ class UploadService {
     }
   }
 
-  /// Upload depuis des bytes (alternative)
   static Future<Map<String, dynamic>> uploadImageBytes(
     Uint8List bytes,
     String filename,
   ) async {
-    try {
-      print('📤 [Upload Bytes] Début de l\'upload...');
+    return await uploadFile(
+      fileData: bytes,
+      fileName: filename.isNotEmpty ? filename : 'image.jpg',
+      fieldName: 'image',
+      endpoint: '/upload/image',
+    );
+  }
 
-      // ✅ MediaType par défaut
-      final mediaType = MediaType('image', 'jpeg');
+  // ============================================================
+  // UPLOAD DE QUITTANCE
+  // ============================================================
 
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('$apiBaseUrl/upload/image'),
-      );
-
-      var multipartFile = http.MultipartFile.fromBytes(
-        'image',
-        bytes,
-        filename: filename.isNotEmpty ? filename : 'image.jpg',
-        contentType: mediaType,
-      );
-
-      request.files.add(multipartFile);
-      request.headers['Accept'] = 'application/json';
-
-      var response = await request.send();
-      var responseBody = await response.stream.bytesToString();
-
-      print('📤 [Upload Bytes] Status: ${response.statusCode}');
-      print('📤 [Upload Bytes] Response: $responseBody');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return json.decode(responseBody);
-      } else {
-        throw Exception('Upload failed: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('❌ [Upload Bytes] Erreur: $e');
-      rethrow;
-    }
+  static Future<Map<String, dynamic>> uploadQuittance({
+    required dynamic fileData,
+    required String fileName,
+    required String paymentId,
+  }) async {
+    return await uploadFile(
+      fileData: fileData,
+      fileName: fileName,
+      fieldName: 'quittance',
+      endpoint: '/payments/upload-quittance', // ✅ Sans /api en trop
+      additionalFields: {'paymentId': paymentId},
+    );
   }
 }
