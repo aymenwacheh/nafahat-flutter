@@ -13,6 +13,8 @@ import 'package:nafahat/services/training_service.dart';
 import 'package:nafahat/pages/adminisration/add_training_card.dart';
 import 'widgets/training_card.dart';
 import 'package:nafahat/services/card_config_service.dart';
+import 'widgets/about.dart';
+import 'widgets/all_video_page.dart';
 
 // --- PALETTE DE COULEURS ---
 class AppColors {

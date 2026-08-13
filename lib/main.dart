@@ -11,12 +11,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/pages/users/auth_page.dart';
 import 'package:nafahat/providers/language_provider.dart';
 import 'package:nafahat/providers/card_config_provider.dart';
-import 'package:nafahat/providers/chatbot_provider.dart'; // 👈 NOUVEAU: Import du ChatbotProvider
+import 'package:nafahat/providers/chatbot_provider.dart';
+import 'package:nafahat/providers/user_provider.dart';
+import 'package:nafahat/providers/about_provider.dart';
 import 'pages/landing/widgets/chatbot/chatbot_widget.dart';
 import 'package:nafahat/config/api_config.dart';
-import 'pages/landing/landing_page.dart'; // 👈 NOUVEAU: Import pour la landing page
+import 'pages/landing/landing_page.dart';
 import 'package:nafahat/models/card_config_model.dart';
-import 'providers/user_provider.dart';
 
 void main() {
   runApp(const MyApp());
@@ -54,9 +55,9 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => LanguageProvider()),
         ChangeNotifierProvider(create: (_) => ChatbotProvider()),
-        ChangeNotifierProvider(
-          create: (_) => UserProvider(),
-        ), // 👈 NOUVEAU: Ajout du ChatbotProvider
+        ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => AboutProvider()),
+        // Ajouter d'autres providers si nécessaire
       ],
       child: Consumer<LanguageProvider>(
         builder: (context, languageProvider, child) {
@@ -96,9 +97,7 @@ class MyApp extends StatelessWidget {
               return const Locale('ar');
             },
             // 👇 Navigation avec route observer pour contrôler le chatbot
-            navigatorObservers: [
-              ChatbotRouteObserver(), // 👈 NOUVEAU: Observateur pour suivre les routes
-            ],
+            navigatorObservers: [ChatbotRouteObserver()],
             // 👈 ICI on utilise la fonction pour déterminer la page initiale
             home: _getInitialPage(),
             // 👇 Routes nommées pour un meilleur contrôle
@@ -106,19 +105,17 @@ class MyApp extends StatelessWidget {
               '/landing':
                   (context) => const ChatbotGlobalWrapper(
                     hideOnRoute: true,
-                    child:
-                        LandingPage(), // 👈 Cacher le chatbot sur LandingPage
+                    child: LandingPage(),
                   ),
               '/splash':
                   (context) => const ChatbotGlobalWrapper(
                     hideOnRoute: true,
-                    child:
-                        SplashScreen(), // 👈 Cacher le chatbot sur SplashScreen
+                    child: SplashScreen(),
                   ),
               '/auth':
                   (context) => const ChatbotGlobalWrapper(
                     hideOnRoute: false,
-                    child: AuthPage(), // 👈 Afficher le chatbot sur AuthPage
+                    child: AuthPage(),
                   ),
             },
           );

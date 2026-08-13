@@ -823,8 +823,8 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
     if (!mounted) return;
 
     print('🔵 [REDIRECTION] Redirection vers la page d\'inscription');
-    print('🟡 [REDIRECTION] Navigation vers InscriptionAdherentPage...');
 
+    // ✅ Passer fromFormationDetail: true
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -838,6 +838,7 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
 
     if (!mounted) return;
 
+    // ✅ Gérer le résultat de la vérification par email
     if (result is Map && result['success'] == true) {
       final newAdherentId = result['adherentId']?.toString();
       print(
@@ -845,9 +846,6 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
       );
 
       if (newAdherentId != null && newAdherentId.isNotEmpty) {
-        print(
-          '🟢 [REDIRECTION] Lancement direct du paiement pour la formation source',
-        );
         setState(() => _isProcessingPayment = true);
         try {
           await _proceedToPayment(newAdherentId);
@@ -868,20 +866,6 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
         } finally {
           if (mounted) setState(() => _isProcessingPayment = false);
         }
-      } else {
-        print(
-          '⚠️ [REDIRECTION] Pas d\'ID adhérent reçu, tentative via _checkAuthStatus()',
-        );
-        await _checkAuthStatus();
-        if (_isAuthenticated) {
-          await _handleInscription();
-        }
-      }
-    } else if (result == true || result == 'success') {
-      print('🟢 [REDIRECTION] Inscription réussie (résultat simple)');
-      await _checkAuthStatus();
-      if (_isAuthenticated) {
-        await _handleInscription();
       }
     } else {
       print('🟡 [REDIRECTION] Inscription annulée ou échouée');

@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:nafahat/pages/landing/landing_page.dart';
+import 'about.dart';
+import 'package:nafahat/pages/landing/widgets/all_video_page.dart';
 import 'package:nafahat/pages/users/inscription_adherent.dart';
 import 'package:nafahat/pages/adminisration/add_training_card.dart';
 import 'package:nafahat/pages/adminisration/administration_page.dart';
@@ -271,12 +273,35 @@ class Navbar extends StatelessWidget {
         _navLink(
           context: context,
           title: isArabic ? "الدورات" : "Cycles",
-          onTap: () {},
+          onTap: () {
+            // Navigation vers la page AllTrainingsPage
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AllTrainingsPage()),
+            );
+          },
+        ),
+        _navLink(
+          context: context,
+          title: isArabic ? "فيديوهات" : "Vidéos",
+          onTap: () {
+            // Navigation vers la page AllVideoPage
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AllVideoPage()),
+            );
+          },
         ),
         _navLink(
           context: context,
           title: isArabic ? "عن المنصة" : "À propos",
-          onTap: () {},
+          onTap: () {
+            // Navigation vers la page AboutPage
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AboutPage()),
+            );
+          },
         ),
         const SizedBox(width: 15),
         IconButton(
@@ -784,7 +809,7 @@ class Navbar extends StatelessWidget {
   }
 
   // ============================================================
-  // DRAWER MOBILE AVEC LOGS
+  // DRAWER MOBILE AVEC LOGS - AMÉLIORÉ
   // ============================================================
   Widget buildDrawer(BuildContext context) {
     debugPrint('🔍 [DRAWER] buildDrawer() appelé');
@@ -812,6 +837,7 @@ class Navbar extends StatelessWidget {
                   vertical: 10,
                 ),
                 children: [
+                  // === MENU PRINCIPAL ===
                   _drawerTile(
                     icon: Icons.home_outlined,
                     title: isArabic ? "الرئيسية" : "Accueil",
@@ -822,30 +848,65 @@ class Navbar extends StatelessWidget {
                         ),
                   ),
                   _drawerTile(
-                    icon: Icons.video_library_outlined,
-                    title: isArabic ? "فيديوهات مميزة" : "Vidéos Favorites",
-                    onTap: () => _closeDrawer(context),
-                  ),
-                  _drawerTile(
                     icon: Icons.school_outlined,
                     title: isArabic ? "الدورات" : "Cycles de Formation",
-                    onTap: () => _closeDrawer(context),
+                    onTap:
+                        () => _closeDrawerAndNavigate(
+                          context,
+                          const AllTrainingsPage(),
+                        ),
+                  ),
+                  _drawerTile(
+                    icon: Icons.video_library_outlined,
+                    title: isArabic ? "فيديوهات مميزة" : "Vidéos Favorites",
+                    onTap:
+                        () => _closeDrawerAndNavigate(
+                          context,
+                          const AllVideoPage(),
+                        ),
                   ),
                   _drawerTile(
                     icon: Icons.info_outline,
                     title: isArabic ? "عن المنصة" : "À propos",
-                    onTap: () => _closeDrawer(context),
+                    onTap:
+                        () =>
+                            _closeDrawerAndNavigate(context, const AboutPage()),
                   ),
-                  const Divider(height: 30, thickness: 1),
 
+                  // === SÉPARATEUR ===
+                  const Divider(
+                    height: 30,
+                    thickness: 1.5,
+                    color: Color(0xff0D443E),
+                    indent: 8,
+                    endIndent: 8,
+                  ),
+
+                  // === SECTION ADMINISTRATION (si permissions) ===
                   if (canViewAdmin) _buildDrawerAdminSection(context, isArabic),
 
-                  const Divider(height: 30, thickness: 1),
+                  // === SÉPARATEUR ===
+                  const Divider(
+                    height: 30,
+                    thickness: 1.5,
+                    color: Color(0xff0D443E),
+                    indent: 8,
+                    endIndent: 8,
+                  ),
 
+                  // === SECTION COMPTE ===
                   _buildDrawerAccountSection(context, isArabic, userProvider),
 
-                  const Divider(height: 30, thickness: 1),
+                  // === SÉPARATEUR ===
+                  const Divider(
+                    height: 30,
+                    thickness: 1.5,
+                    color: Color(0xff0D443E),
+                    indent: 8,
+                    endIndent: 8,
+                  ),
 
+                  // === OPTIONS SUPPLÉMENTAIRES ===
                   if (isLoggedIn && isAdherentOrFormateur)
                     _drawerTile(
                       icon: Icons.settings_outlined,
@@ -883,8 +944,17 @@ class Navbar extends StatelessWidget {
                       );
                     },
                   ),
-                  const Divider(height: 30, thickness: 1),
 
+                  // === SÉPARATEUR ===
+                  const Divider(
+                    height: 30,
+                    thickness: 1.5,
+                    color: Color(0xff0D443E),
+                    indent: 8,
+                    endIndent: 8,
+                  ),
+
+                  // === DÉCONNEXION ===
                   if (isLoggedIn)
                     _drawerTile(
                       icon: Icons.logout_rounded,
@@ -905,8 +975,10 @@ class Navbar extends StatelessWidget {
                         );
                       },
                     ),
+
                   const SizedBox(height: 20),
 
+                  // === BOUTON DE LANGUE ===
                   ListTile(
                     leading: const Icon(Icons.language, color: nafahatGreen),
                     title: Text(
@@ -1034,47 +1106,66 @@ class Navbar extends StatelessWidget {
     );
   }
 
+  // ============================================================
+  // SECTION ADMIN DANS LE DRAWER (MOBILE) - AMÉLIORÉE
+  // ============================================================
   Widget _buildDrawerAdminSection(BuildContext context, bool isArabic) {
     final canCreateUser = _canCreateUser(context);
 
-    return ExpansionTile(
-      leading: Icon(Icons.admin_panel_settings, color: nafahatGreen),
-      title: Text(
-        isArabic ? "⚙️ الإدارة" : "⚙️ Administration",
-        style: GoogleFonts.cairo(
-          fontWeight: FontWeight.bold,
-          fontSize: 15,
-          color: nafahatGreen,
-        ),
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        color: nafahatGreen.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: nafahatGreen.withOpacity(0.1)),
       ),
-      iconColor: nafahatGreen,
-      collapsedIconColor: nafahatGreen,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      children: [
-        ..._getAdminMenuItems(context, isArabic)
-            .where(
-              (item) =>
-                  !item.containsKey('isDivider') &&
-                  !item.containsKey('isHeader') &&
-                  (item['isAdminOnly'] != true || canCreateUser),
-            )
-            .map((item) {
-              return _drawerTile(
-                icon: item['icon'],
-                title: item['title'],
-                padding: const EdgeInsets.only(left: 32),
-                onTap: () {
-                  _closeDrawer(context);
-                  _handleAdminAction(context, item['value'], isArabic);
-                },
-              );
-            }),
-      ],
+      child: ExpansionTile(
+        leading: Icon(
+          Icons.admin_panel_settings,
+          color: nafahatGreen,
+          size: 22,
+        ),
+        title: Text(
+          isArabic ? "⚙️ الإدارة" : "⚙️ Administration",
+          style: GoogleFonts.cairo(
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+            color: nafahatGreen,
+          ),
+        ),
+        iconColor: nafahatGold,
+        collapsedIconColor: nafahatGold,
+        tilePadding: const EdgeInsets.symmetric(horizontal: 8),
+        childrenPadding: const EdgeInsets.only(left: 16, bottom: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        children: [
+          // Sous-menu Administration
+          ..._getAdminMenuItems(context, isArabic)
+              .where(
+                (item) =>
+                    !item.containsKey('isDivider') &&
+                    !item.containsKey('isHeader') &&
+                    (item['isAdminOnly'] != true || canCreateUser),
+              )
+              .map((item) {
+                return _drawerTile(
+                  icon: item['icon'],
+                  title: item['title'],
+                  padding: const EdgeInsets.only(left: 32, right: 8),
+                  onTap: () {
+                    _closeDrawer(context);
+                    _handleAdminAction(context, item['value'], isArabic);
+                  },
+                );
+              })
+              .toList(),
+        ],
+      ),
     );
   }
 
   // ============================================================
-  // SECTION COMPTE DANS LE DRAWER (MOBILE)
+  // SECTION COMPTE DANS LE DRAWER (MOBILE) - AMÉLIORÉE
   // ============================================================
   Widget _buildDrawerAccountSection(
     BuildContext context,
@@ -1083,41 +1174,52 @@ class Navbar extends StatelessWidget {
   ) {
     final bool isLoggedIn = userProvider.isLoggedIn;
 
-    return ExpansionTile(
-      leading: Icon(
-        isLoggedIn ? Icons.person_rounded : Icons.person_outline_rounded,
-        color: nafahatGreen,
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        color: nafahatGreen.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: nafahatGreen.withOpacity(0.1)),
       ),
-      title: Text(
-        isLoggedIn
-            ? (isArabic ? "👤 حسابي" : "👤 Mon compte")
-            : (isArabic ? "👤 حساب" : "👤 Compte"),
-        style: GoogleFonts.cairo(
-          fontWeight: FontWeight.bold,
-          fontSize: 15,
+      child: ExpansionTile(
+        leading: Icon(
+          isLoggedIn ? Icons.person_rounded : Icons.person_outline_rounded,
           color: nafahatGreen,
+          size: 22,
         ),
+        title: Text(
+          isLoggedIn
+              ? (isArabic ? "👤 حسابي" : "👤 Mon compte")
+              : (isArabic ? "👤 حساب" : "👤 Compte"),
+          style: GoogleFonts.cairo(
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+            color: nafahatGreen,
+          ),
+        ),
+        iconColor: nafahatGold,
+        collapsedIconColor: nafahatGold,
+        tilePadding: const EdgeInsets.symmetric(horizontal: 8),
+        childrenPadding: const EdgeInsets.only(left: 16, bottom: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        children:
+            _getAccountMenuItems(
+              isArabic,
+              userProvider,
+            ).where((item) => !item.containsKey('isDivider')).map((item) {
+              final isDanger = item['isDanger'] ?? false;
+              return _drawerTile(
+                icon: item['icon'],
+                title: item['title'],
+                color: isDanger ? Colors.red : null,
+                padding: const EdgeInsets.only(left: 32, right: 8),
+                onTap: () {
+                  _closeDrawer(context);
+                  _handleAccountAction(context, item['value'], isArabic);
+                },
+              );
+            }).toList(),
       ),
-      iconColor: nafahatGreen,
-      collapsedIconColor: nafahatGreen,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      children:
-          _getAccountMenuItems(
-            isArabic,
-            userProvider,
-          ).where((item) => !item.containsKey('isDivider')).map((item) {
-            final isDanger = item['isDanger'] ?? false;
-            return _drawerTile(
-              icon: item['icon'],
-              title: item['title'],
-              color: isDanger ? Colors.red : null,
-              padding: const EdgeInsets.only(left: 32),
-              onTap: () {
-                _closeDrawer(context);
-                _handleAccountAction(context, item['value'], isArabic);
-              },
-            );
-          }).toList(),
     );
   }
 
@@ -1133,7 +1235,7 @@ class Navbar extends StatelessWidget {
   }) {
     final textColor = color ?? const Color(0xff2c221e);
     return ListTile(
-      leading: Icon(icon, color: color ?? const Color(0xff7c6e68)),
+      leading: Icon(icon, color: color ?? const Color(0xff7c6e68), size: 20),
       title: Text(
         title,
         style: GoogleFonts.cairo(
@@ -1143,11 +1245,12 @@ class Navbar extends StatelessWidget {
         ),
       ),
       onTap: onTap,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       tileColor: Colors.transparent,
       hoverColor: nafahatGreen.withOpacity(0.05),
       contentPadding: padding,
       visualDensity: const VisualDensity(horizontal: 0, vertical: -2),
+      dense: true,
     );
   }
 

@@ -13,6 +13,8 @@ import '../landing/widgets/chatbot/chatbot_wrapper.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../config/api_config.dart';
+import '../../services/verification_service.dart';
+import 'verif_code.dart'; // ✅ Import de la nouvelle page
 
 // ----- PAGE PRINCIPALE -----
 class InscriptionAdherentPage extends StatefulWidget {
@@ -935,41 +937,74 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
   // ============================================================
   // SOUMISSION FINALE
   // ============================================================
+  // ============================================================
+  // SOUMISSION FINALE AVEC VÉRIFICATION PAR EMAIL
+  // ============================================================
   Future<void> _soumettre(bool isArabic) async {
+    // ✅ 1. VALIDATION DES CHAMPS OBLIGATOIRES
     if (_nomPrenom.isEmpty || _pays.isEmpty || _ville.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             isArabic
-                ? 'Veuillez remplir tous les champs obligatoires (*)'
-                : 'Veuillez remplir tous les champs obligatoires (*)',
+                ? '⚠️ Veuillez remplir tous les champs obligatoires (*)'
+                : '⚠️ Veuillez remplir tous les champs obligatoires (*)',
             style: GoogleFonts.cairo(),
           ),
           backgroundColor: Colors.orange,
           behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
       return;
     }
 
-    // ✅ Revérifier au moment de la soumission (sécurité) puis bloquer
-    //    avec le popup unique si un doublon existe.
+    // ✅ 2. VÉRIFICATION FINALE DES DOUBLONS (sécurité)
     _debounceTimer?.cancel();
+
+    // Vérifier WhatsApp
     if (_whatsapp.isNotEmpty) {
       await _validateWhatsapp(_whatsapp);
     }
+
+    // Vérifier Email
     if (_email.isNotEmpty) {
       await _checkEmail(_email);
     }
 
+    // ✅ 3. SI DOUBLON DÉTECTÉ → AFFICHER POPUP
     if (_whatsappExists || _emailExists) {
       await _showDuplicatePopupIfNeeded();
       return;
     }
 
+    // ✅ 4. VÉRIFICATION DU FORMAT EMAIL
+    if (_email.isEmpty || !_email.contains('@') || _email.length < 5) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isArabic
+                ? '⚠️ Veuillez entrer une adresse email valide'
+                : '⚠️ Veuillez entrer une adresse email valide',
+            style: GoogleFonts.cairo(),
+          ),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+      return;
+    }
+
+    // ✅ 5. AFFICHER L'INDICATEUR DE CHARGEMENT
     setState(() => isLoading = true);
 
     try {
+      // ✅ 6. CONSTRUCTION DE L'OBJET ADHÉRENT
       final adherent = Adherent(
         whatsapp: '$_selectedCountryCode$_whatsapp',
         nomPrenom: _nomPrenom,
@@ -985,26 +1020,67 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
         accordPublication: _accordPublication,
       );
 
-      final result = await AdherentService.inscrireAdherent(adherent, _enfants);
+      // 🐛 Debug - Afficher les données
+      print('═' * 50);
+      print('📤 [SOUMISSION] Envoi du code de vérification');
+      print('📧 Email: ${adherent.email}');
+      print('📱 WhatsApp: ${adherent.whatsapp}');
+      print('👤 Nom: ${adherent.nomPrenom}');
+      print('📦 Enfants: ${_enfants.length}');
+      print('🏷️ fromFormationDetail: ${widget.fromFormationDetail}');
+      print('═' * 50);
 
+      // ✅ 7. ENVOYER LE CODE DE VÉRIFICATION PAR EMAIL
+      await VerificationService.sendVerificationCode(
+        email: adherent.email,
+        whatsapp: adherent.whatsapp,
+        nomPrenom: adherent.nomPrenom,
+      );
+
+      print('✅ [SOUMISSION] Code envoyé avec succès à ${adherent.email}');
+
+      // ✅ 8. REDIRIGER VERS LA PAGE DE VÉRIFICATION
       if (mounted) {
-        _showSuccessPopup(
+        Navigator.push(
           context,
-          isArabic,
-          result['credentials']['identifiant'],
-          result['motDePasse'],
-          result['adherentId'],
+          MaterialPageRoute(
+            builder:
+                (context) => VerifCodePage(
+                  email: adherent.email,
+                  whatsapp: adherent.whatsapp,
+                  nomPrenom: adherent.nomPrenom,
+                  adherent: adherent,
+                  enfants: _enfants,
+                  fromFormationDetail: widget.fromFormationDetail,
+                ),
+          ),
         );
       }
     } catch (e) {
+      // ✅ 9. GESTION DES ERREURS
+      print('❌ [SOUMISSION] Erreur: $e');
+
       if (mounted) {
-        // ✅ Le serveur reste la source de vérité finale : si l'inscription
-        //    échoue avec un 409 "déjà enregistré", on affiche le MÊME popup
-        //    unique (au lieu d'un message d'erreur brut), même si les
-        //    pré-vérifications côté champ ne l'avaient pas détecté.
+        // Vérifier si c'est une erreur de duplication (409)
         final handledAsDuplicate = await _handleDuplicateSubmitError(e);
+
         if (!handledAsDuplicate) {
-          final errorMsg = e.toString().replaceFirst('Exception: ', '');
+          // Erreur générique
+          String errorMsg = e.toString().replaceFirst('Exception: ', '');
+
+          // Vérifier si c'est une erreur de connexion
+          if (errorMsg.contains('connexion') ||
+              errorMsg.contains('serveur') ||
+              errorMsg.contains('network') ||
+              errorMsg.contains('Failed host lookup')) {
+            errorMsg =
+                isArabic
+                    ? '⚠️ Impossible de contacter le serveur.\n\n'
+                        'Vérifiez que le backend est démarré sur http://localhost:3000'
+                    : '⚠️ Impossible de contacter le serveur.\n\n'
+                        'Vérifiez que le backend est démarré sur http://localhost:3000';
+          }
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('❌ $errorMsg', style: GoogleFonts.cairo()),
@@ -1013,12 +1089,16 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
+              duration: const Duration(seconds: 5),
             ),
           );
         }
       }
     } finally {
-      if (mounted) setState(() => isLoading = false);
+      // ✅ 10. RÉINITIALISER L'ÉTAT DE CHARGEMENT
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 

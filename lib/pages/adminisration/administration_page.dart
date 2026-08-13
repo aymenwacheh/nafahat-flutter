@@ -27,6 +27,7 @@ import 'package:nafahat/services/cible_service.dart';
 import 'package:nafahat/models/cible_model.dart';
 import 'package:http/http.dart' as http;
 import 'package:nafahat/pages/adminisration/add_typeFormation.dart';
+import 'add_about.dart';
 
 class AdministrationPage extends StatefulWidget {
   const AdministrationPage({super.key});
@@ -50,6 +51,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     const CiblesManagementPage(),
     const ApparenceCardPage(),
     const ApparenceHeroPageWrapper(),
+    const AddAboutPage(),
   ];
 
   final List<String> _titles = [
@@ -64,6 +66,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     'Cibles',
     'Apparence des cartes',
     'Apparence Hero',
+    'À propos',
   ];
 
   final List<String> _titlesAr = [
@@ -78,6 +81,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     'الجمهور المستهدف',
     'مظهر البطاقات',
     'مظهر الهيرو',
+    'عن المنصة',
   ];
 
   final List<Map<String, dynamic>> _menuItems = [
@@ -146,6 +150,12 @@ class _AdministrationPageState extends State<AdministrationPage> {
       'title': 'Apparence Hero',
       'titleAr': 'مظهر الهيرو',
       'page': 10,
+    },
+    {
+      'icon': Icons.info_outline,
+      'title': 'À propos',
+      'titleAr': 'عن المنصة',
+      'page': 11,
     },
   ];
 
