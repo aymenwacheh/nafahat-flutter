@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/language_provider.dart';
 import '../../services/verification_service.dart';
+import '../../services/auth_service.dart';
 import '../landing/widgets/navbar.dart';
 import '../../models/adherent.dart';
 import '../../models/enfant.dart';
@@ -42,15 +43,19 @@ class _VerifCodePageState extends State<VerifCodePage> {
   Timer? _countdownTimer;
 
   String? _errorMessage;
-  bool _isCodeValid = false;
 
-  // Couleurs
   static const Color nafahatGreen = Color(0xff0D443E);
-  static const Color nafahatGold = Color(0xffC4A46C);
 
   @override
   void initState() {
     super.initState();
+    print('═══════════════════════════════════════════════════════════');
+    print('🔵 [VERIF_CODE] INIT - Page de vérification du code');
+    print('🔵 [VERIF_CODE] Email: ${widget.email}');
+    print('🔵 [VERIF_CODE] WhatsApp: ${widget.whatsapp}');
+    print('🔵 [VERIF_CODE] Nom: ${widget.nomPrenom}');
+    print('🔵 [VERIF_CODE] fromFormationDetail: ${widget.fromFormationDetail}');
+    print('═══════════════════════════════════════════════════════════');
     _startCountdown();
     _codeFocusNode.requestFocus();
   }
@@ -127,6 +132,12 @@ class _VerifCodePageState extends State<VerifCodePage> {
   Future<void> _verifyCode() async {
     final code = _codeController.text.trim();
 
+    print('═══════════════════════════════════════════════════════════');
+    print('🔵 [VERIF_CODE] _verifyCode() appelée');
+    print('🔵 [VERIF_CODE] Code saisi: $code');
+    print('🔵 [VERIF_CODE] Email: ${widget.email}');
+    print('═══════════════════════════════════════════════════════════');
+
     if (code.isEmpty || code.length != 6) {
       setState(() {
         _errorMessage =
@@ -143,6 +154,7 @@ class _VerifCodePageState extends State<VerifCodePage> {
     });
 
     try {
+      print('🟡 [VERIF_CODE] Appel à VerificationService.verifyCodeAndCreateUser()...');
       final result = await VerificationService.verifyCodeAndCreateUser(
         email: widget.email,
         code: code,
@@ -150,16 +162,46 @@ class _VerifCodePageState extends State<VerifCodePage> {
         enfants: widget.enfants,
       );
 
+      print('🟡 [VERIF_CODE] Résultat: $result');
+      print('🟡 [VERIF_CODE] result["success"]: ${result['success']}');
+
       if (mounted && result['success'] == true) {
+        final adherentId = result['adherentId'];
+        final motDePasse = result['motDePasse'];
+        final identifiant = result['credentials']['identifiant'];
+
+        print('═══════════════════════════════════════════════════════════');
+        print('✅ [VERIF_CODE] INSCRIPTION RÉUSSIE !');
+        print('✅ [VERIF_CODE] AdherentId: $adherentId');
+        print('✅ [VERIF_CODE] Mot de passe: $motDePasse');
+        print('✅ [VERIF_CODE] Identifiant: $identifiant');
+        print('✅ [VERIF_CODE] fromFormationDetail: ${widget.fromFormationDetail}');
+        print('═══════════════════════════════════════════════════════════');
+
+        // ✅ CONNECTER L'UTILISATEUR AUTOMATIQUEMENT
+        print('🟡 [VERIF_CODE] Sauvegarde des données utilisateur...');
+        await AuthService.saveUserData({
+          'id': adherentId,
+          'whatsapp': widget.whatsapp,
+          'nomPrenom': widget.nomPrenom,
+          'email': widget.email,
+        });
+        await AuthService.saveUserId(adherentId);
+        print('✅ [VERIF_CODE] Utilisateur connecté automatiquement');
+
         _showSuccessPopup(
           context,
           _isArabic,
-          result['credentials']['identifiant'],
-          result['motDePasse'],
-          result['adherentId'],
+          identifiant,
+          motDePasse,
+          adherentId,
         );
+      } else {
+        print('❌ [VERIF_CODE] Échec: result["success"] != true');
+        throw Exception(result['error'] ?? 'Erreur lors de la création du compte');
       }
     } catch (e) {
+      print('❌ [VERIF_CODE] Erreur: $e');
       if (mounted) {
         setState(() {
           _errorMessage = e.toString().replaceFirst('Exception: ', '');
@@ -177,6 +219,12 @@ class _VerifCodePageState extends State<VerifCodePage> {
     String motDePasse,
     dynamic adherentId,
   ) {
+    print('═══════════════════════════════════════════════════════════');
+    print('🔵 [VERIF_CODE] _showSuccessPopup()');
+    print('🔵 [VERIF_CODE] adherentId: $adherentId');
+    print('🔵 [VERIF_CODE] fromFormationDetail: ${widget.fromFormationDetail}');
+    print('═══════════════════════════════════════════════════════════');
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -316,18 +364,30 @@ class _VerifCodePageState extends State<VerifCodePage> {
                     ],
                   ),
                   const SizedBox(height: 20),
+
+                  // ✅ BOUTON PRINCIPAL
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
+                        print('═══════════════════════════════════════════════════════════');
+                        print('🔵 [VERIF_CODE] Clic sur le bouton principal');
+                        print('🔵 [VERIF_CODE] fromFormationDetail: ${widget.fromFormationDetail}');
+                        print('🔵 [VERIF_CODE] adherentId: $adherentId');
+                        print('═══════════════════════════════════════════════════════════');
+
                         Navigator.pop(dialogContext);
 
                         if (widget.fromFormationDetail) {
+                          print('🟢 [VERIF_CODE] RETOUR VERS FormationDetailPage');
+                          print('🟢 [VERIF_CODE] Navigation.pop avec: {success: true, adherentId: ${adherentId?.toString()}}');
                           Navigator.pop(context, {
                             'success': true,
                             'adherentId': adherentId?.toString(),
                           });
+                          print('✅ [VERIF_CODE] Navigation.pop exécuté');
                         } else {
+                          print('🟢 [VERIF_CODE] REDIRECTION VERS ACCUEIL');
                           Navigator.pushReplacementNamed(context, '/');
                         }
                       },
@@ -352,6 +412,23 @@ class _VerifCodePageState extends State<VerifCodePage> {
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
+                      ),
+                    ),
+                  ),
+
+                  // ✅ Bouton secondaire
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () {
+                      print('🔵 [VERIF_CODE] Clic sur "Se connecter"');
+                      Navigator.pop(dialogContext);
+                      Navigator.pushReplacementNamed(context, '/login');
+                    },
+                    child: Text(
+                      isArabic ? '🔑 تسجيل الدخول' : '🔑 Se connecter',
+                      style: GoogleFonts.cairo(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
                       ),
                     ),
                   ),
@@ -427,7 +504,6 @@ class _VerifCodePageState extends State<VerifCodePage> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // Icône
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
@@ -441,8 +517,6 @@ class _VerifCodePageState extends State<VerifCodePage> {
                               ),
                             ),
                             const SizedBox(height: 20),
-
-                            // Titre
                             Text(
                               isArabic
                                   ? '📧 التحقق من البريد الإلكتروني'
@@ -454,8 +528,6 @@ class _VerifCodePageState extends State<VerifCodePage> {
                               ),
                             ),
                             const SizedBox(height: 12),
-
-                            // Message
                             Text(
                               isArabic
                                   ? 'أدخل الرمز المكون من 6 أرقام الذي تم إرساله إلى'
@@ -489,8 +561,6 @@ class _VerifCodePageState extends State<VerifCodePage> {
                               ),
                             ),
                             const SizedBox(height: 24),
-
-                            // Champ du code
                             TextField(
                               controller: _codeController,
                               focusNode: _codeFocusNode,
@@ -546,8 +616,6 @@ class _VerifCodePageState extends State<VerifCodePage> {
                               },
                             ),
                             const SizedBox(height: 16),
-
-                            // Bouton de vérification
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
@@ -593,8 +661,6 @@ class _VerifCodePageState extends State<VerifCodePage> {
                               ),
                             ),
                             const SizedBox(height: 16),
-
-                            // Renvoyer le code
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -654,8 +720,6 @@ class _VerifCodePageState extends State<VerifCodePage> {
                   ),
                 ),
               ),
-
-              // NAVBAR
               Positioned(
                 top: 0,
                 left: 0,

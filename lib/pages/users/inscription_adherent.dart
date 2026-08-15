@@ -14,13 +14,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../config/api_config.dart';
 import '../../services/verification_service.dart';
-import 'verif_code.dart'; // ✅ Import de la nouvelle page
+import 'verif_code.dart';
 
 // ----- PAGE PRINCIPALE -----
 class InscriptionAdherentPage extends StatefulWidget {
-  // ✅ true quand cette page est ouverte depuis FormationDetailPage (achat
-  // d'une formation) : après succès, on doit revenir directement vers le
-  // paiement de la formation source, PAS vers /login.
   final bool fromFormationDetail;
 
   const InscriptionAdherentPage({super.key, this.fromFormationDetail = false});
@@ -64,7 +61,7 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
   bool _isEmailChecking = false;
   bool _isWhatsappChecking = false;
 
-  // ✅ "Déjà utilisé" — flags dédiés (distincts de la validité de format)
+  // ✅ "Déjà utilisé" — flags dédiés
   bool _whatsappExists = false;
   bool _emailExists = false;
 
@@ -100,16 +97,12 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
     _whatsappController.addListener(_onWhatsappChanged);
     _emailController.addListener(_onEmailChanged);
 
-    // ✅ Détecter quand l'utilisateur quitte le champ WhatsApp
-    // -> la vérification (et le popup éventuel) doit se faire AVANT
-    //    de continuer vers le champ suivant.
     _whatsappFocusNode.addListener(() {
       if (!_whatsappFocusNode.hasFocus && _whatsappController.text.isNotEmpty) {
         _checkWhatsappOnExit(_whatsappController.text);
       }
     });
 
-    // ✅ Détecter quand l'utilisateur quitte le champ email
     _emailFocusNode.addListener(() {
       if (!_emailFocusNode.hasFocus && _emailController.text.isNotEmpty) {
         _checkEmailOnExit(_emailController.text);
@@ -132,7 +125,7 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
       Provider.of<LanguageProvider>(context, listen: false).isArabic;
 
   // ============================================================
-  // ✅ VALIDATION WHATSAPP (temps réel, pendant la frappe)
+  // ✅ VALIDATION WHATSAPP
   // ============================================================
   void _onWhatsappChanged() {
     _whatsapp = _whatsappController.text;
@@ -199,9 +192,6 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
     }
   }
 
-  // ✅ Vérification immédiate (annule le debounce) quand l'utilisateur
-  //    quitte le champ WhatsApp -> déclenche le popup si besoin
-  //    AVANT que l'utilisateur ne poursuive sa saisie.
   Future<void> _checkWhatsappOnExit(String value) async {
     if (value.isEmpty || value.length < 8) return;
     _debounceTimer?.cancel();
@@ -210,7 +200,7 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
   }
 
   // ============================================================
-  // ✅ VALIDATION EMAIL - EN TEMPS RÉEL
+  // ✅ VALIDATION EMAIL
   // ============================================================
   void _onEmailChanged() {
     _email = _emailController.text;
@@ -220,8 +210,6 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
     });
   }
 
-  // ✅ Vérification immédiate quand l'utilisateur quitte le champ
-  //    -> déclenche le popup si besoin AVANT de passer au champ suivant.
   Future<void> _checkEmailOnExit(String value) async {
     if (value.isEmpty || !value.contains('@')) return;
     _debounceTimer?.cancel();
@@ -287,11 +275,7 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
   }
 
   // ============================================================
-  // ✅ POPUP UNIQUE — CENTRÉ, RESPONSIVE (WEB + MOBILE)
-  //    Gère les 3 cas précis :
-  //    - WhatsApp déjà enregistré
-  //    - Email déjà enregistré
-  //    - WhatsApp ET Email déjà enregistrés
+  // ✅ POPUP UNIQUE DOUBLON
   // ============================================================
   Future<void> _showDuplicatePopupIfNeeded() async {
     if (_popupVisible || !mounted) return;
@@ -312,7 +296,6 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
   }) async {
     final isArabic = _isArabic;
 
-    // ---- Textes précis selon le(s) cas ----
     late final String title;
     late final String message;
     late final IconData icon;
@@ -371,7 +354,6 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
         final isWideScreen = screenSize.width > 500;
 
         return Dialog(
-          // ✅ Toujours centré au milieu de l'écran (web + mobile)
           alignment: Alignment.center,
           insetPadding: const EdgeInsets.symmetric(
             horizontal: 20,
@@ -401,7 +383,6 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // ✅ Icône avec cercle rouge
                   Container(
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
@@ -422,8 +403,6 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
                     child: Icon(icon, size: 42, color: Colors.white),
                   ),
                   const SizedBox(height: 20),
-
-                  // ✅ Titre
                   Text(
                     title,
                     style: GoogleFonts.cairo(
@@ -434,8 +413,6 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
-
-                  // ✅ Message précis
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -454,8 +431,6 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
                     ),
                   ),
                   const SizedBox(height: 20),
-
-                  // ✅ Valeur(s) saisie(s) en surbrillance
                   if (whatsappDup)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
@@ -470,16 +445,12 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
                       value: _email,
                     ),
                   const SizedBox(height: 24),
-
-                  // ✅ Boutons
                   Row(
                     children: [
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () {
                             Navigator.pop(dialogContext);
-                            // ✅ Effacer le(s) champ(s) en doublon et remettre
-                            //    le focus dessus pour correction immédiate.
                             Future.delayed(
                               const Duration(milliseconds: 100),
                               () {
@@ -530,7 +501,6 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
                         child: ElevatedButton(
                           onPressed: () {
                             Navigator.pop(dialogContext);
-                            // ✅ Rediriger vers la page de connexion
                             Navigator.pushReplacementNamed(context, '/login');
                           },
                           style: ElevatedButton.styleFrom(
@@ -592,247 +562,6 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
           ),
         ],
       ),
-    );
-  }
-
-  // ============================================================
-  // ✅ POPUP SUCCÈS MODERNE
-  // ============================================================
-  void _showSuccessPopup(
-    BuildContext context,
-    bool isArabic,
-    String identifiant,
-    String motDePasse,
-    dynamic adherentId,
-  ) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      barrierColor: Colors.black.withOpacity(0.5),
-      builder: (BuildContext context) {
-        final screenSize = MediaQuery.of(context).size;
-        return Dialog(
-          alignment: Alignment.center,
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 24,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          child: Container(
-            width: screenSize.width > 500 ? 440 : double.infinity,
-            constraints: BoxConstraints(maxHeight: screenSize.height * 0.85),
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xff0D443E).withOpacity(0.15),
-                  blurRadius: 30,
-                  offset: const Offset(0, 15),
-                ),
-              ],
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // ✅ Cercle de succès
-                  Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xff0D443E), Color(0xff1a6b5e)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xff0D443E).withOpacity(0.3),
-                          blurRadius: 15,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.check_rounded,
-                      size: 42,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // ✅ Titre
-                  Text(
-                    isArabic
-                        ? '🎉 تم التسجيل بنجاح'
-                        : '🎉 Inscription réussie !',
-                    style: GoogleFonts.cairo(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xff0D443E),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-
-                  Text(
-                    isArabic
-                        ? 'مرحباً بك في أكاديمية نفحات'
-                        : 'Bienvenue à l\'Académie Nafahat',
-                    style: GoogleFonts.cairo(
-                      fontSize: 15,
-                      color: Colors.grey.shade600,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
-
-                  // ✅ Identifiants
-                  Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          const Color(0xff0D443E).withOpacity(0.05),
-                          const Color(0xff0D443E).withOpacity(0.02),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: const Color(0xff0D443E).withOpacity(0.1),
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        _buildInfoRow(
-                          isArabic ? '📱 Identifiant' : '📱 Identifiant',
-                          identifiant,
-                        ),
-                        const SizedBox(height: 10),
-                        _buildInfoRow(
-                          isArabic ? '🔑 Mot de passe' : '🔑 Mot de passe',
-                          motDePasse,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // ✅ Avertissement
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.warning_amber_rounded,
-                        size: 18,
-                        color: Colors.orange.shade700,
-                      ),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          isArabic
-                              ? '⚠️ Conservez ces informations précieusement'
-                              : '⚠️ Conservez ces informations précieusement',
-                          style: GoogleFonts.cairo(
-                            fontSize: 13,
-                            color: Colors.orange.shade700,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-
-                  // ✅ Bouton
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context); // ferme le popup de succès
-
-                        if (widget.fromFormationDetail) {
-                          // ✅ Cas "achat de formation" : on revient
-                          // directement sur FormationDetailPage avec l'ID
-                          // du nouvel adhérent pour enchaîner sur le
-                          // paiement de la formation source.
-                          Navigator.pop(context, {
-                            'success': true,
-                            'adherentId': adherentId?.toString(),
-                          });
-                        } else {
-                          // ✅ Cas normal (inscription depuis la landing
-                          // page) : redirection vers la page de connexion.
-                          Navigator.pushReplacementNamed(context, '/login');
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xff0D443E),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        widget.fromFormationDetail
-                            ? (isArabic
-                                ? 'متابعة الدفع'
-                                : 'Continuer vers le paiement')
-                            : (isArabic ? 'تسجيل الدخول' : 'Se connecter'),
-                        style: GoogleFonts.cairo(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.cairo(fontSize: 14, color: Colors.grey.shade600),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          decoration: BoxDecoration(
-            color: const Color(0xff0D443E).withOpacity(0.08),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: const Color(0xff0D443E).withOpacity(0.15),
-            ),
-          ),
-          child: Text(
-            value,
-            style: GoogleFonts.cairo(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xff0D443E),
-            ),
-          ),
-        ),
-      ],
     );
   }
 
@@ -935,10 +664,7 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
   }
 
   // ============================================================
-  // SOUMISSION FINALE
-  // ============================================================
-  // ============================================================
-  // SOUMISSION FINALE AVEC VÉRIFICATION PAR EMAIL
+  // ✅ SOUMISSION FINALE AVEC ATTENTE DU RÉSULTAT
   // ============================================================
   Future<void> _soumettre(bool isArabic) async {
     // ✅ 1. VALIDATION DES CHAMPS OBLIGATOIRES
@@ -961,26 +687,22 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
       return;
     }
 
-    // ✅ 2. VÉRIFICATION FINALE DES DOUBLONS (sécurité)
+    // ✅ 2. VÉRIFICATION FINALE DES DOUBLONS
     _debounceTimer?.cancel();
 
-    // Vérifier WhatsApp
     if (_whatsapp.isNotEmpty) {
       await _validateWhatsapp(_whatsapp);
     }
 
-    // Vérifier Email
     if (_email.isNotEmpty) {
       await _checkEmail(_email);
     }
 
-    // ✅ 3. SI DOUBLON DÉTECTÉ → AFFICHER POPUP
     if (_whatsappExists || _emailExists) {
       await _showDuplicatePopupIfNeeded();
       return;
     }
 
-    // ✅ 4. VÉRIFICATION DU FORMAT EMAIL
     if (_email.isEmpty || !_email.contains('@') || _email.length < 5) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1000,11 +722,9 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
       return;
     }
 
-    // ✅ 5. AFFICHER L'INDICATEUR DE CHARGEMENT
     setState(() => isLoading = true);
 
     try {
-      // ✅ 6. CONSTRUCTION DE L'OBJET ADHÉRENT
       final adherent = Adherent(
         whatsapp: '$_selectedCountryCode$_whatsapp',
         nomPrenom: _nomPrenom,
@@ -1020,7 +740,6 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
         accordPublication: _accordPublication,
       );
 
-      // 🐛 Debug - Afficher les données
       print('═' * 50);
       print('📤 [SOUMISSION] Envoi du code de vérification');
       print('📧 Email: ${adherent.email}');
@@ -1030,7 +749,6 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
       print('🏷️ fromFormationDetail: ${widget.fromFormationDetail}');
       print('═' * 50);
 
-      // ✅ 7. ENVOYER LE CODE DE VÉRIFICATION PAR EMAIL
       await VerificationService.sendVerificationCode(
         email: adherent.email,
         whatsapp: adherent.whatsapp,
@@ -1039,9 +757,9 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
 
       print('✅ [SOUMISSION] Code envoyé avec succès à ${adherent.email}');
 
-      // ✅ 8. REDIRIGER VERS LA PAGE DE VÉRIFICATION
+      // ✅ 8. REDIRIGER VERS LA PAGE DE VÉRIFICATION ET ATTENDRE LE RÉSULTAT
       if (mounted) {
-        Navigator.push(
+        final result = await Navigator.push(
           context,
           MaterialPageRoute(
             builder:
@@ -1055,20 +773,40 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
                 ),
           ),
         );
+
+        print('═══════════════════════════════════════════════════════════');
+        print('🟡 [INSCRIPTION] Retour de VerifCodePage');
+        print('🟡 [INSCRIPTION] Résultat: $result');
+        print('🟡 [INSCRIPTION] Type: ${result.runtimeType}');
+        print(
+          '🟡 [INSCRIPTION] fromFormationDetail: ${widget.fromFormationDetail}',
+        );
+        print('═══════════════════════════════════════════════════════════');
+
+        // ✅ Si fromFormationDetail est true, retourner le résultat à la page parent
+        if (widget.fromFormationDetail) {
+          if (mounted) {
+            print(
+              '🟢 [INSCRIPTION] Retour vers FormationDetailPage avec résultat',
+            );
+            Navigator.pop(context, result);
+          }
+        } else {
+          // ✅ Cas normal : après inscription, rediriger vers login
+          if (mounted) {
+            Navigator.pushReplacementNamed(context, '/login');
+          }
+        }
       }
     } catch (e) {
-      // ✅ 9. GESTION DES ERREURS
       print('❌ [SOUMISSION] Erreur: $e');
 
       if (mounted) {
-        // Vérifier si c'est une erreur de duplication (409)
         final handledAsDuplicate = await _handleDuplicateSubmitError(e);
 
         if (!handledAsDuplicate) {
-          // Erreur générique
           String errorMsg = e.toString().replaceFirst('Exception: ', '');
 
-          // Vérifier si c'est une erreur de connexion
           if (errorMsg.contains('connexion') ||
               errorMsg.contains('serveur') ||
               errorMsg.contains('network') ||
@@ -1095,16 +833,12 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
         }
       }
     } finally {
-      // ✅ 10. RÉINITIALISER L'ÉTAT DE CHARGEMENT
       if (mounted) {
         setState(() => isLoading = false);
       }
     }
   }
 
-  // ✅ Analyse une erreur d'inscription (409 avec fieldErrors whatsapp/email)
-  //    et affiche le popup de doublon unique et précis si applicable.
-  //    Retourne true si l'erreur a été prise en charge par le popup.
   Future<bool> _handleDuplicateSubmitError(Object error) async {
     final raw = error.toString();
     if (!raw.contains('409')) return false;
@@ -1182,7 +916,6 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
           top: false,
           child: Stack(
             children: [
-              // ---- Contenu principal ----
               Center(
                 child: Container(
                   constraints: BoxConstraints(maxWidth: maxWidth),
@@ -1362,7 +1095,6 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
                 ),
               ),
 
-              // ---- NAVBAR ----
               Positioned(
                 top: 0,
                 left: 0,
@@ -1384,7 +1116,7 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
   }
 
   // ============================================================
-  // CHAMP WHATSAPP
+  // WIDGETS
   // ============================================================
   Widget _buildWhatsAppField(bool isArabic, bool isMobile, double fontSize) {
     return Column(
@@ -1492,7 +1224,6 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
                   _updateAdherentField('whatsapp', v);
                 },
                 onFieldSubmitted: (v) async {
-                  // ✅ Vérifier AVANT de passer au champ suivant
                   _debounceTimer?.cancel();
                   await _validateWhatsapp(v);
                   if (_whatsappExists) {
@@ -1533,9 +1264,6 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
     );
   }
 
-  // ============================================================
-  // CHAMP EMAIL
-  // ============================================================
   Widget _buildEmailField(bool isArabic, double fontSize) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1595,7 +1323,6 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
             _updateAdherentField('email', v);
           },
           onFieldSubmitted: (v) async {
-            // ✅ Vérifier AVANT de passer au champ suivant
             _debounceTimer?.cancel();
             if (v.isNotEmpty && v.contains('@')) {
               await _checkEmail(v);
@@ -1635,9 +1362,6 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
     );
   }
 
-  // ============================================================
-  // WIDGETS GÉNÉRIQUES
-  // ============================================================
   Widget _buildTextField({
     required String label,
     String? initialValue,

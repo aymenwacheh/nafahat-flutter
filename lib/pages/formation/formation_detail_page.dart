@@ -7,10 +7,12 @@ import 'package:nafahat/services/training_service.dart';
 import 'package:nafahat/services/auth_service.dart';
 import 'package:nafahat/services/geo_service.dart';
 import 'package:nafahat/services/payment_service.dart';
+import 'package:nafahat/services/cmpl_user_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../landing/widgets/chatbot/chatbot_wrapper.dart';
 import '../users/inscription_adherent.dart';
-import '../paiement/modalite_paiment.dart'; // ✅ Import de la page des modalités
+import '../users/cmpl_info_form.dart';
+import '../paiement/modalite_paiment.dart';
 
 class FormationDetailPage extends StatefulWidget {
   final String formationId;
@@ -30,25 +32,19 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
   bool _isLoading = true;
   String? _errorMessage;
 
-  // Langue
   bool _isArabic = true;
-
-  // Devise et pays
   String _countryCode = 'TN';
   bool _isLoadingCountry = true;
 
-  // Authentification
   bool _isAuthenticated = false;
   Map<String, dynamic>? _userData;
   bool _isCheckingAuth = true;
 
-  // WhatsApp Dialog
   final TextEditingController _whatsappController = TextEditingController();
   bool _isWhatsappDialogOpen = false;
 
-  // Paiement
   bool _isProcessingPayment = false;
-  String? _currentPaymentId; // ✅ Stocker l'ID du paiement en cours
+  String? _currentPaymentId;
 
   // ============================================================
   // CYCLE DE VIE
@@ -57,9 +53,9 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
   @override
   void initState() {
     super.initState();
-    print(
-      '🔵 [INIT] Démarrage de FormationDetailPage pour ID: ${widget.formationId}',
-    );
+    print('═══════════════════════════════════════════════════════════');
+    print('🔵 [INIT] FormationDetailPage - ID: ${widget.formationId}');
+    print('═══════════════════════════════════════════════════════════');
     _loadFormation();
     _loadUserLanguage();
     _detectCountry();
@@ -68,7 +64,7 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
 
   @override
   void dispose() {
-    print('🔴 [DISPOSE] Nettoyage de FormationDetailPage');
+    print('🔴 [DISPOSE] FormationDetailPage');
     _whatsappController.dispose();
     super.dispose();
   }
@@ -78,115 +74,87 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
   // ============================================================
 
   Future<void> _loadUserLanguage() async {
-    print('🟡 [LANGUE] Chargement de la langue...');
     try {
       final prefs = await SharedPreferences.getInstance();
       final savedLang = prefs.getString('language');
-      print('🟡 [LANGUE] Langue sauvegardée: $savedLang');
       setState(() {
         _isArabic = savedLang == 'ar' || savedLang == null;
-        print(
-          '🟡 [LANGUE] Langue définie: ${_isArabic ? "Arabe" : "Français"}',
-        );
       });
+      print('🟡 [LANGUE] $_isArabic');
     } catch (e) {
       print('❌ [LANGUE] Erreur: $e');
     }
   }
 
   Future<void> _detectCountry() async {
-    print('🟡 [PAYS] Détection du pays...');
     try {
       final prefs = await SharedPreferences.getInstance();
       String? savedCountry = prefs.getString('user_country');
-      print('🟡 [PAYS] Pays sauvegardé: $savedCountry');
-
       if (savedCountry != null && savedCountry.isNotEmpty) {
         setState(() {
           _countryCode = savedCountry;
           _isLoadingCountry = false;
-          print('🟡 [PAYS] Pays chargé depuis cache: $_countryCode');
         });
+        print('🟡 [PAYS] Chargé: $_countryCode');
       } else {
-        print('🟡 [PAYS] Aucun pays en cache, détection via IP...');
         final countryCode = await GeoService.getUserCountryCode();
         await prefs.setString('user_country', countryCode);
         setState(() {
           _countryCode = countryCode;
           _isLoadingCountry = false;
-          print('🟡 [PAYS] Pays détecté et sauvegardé: $_countryCode');
         });
+        print('🟡 [PAYS] Détecté: $_countryCode');
       }
     } catch (e) {
-      print('❌ [PAYS] Erreur détection: $e');
       setState(() {
         _countryCode = 'TN';
         _isLoadingCountry = false;
-        print('🟡 [PAYS] Pays par défaut: TN');
       });
+      print('❌ [PAYS] Erreur, défaut: TN');
     }
   }
 
   Future<void> _checkAuthStatus() async {
-    print('🔵 [AUTH] Vérification du statut d\'authentification...');
+    print('🔵 [AUTH] Vérification...');
     setState(() => _isCheckingAuth = true);
     try {
       _isAuthenticated = await AuthService.isAuthenticated();
-      print('🔵 [AUTH] Authentifié: $_isAuthenticated');
+      print('🟡 [AUTH] Authentifié: $_isAuthenticated');
 
       if (_isAuthenticated) {
         _userData = await AuthService.getUserData();
-        print(
-          '🔵 [AUTH] Données utilisateur: ${_userData?['nomPrenom'] ?? 'Inconnu'}',
-        );
-        print('🔵 [AUTH] ID utilisateur: ${_userData?['id'] ?? 'Non trouvé'}');
-      } else {
-        print('🔵 [AUTH] Utilisateur non authentifié');
+        print('🟡 [AUTH] ID: ${_userData?['id']}');
+        print('🟡 [AUTH] Nom: ${_userData?['nomPrenom']}');
       }
     } catch (e) {
       print('❌ [AUTH] Erreur: $e');
     } finally {
-      if (mounted) {
-        setState(() => _isCheckingAuth = false);
-        print('🔵 [AUTH] Vérification terminée');
-      }
+      if (mounted) setState(() => _isCheckingAuth = false);
     }
   }
 
   Future<void> _loadFormation() async {
-    print('🔵 [FORMATION] Chargement de la formation...');
+    print('🔵 [FORMATION] Chargement...');
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      print('🟡 [FORMATION] Appel à TrainingService.getTrainings()');
       final trainings = await TrainingService.getTrainings();
-      print('🟡 [FORMATION] ${trainings.length} formations récupérées');
-
-      print(
-        '🟡 [FORMATION] Recherche de la formation ID: ${widget.formationId}',
-      );
       final found = trainings.firstWhere(
         (t) => t.id == widget.formationId,
         orElse: () {
-          print('⚠️ [FORMATION] Formation non trouvée');
           throw Exception('Formation non trouvée');
         },
       );
 
-      print(
-        '🟢 [FORMATION] Formation trouvée: ${found.titleFr} (ID: ${found.id})',
-      );
-      print(
-        '🟢 [FORMATION] Prix DT: ${found.priceDt}, EUR: ${found.priceEur}, USD: ${found.priceUsd}',
-      );
+      print('🟢 [FORMATION] Trouvée: ${found.titleFr}');
+      print('🟢 [FORMATION] categorieId: ${found.categorieId}');
 
       setState(() {
         _training = found;
         _isLoading = false;
-        print('🟢 [FORMATION] Formation chargée avec succès');
       });
     } catch (e) {
       print('❌ [FORMATION] Erreur: $e');
@@ -202,28 +170,65 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
   // ============================================================
 
   void _toggleLanguage() {
-    print(
-      '🟡 [LANGUE] Bascule de langue: ${_isArabic ? "Arabe" : "Français"} -> ${_isArabic ? "Français" : "Arabe"}',
-    );
     setState(() {
       _isArabic = !_isArabic;
     });
     SharedPreferences.getInstance().then((prefs) {
       prefs.setString('language', _isArabic ? 'ar' : 'fr');
-      print('🟡 [LANGUE] Langue sauvegardée: ${_isArabic ? "ar" : "fr"}');
     });
+    print('🟡 [LANGUE] Bascule: ${_isArabic ? "AR" : "FR"}');
   }
 
   // ============================================================
-  // NAVIGATION VERS LA PAGE DES MODALITÉS DE PAIEMENT
+  // RAFRAÎCHIR L'AUTHENTIFICATION
   // ============================================================
 
-  /// ✅ Navigation vers la page des modalités de paiement
-  void _navigateToPaymentPage(String paymentId) {
-    print(
-      '🔵 [NAVIGATION] Redirection vers ModalitePaimentPage avec ID: $paymentId',
-    );
+  Future<void> _refreshAuthStatus() async {
+    print('🔵 [AUTH] Rafraîchissement du statut...');
+    _isAuthenticated = await AuthService.isAuthenticated();
+    print('🟡 [AUTH] Authentifié: $_isAuthenticated');
+    if (_isAuthenticated) {
+      _userData = await AuthService.getUserData();
+      print('🟡 [AUTH] ID: ${_userData?['id']}');
+      print('🟡 [AUTH] Nom: ${_userData?['nomPrenom']}');
+    }
+  }
 
+  // ============================================================
+  // VÉRIFICATIONS
+  // ============================================================
+
+  bool _isFormationReligieuse() {
+    if (_training == null) return false;
+    final isReligieuse = _training!.categorieId == 1;
+    print(
+      '🟡 [CATÉGORIE] Religieuse: $isReligieuse (id: ${_training!.categorieId})',
+    );
+    return isReligieuse;
+  }
+
+  Future<bool> _checkCmplExists(int adherentId) async {
+    if (_training == null) return false;
+    print('🔵 [CMPL] Vérification pour adherentId: $adherentId');
+    try {
+      final exists = await CmplUserService.checkCmplExists(
+        adherentId: adherentId,
+        formationId: int.parse(_training!.id),
+      );
+      print('🟡 [CMPL] Existe: $exists');
+      return exists;
+    } catch (e) {
+      print('❌ [CMPL] Erreur: $e');
+      return false;
+    }
+  }
+
+  // ============================================================
+  // NAVIGATIONS
+  // ============================================================
+
+  void _navigateToPaymentPage(String paymentId) {
+    print('🔵 [NAVIGATION] Vers paiement, ID: $paymentId');
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -238,23 +243,53 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
     );
   }
 
+  void _navigateToCmplInfoForm(int adherentId, {VoidCallback? onComplete}) {
+    if (_training == null) return;
+    print('═══════════════════════════════════════════════════════════');
+    print('🔵 [CMPL] REDIRECTION VERS CmplInfoForm');
+    print('🔵 [CMPL] adherentId: $adherentId');
+    print('🔵 [CMPL] formationId: ${_training!.id}');
+    print('═══════════════════════════════════════════════════════════');
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => CmplInfoForm(
+              adherentId: adherentId,
+              formationId: int.parse(_training!.id),
+              formation: _training,
+              onComplete:
+                  onComplete ??
+                  () async {
+                    print('🟢 [CMPL] Formulaire complété');
+                    // ✅ Rafraîchir le statut d'authentification
+                    await _refreshAuthStatus();
+                    // ✅ Relancer l'inscription (maintenant l'utilisateur est connecté)
+                    _handleInscription();
+                  },
+            ),
+      ),
+    );
+  }
+
   // ============================================================
   // GESTION DE L'INSCRIPTION / PAIEMENT
   // ============================================================
 
   Future<void> _handleInscription() async {
-    print('🔵 [INSCRIPTION] Début du processus d\'inscription/paiement');
+    print('═══════════════════════════════════════════════════════════');
+    print('🔵 [INSCRIPTION] DEBUT');
+    print('═══════════════════════════════════════════════════════════');
 
     if (_training == null) {
-      print('❌ [INSCRIPTION] Formation null, annulation');
+      print('❌ [INSCRIPTION] Formation null');
       return;
     }
 
-    print(
-      '🟡 [INSCRIPTION] Formation: ${_training!.titleFr} (ID: ${_training!.id})',
-    );
+    print('🟡 [INSCRIPTION] Formation: ${_training!.titleFr}');
+    print('🟡 [INSCRIPTION] categorieId: ${_training!.categorieId}');
     print('🟡 [INSCRIPTION] Authentifié: $_isAuthenticated');
-    print('🟡 [INSCRIPTION] Pays: $_countryCode');
 
     setState(() => _isProcessingPayment = true);
 
@@ -264,90 +299,104 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
       // ==========================================================
       if (_isAuthenticated) {
         print('🟢 [INSCRIPTION] CAS 1: Utilisateur connecté');
-        print('🟡 [INSCRIPTION] Récupération de l\'ID utilisateur...');
 
         final userId = await AuthService.getUserIdForPayment();
-        print('🟡 [INSCRIPTION] ID utilisateur: $userId');
+        print('🟡 [INSCRIPTION] userId: $userId');
 
-        if (userId != null) {
-          print('🟢 [INSCRIPTION] Utilisateur connecté, procède au paiement');
-          await _proceedToPayment(userId);
-          return;
-        } else {
-          print('⚠️ [INSCRIPTION] ID utilisateur null, impossible de payer');
+        if (userId == null) {
           throw Exception('ID utilisateur non trouvé');
         }
+
+        final adherentId = int.tryParse(userId);
+        if (adherentId == null) {
+          throw Exception('ID utilisateur invalide: $userId');
+        }
+
+        // ✅ VÉRIFICATION: Formation religieuse ?
+        if (_isFormationReligieuse()) {
+          print('🟡 [INSCRIPTION] Formation religieuse détectée');
+
+          final cmplExists = await _checkCmplExists(adherentId);
+
+          if (!cmplExists) {
+            print('🔴 [INSCRIPTION] Infos complémentaires manquantes');
+            print('🔴 [INSCRIPTION] Redirection vers CmplInfoForm');
+            setState(() => _isProcessingPayment = false);
+            _navigateToCmplInfoForm(adherentId);
+            return;
+          } else {
+            print('🟢 [INSCRIPTION] Infos déjà remplies');
+          }
+        } else {
+          print('🟢 [INSCRIPTION] Formation non religieuse');
+        }
+
+        print('🟢 [INSCRIPTION] Paiement...');
+        await _proceedToPayment(userId);
+        return;
       }
 
       // ==========================================================
       // CAS 2: UTILISATEUR NON CONNECTÉ
       // ==========================================================
       print('🟡 [INSCRIPTION] CAS 2: Utilisateur non connecté');
-      print('🟡 [INSCRIPTION] Ouverture du dialogue WhatsApp...');
 
       final result = await _showWhatsappDialog();
-      print('🟡 [INSCRIPTION] Résultat du dialogue WhatsApp: $result');
+      print('🟡 [INSCRIPTION] Dialogue résultat: $result');
 
       if (result != null && result['exists'] == true) {
-        // ========================================================
-        // CAS 2A: WHATSAPP EXISTE → PAIEMENT DIRECT
-        // ========================================================
+        // CAS 2A: WHATSAPP EXISTE
         print('🟢 [INSCRIPTION] CAS 2A: WhatsApp existe');
         final user = result['user'];
-        print(
-          '🟡 [INSCRIPTION] Utilisateur trouvé: ${user?['nomPrenom'] ?? 'Inconnu'}',
-        );
 
         if (user != null) {
           final userId =
               user['id']?.toString() ?? user['adherent_id']?.toString();
-          print('🟡 [INSCRIPTION] ID utilisateur récupéré: $userId');
+          print('🟡 [INSCRIPTION] userId: $userId');
 
           if (userId != null) {
-            print('🟢 [INSCRIPTION] Compte existant, procède au paiement');
+            final adherentId = int.tryParse(userId);
+            if (adherentId != null && _isFormationReligieuse()) {
+              final cmplExists = await _checkCmplExists(adherentId);
+              if (!cmplExists) {
+                print('🔴 [INSCRIPTION] Infos manquantes -> CmplInfoForm');
+                setState(() => _isProcessingPayment = false);
+                _navigateToCmplInfoForm(adherentId);
+                return;
+              }
+            }
+            print('🟢 [INSCRIPTION] Paiement...');
             await _proceedToPayment(userId);
           } else {
-            print('❌ [INSCRIPTION] ID utilisateur null');
             throw Exception('ID utilisateur non trouvé');
           }
         } else {
-          print('❌ [INSCRIPTION] Données utilisateur null');
           throw Exception('Données utilisateur non trouvées');
         }
       } else if (result != null && result['exists'] == false) {
-        // ========================================================
-        // CAS 2B: WHATSAPP N'EXISTE PAS → AFFICHER POPUP
-        // ========================================================
+        // CAS 2B: WHATSAPP N'EXISTE PAS
         print('🟡 [INSCRIPTION] CAS 2B: WhatsApp n\'existe pas');
-        print('🟡 [INSCRIPTION] Affichage du popup "Compte non trouvé"');
-
         _isWhatsappDialogOpen = false;
-
         if (mounted) {
           _showAccountNotFoundDialog();
         }
       } else {
-        print('🟡 [INSCRIPTION] Dialogue WhatsApp annulé par l\'utilisateur');
+        print('🟡 [INSCRIPTION] Dialogue annulé');
       }
     } catch (e) {
       print('❌ [INSCRIPTION] Erreur: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              _isArabic ? '❌ Erreur: $e' : '❌ Erreur: $e',
-              style: GoogleFonts.cairo(),
-            ),
+            content: Text('❌ Erreur: $e', style: GoogleFonts.cairo()),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isProcessingPayment = false);
-        print('🔵 [INSCRIPTION] Processus terminé');
-      }
+      if (mounted) setState(() => _isProcessingPayment = false);
+      print('🔵 [INSCRIPTION] FIN');
     }
   }
 
@@ -357,11 +406,7 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
 
   void _showAccountNotFoundDialog() {
     if (!mounted) return;
-
-    print(
-      '🔵 [POPUP] Affichage du popup "Compte non trouvé" sur FormationDetailPage',
-    );
-    print('🟡 [POPUP] Langue: ${_isArabic ? "Arabe" : "Français"}');
+    print('🔵 [POPUP] Compte non trouvé');
 
     showDialog(
       context: context,
@@ -455,6 +500,38 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
                   ],
                 ),
               ),
+              if (_isFormationReligieuse()) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: Colors.blue.shade700,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _isArabic
+                              ? '📖 هذه الدورة دينية، ستحتاج إلى إكمال معلومات إضافية بعد التسجيل'
+                              : '📖 Cette formation est religieuse, vous devrez compléter des informations supplémentaires après l\'inscription',
+                          style: GoogleFonts.cairo(
+                            fontSize: 13,
+                            color: Colors.blue.shade700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
           actions: [
@@ -462,7 +539,7 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  print('🔵 [POPUP] Clic sur "Créer un compte et continuer"');
+                  print('🔵 [POPUP] Clic sur "Créer un compte"');
                   Navigator.pop(dialogContext);
                   _redirectToInscriptionAndBack();
                 },
@@ -475,21 +552,14 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
                   ),
                   elevation: 0,
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.person_add_rounded, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      _isArabic
-                          ? '📝 إنشاء حساب والمتابعة'
-                          : '📝 Créer un compte et continuer',
-                      style: GoogleFonts.cairo(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  _isArabic
+                      ? '📝 إنشاء حساب والمتابعة'
+                      : '📝 Créer un compte et continuer',
+                  style: GoogleFonts.cairo(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -515,10 +585,10 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
   // ============================================================
 
   Future<Map<String, dynamic>?> _showWhatsappDialog() async {
-    print('🔵 [WHATSAPP] Ouverture du dialogue WhatsApp');
+    print('🔵 [WHATSAPP] Début');
 
     if (_isWhatsappDialogOpen) {
-      print('⚠️ [WHATSAPP] Dialogue déjà ouvert, retour null');
+      print('⚠️ [WHATSAPP] Déjà ouvert');
       return null;
     }
 
@@ -526,8 +596,6 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
     String whatsapp = '';
     String? error;
     bool isLoading = false;
-
-    print('🟡 [WHATSAPP] Affichage du dialogue...');
 
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
@@ -613,18 +681,14 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
                     keyboardType: TextInputType.phone,
                     onChanged: (value) {
                       whatsapp = value;
-                      if (error != null) {
-                        setDialogState(() => error = null);
-                      }
+                      if (error != null) setDialogState(() => error = null);
                     },
                   ),
-                  const SizedBox(height: 8),
                 ],
               ),
               actions: [
                 TextButton(
                   onPressed: () {
-                    print('🔵 [WHATSAPP] Annulation par l\'utilisateur');
                     _isWhatsappDialogOpen = false;
                     Navigator.pop(context, null);
                   },
@@ -638,20 +702,12 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
                       isLoading
                           ? null
                           : () async {
-                            print('🔵 [WHATSAPP] Clic sur Vérifier');
-
+                            print('🔵 [WHATSAPP] Vérification');
                             final cleanWhatsapp = whatsapp.replaceAll(
                               RegExp(r'[\s\-\(\)]'),
                               '',
                             );
-                            print(
-                              '🟡 [WHATSAPP] Numéro nettoyé: $cleanWhatsapp',
-                            );
-
                             if (cleanWhatsapp.length < 8) {
-                              print(
-                                '⚠️ [WHATSAPP] Numéro trop court: ${cleanWhatsapp.length} caractères',
-                              );
                               setDialogState(() {
                                 error =
                                     _isArabic
@@ -662,42 +718,23 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
                             }
 
                             setDialogState(() => isLoading = true);
-                            print(
-                              '🟡 [WHATSAPP] Vérification du numéro: $cleanWhatsapp',
-                            );
 
                             try {
                               final fullWhatsapp = '+216$cleanWhatsapp';
-                              print(
-                                '🟡 [WHATSAPP] Numéro complet: $fullWhatsapp',
-                              );
+                              print('🟡 [WHATSAPP] Numéro: $fullWhatsapp');
 
-                              print(
-                                '🟡 [WHATSAPP] Appel à AuthService.checkWhatsappExists()...',
-                              );
                               final exists =
                                   await AuthService.checkWhatsappExists(
                                     fullWhatsapp,
                                   );
-                              print('🟡 [WHATSAPP] Résultat exists: $exists');
+                              print('🟡 [WHATSAPP] Existe: $exists');
 
                               if (exists) {
-                                print(
-                                  '🟢 [WHATSAPP] Numéro trouvé, récupération des données...',
-                                );
                                 final user =
                                     await AuthService.getUserByWhatsapp(
                                       fullWhatsapp,
                                     );
-                                print(
-                                  '🟢 [WHATSAPP] Utilisateur trouvé: ${user?['nomPrenom'] ?? 'Inconnu'}',
-                                );
-
                                 _isWhatsappDialogOpen = false;
-
-                                print(
-                                  '🟢 [WHATSAPP] Retour des données utilisateur',
-                                );
                                 if (mounted) {
                                   Navigator.pop(context, {
                                     'exists': true,
@@ -705,9 +742,7 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
                                   });
                                 }
                               } else {
-                                print('⚠️ [WHATSAPP] Numéro non trouvé');
                                 setDialogState(() => isLoading = false);
-
                                 _isWhatsappDialogOpen = false;
                                 if (mounted) {
                                   Navigator.pop(context, {
@@ -759,29 +794,27 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
     );
 
     _isWhatsappDialogOpen = false;
-    print('🔵 [WHATSAPP] Dialogue fermé, résultat: $result');
+    print('🔵 [WHATSAPP] Résultat: $result');
     return result;
   }
 
   // ============================================================
-  // PAIEMENT - NAVIGATION VERS MODALITE_PAIMENT
+  // PAIEMENT
   // ============================================================
 
   Future<void> _proceedToPayment(String userId) async {
-    print('🔵 [PAIEMENT] Début du processus de paiement');
-    print('🟡 [PAIEMENT] UserId: $userId');
-    print('🟡 [PAIEMENT] Formation: ${_training?.titleFr ?? 'Inconnue'}');
+    print('═══════════════════════════════════════════════════════════');
+    print('🔵 [PAIEMENT] DEBUT');
+    print('🔵 [PAIEMENT] userId: $userId');
+    print('═══════════════════════════════════════════════════════════');
 
     if (_training == null) {
-      print('❌ [PAIEMENT] Formation null, annulation');
+      print('❌ [PAIEMENT] Formation null');
       return;
     }
 
     final currency = TrainingModel.getCurrencySymbol(_countryCode);
-    print('🟡 [PAIEMENT] Devise: $currency (pays: $_countryCode)');
-    print(
-      '🟡 [PAIEMENT] Prix: ${_training!.getPriceForCurrency(_countryCode)} $currency',
-    );
+    print('🟡 [PAIEMENT] Devise: $currency');
 
     try {
       print('🟡 [PAIEMENT] Appel à PaymentService.initiatePayment()...');
@@ -790,23 +823,17 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
         userId: userId,
         currency: currency,
       );
-      print('🟡 [PAIEMENT] Résultat du service: $result');
+      print('🟡 [PAIEMENT] Résultat: $result');
 
       if (result['success'] == true) {
-        print('🟢 [PAIEMENT] Paiement initié avec succès');
-
-        // ✅ Récupérer le paymentId depuis la réponse
         final paymentId = result['paymentId']?.toString();
-
         if (paymentId != null && paymentId.isNotEmpty) {
-          // ✅ REDIRECTION VERS LA PAGE DES MODALITÉS DE PAIEMENT
+          print('🟢 [PAIEMENT] Succès, ID: $paymentId');
           _navigateToPaymentPage(paymentId);
         } else {
-          print('❌ [PAIEMENT] paymentId manquant dans la réponse');
           throw Exception('ID de paiement manquant');
         }
       } else {
-        print('❌ [PAIEMENT] Échec du paiement: ${result['message']}');
         throw Exception(result['message'] ?? 'Erreur paiement');
       }
     } catch (e) {
@@ -822,9 +849,10 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
   Future<void> _redirectToInscriptionAndBack() async {
     if (!mounted) return;
 
-    print('🔵 [REDIRECTION] Redirection vers la page d\'inscription');
+    print('═══════════════════════════════════════════════════════════');
+    print('🔵 [REDIRECTION] VERS INSCRIPTION');
+    print('═══════════════════════════════════════════════════════════');
 
-    // ✅ Passer fromFormationDetail: true
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -834,30 +862,60 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
       ),
     );
 
-    print('🟡 [REDIRECTION] Retour de l\'inscription avec résultat: $result');
+    print('═══════════════════════════════════════════════════════════');
+    print('🔵 [REDIRECTION] RETOUR D\'INSCRIPTION');
+    print('🔵 [REDIRECTION] result: $result');
+    print('🔵 [REDIRECTION] result type: ${result.runtimeType}');
+    print('🔵 [REDIRECTION] result is Map: ${result is Map}');
+    print('═══════════════════════════════════════════════════════════');
 
     if (!mounted) return;
 
-    // ✅ Gérer le résultat de la vérification par email
-    if (result is Map && result['success'] == true) {
+    if (result is Map<String, dynamic> && result['success'] == true) {
       final newAdherentId = result['adherentId']?.toString();
-      print(
-        '🟢 [REDIRECTION] Inscription réussie, ID adhérent: $newAdherentId',
-      );
+      print('🟢 [REDIRECTION] Inscription réussie !');
+      print('🟢 [REDIRECTION] newAdherentId: $newAdherentId');
 
       if (newAdherentId != null && newAdherentId.isNotEmpty) {
+        // ✅ Rafraîchir le statut d'authentification avant de continuer
+        await _refreshAuthStatus();
+
         setState(() => _isProcessingPayment = true);
         try {
+          final isReligieuse = _isFormationReligieuse();
+          print('🟡 [REDIRECTION] Formation religieuse: $isReligieuse');
+
+          if (isReligieuse) {
+            final adherentId = int.tryParse(newAdherentId);
+            print('🟡 [REDIRECTION] adherentId parsé: $adherentId');
+
+            if (adherentId != null) {
+              final cmplExists = await _checkCmplExists(adherentId);
+              print('🟡 [REDIRECTION] cmplExists: $cmplExists');
+
+              if (!cmplExists) {
+                print('🔴 [REDIRECTION] INFOS MANQUANTES -> CmplInfoForm');
+                setState(() => _isProcessingPayment = false);
+                _navigateToCmplInfoForm(adherentId);
+                return;
+              } else {
+                print('🟢 [REDIRECTION] Infos déjà remplies');
+              }
+            } else {
+              print('❌ [REDIRECTION] adherentId null');
+            }
+          } else {
+            print('🟢 [REDIRECTION] Formation non religieuse');
+          }
+
+          print('🟢 [REDIRECTION] Paiement...');
           await _proceedToPayment(newAdherentId);
         } catch (e) {
-          print('❌ [REDIRECTION] Erreur lors du paiement: $e');
+          print('❌ [REDIRECTION] Erreur paiement: $e');
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(
-                  _isArabic ? '❌ Erreur: $e' : '❌ Erreur: $e',
-                  style: GoogleFonts.cairo(),
-                ),
+                content: Text('❌ Erreur: $e', style: GoogleFonts.cairo()),
                 backgroundColor: Colors.red,
                 behavior: SnackBarBehavior.floating,
               ),
@@ -866,10 +924,15 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
         } finally {
           if (mounted) setState(() => _isProcessingPayment = false);
         }
+      } else {
+        print('❌ [REDIRECTION] newAdherentId null ou vide');
       }
     } else {
       print('🟡 [REDIRECTION] Inscription annulée ou échouée');
+      print('🟡 [REDIRECTION] result detail: $result');
     }
+
+    print('🔵 [REDIRECTION] FIN');
   }
 
   // ============================================================
@@ -896,7 +959,7 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
               color: Color(0xff2c221e),
             ),
             onPressed: () {
-              print('🔵 [NAVIGATION] Retour à la page précédente');
+              print('🔵 [NAVIGATION] Retour');
               Navigator.pop(context);
             },
           ),
@@ -1208,6 +1271,34 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
               ],
             ),
           ),
+        if (training.categorieId == 1)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.blue.shade300),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.mosque_outlined,
+                  size: 14,
+                  color: Colors.blue.shade700,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  _isArabic ? 'دورة دينية' : 'Formation religieuse',
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.blue.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ),
         if (discountText != null && discountText.isNotEmpty)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -1370,6 +1461,7 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
     bool hasDiscount,
   ) {
     final isUserLoggedIn = _isAuthenticated;
+    final isReligieuse = _isFormationReligieuse();
 
     return Container(
       padding: EdgeInsets.all(isMobile ? 20 : 28),
@@ -1387,6 +1479,38 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
       ),
       child: Column(
         children: [
+          if (isReligieuse) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: Colors.blue.shade700,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    _isArabic
+                        ? '📖 معلومات إضافية مطلوبة'
+                        : '📖 Informations supplémentaires requises',
+                    style: GoogleFonts.cairo(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.blue.shade700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.end,
