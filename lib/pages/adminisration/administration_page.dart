@@ -28,6 +28,9 @@ import 'package:nafahat/models/cible_model.dart';
 import 'package:http/http.dart' as http;
 import 'package:nafahat/pages/adminisration/add_typeFormation.dart';
 import 'add_about.dart';
+// Ajouter ces imports en haut du fichier
+import 'package:nafahat/pages/adminisration/creerUserPage.dart';
+import 'package:nafahat/pages/users/inscription_adherent.dart';
 
 class AdministrationPage extends StatefulWidget {
   const AdministrationPage({super.key});
@@ -38,35 +41,42 @@ class AdministrationPage extends StatefulWidget {
 
 class _AdministrationPageState extends State<AdministrationPage> {
   int _selectedIndex = 0;
+  bool _isFormationExpanded = true;
+  bool _isApparenceExpanded = true;
+  bool _isUserExpanded = true;
 
+  // Pages
   final List<Widget> _pages = [
     const DashboardPage(),
     const FormationsManagementPage(),
     const CategoriesManagementPage(),
     const FormateursManagementPage(),
-    const VideosManagementPage(),
-    const AdherentsManagementPage(),
     const DureesManagementPage(),
     const TypesFormationManagementPage(),
     const CiblesManagementPage(),
-    const ApparenceCardPage(),
     const ApparenceHeroPageWrapper(),
+    const ApparenceCardPage(),
     const AddAboutPage(),
+    const AdherentsManagementPage(),
+    const AdherentsManagementPage(),
+    const CreerUserPage(),
   ];
 
+  // Titres pour l'AppBar
   final List<String> _titles = [
     'Tableau de bord',
     'Formations',
     'Catégories',
     'Formateurs',
-    'Vidéos',
-    'Adhérents',
     'Durées',
     'Types de formation',
     'Cibles',
-    'Apparence des cartes',
     'Apparence Hero',
+    'Apparence des cartes',
     'À propos',
+    'Adhérents',
+    'Créer un utilisateur',
+    'Inscription adhérent',
   ];
 
   final List<String> _titlesAr = [
@@ -74,108 +84,135 @@ class _AdministrationPageState extends State<AdministrationPage> {
     'التكوينات',
     'التصنيفات',
     'المكونين',
-    'الفيديوهات',
-    'المنخرطين',
     'المدد',
     'أنواع التكوين',
     'الجمهور المستهدف',
-    'مظهر البطاقات',
     'مظهر الهيرو',
+    'مظهر البطاقات',
     'عن المنصة',
+    'المنخرطين',
+    'إنشاء مستخدم',
+    'تسجيل منخرط',
   ];
 
-  final List<Map<String, dynamic>> _menuItems = [
-    {
-      'icon': Icons.dashboard_outlined,
-      'title': 'Tableau de bord',
-      'titleAr': 'لوحة القيادة',
-      'page': 0,
-    },
+  // Structure des menus avec groupes
+  final List<Map<String, dynamic>> _menuGroups = [
     {
       'icon': Icons.school_outlined,
-      'title': 'Formations',
-      'titleAr': 'التكوينات',
-      'page': 1,
-    },
-    {
-      'icon': Icons.category_outlined,
-      'title': 'Catégories',
-      'titleAr': 'التصنيفات',
-      'page': 2,
-    },
-    {
-      'icon': Icons.person_outline,
-      'title': 'Formateurs',
-      'titleAr': 'المكونين',
-      'page': 3,
-    },
-    {
-      'icon': Icons.video_library_outlined,
-      'title': 'Vidéos',
-      'titleAr': 'الفيديوهات',
-      'page': 4,
-    },
-    {
-      'icon': Icons.people_outline,
-      'title': 'Adhérents',
-      'titleAr': 'المنخرطين',
-      'page': 5,
-    },
-    {
-      'icon': Icons.access_time,
-      'title': 'Durées',
-      'titleAr': 'المدد',
-      'page': 6,
-    },
-    {
-      'icon': Icons.label_outlined,
-      'title': 'Types Formation',
-      'titleAr': 'أنواع التكوين',
-      'page': 7,
-    },
-    {
-      'icon': Icons.people_rounded, // ✅ NOUVEAU
-      'title': 'Cibles',
-      'titleAr': 'الجمهور المستهدف',
-      'page': 8,
+      'title': 'Formation',
+      'titleAr': 'التكوين',
+      'children': [
+        {
+          'icon': Icons.school_outlined,
+          'title': 'Formations',
+          'titleAr': 'التكوينات',
+          'page': 1,
+        },
+        {
+          'icon': Icons.person_outline,
+          'title': 'Formateurs',
+          'titleAr': 'المكونين',
+          'page': 3,
+        },
+        {
+          'icon': Icons.category_outlined,
+          'title': 'Catégories',
+          'titleAr': 'التصنيفات',
+          'page': 2,
+        },
+        {
+          'icon': Icons.access_time,
+          'title': 'Durées',
+          'titleAr': 'المدد',
+          'page': 4,
+        },
+        {
+          'icon': Icons.label_outlined,
+          'title': 'Types Formation',
+          'titleAr': 'أنواع التكوين',
+          'page': 5,
+        },
+        {
+          'icon': Icons.people_rounded,
+          'title': 'Cibles',
+          'titleAr': 'الجمهور المستهدف',
+          'page': 6,
+        },
+      ],
     },
     {
       'icon': Icons.palette_outlined,
-      'title': 'Apparence Cartes',
-      'titleAr': 'مظهر البطاقات',
-      'page': 9,
+      'title': 'Apparence',
+      'titleAr': 'المظهر',
+      'children': [
+        {
+          'icon': Icons.slideshow_outlined,
+          'title': 'Apparence Hero',
+          'titleAr': 'مظهر الهيرو',
+          'page': 7,
+        },
+        {
+          'icon': Icons.palette_outlined,
+          'title': 'Apparence Cartes',
+          'titleAr': 'مظهر البطاقات',
+          'page': 8,
+        },
+        {
+          'icon': Icons.info_outline,
+          'title': 'À propos',
+          'titleAr': 'عن المنصة',
+          'page': 9,
+        },
+      ],
     },
     {
-      'icon': Icons.slideshow_outlined,
-      'title': 'Apparence Hero',
-      'titleAr': 'مظهر الهيرو',
-      'page': 10,
-    },
-    {
-      'icon': Icons.info_outline,
-      'title': 'À propos',
-      'titleAr': 'عن المنصة',
-      'page': 11,
+      'icon': Icons.people_outline,
+      'title': 'Utilisateurs & Adhérents',
+      'titleAr': 'المستخدمون والمنخرطين',
+      'children': [
+        {
+          'icon': Icons.people_outline,
+          'title': 'Adhérents',
+          'titleAr': 'المنخرطين',
+          'page': 10,
+        },
+        {
+          'icon': Icons.admin_panel_settings,
+          'title': 'Créer un utilisateur',
+          'titleAr': 'إنشاء مستخدم',
+          'page': 11,
+        }, // AJOUTER
+        {
+          'icon': Icons.person_add,
+          'title': 'Inscription adhérent',
+          'titleAr': 'تسجيل منخرط',
+          'page': 12,
+        }, // AJOUTER
+      ],
     },
   ];
+
+  // Mapping page index vers titre
+  String _getTitleForIndex(int index, bool isArabic) {
+    if (index >= 0 && index < _titles.length) {
+      return isArabic ? _titlesAr[index] : _titles[index];
+    }
+    return isArabic ? 'لوحة القيادة' : 'Tableau de bord';
+  }
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 768;
-    final isTablet = screenWidth >= 768 && screenWidth < 1024;
 
+    // Version mobile - inchangée (liste plate)
     if (isMobile) {
       return Scaffold(
         appBar: AppBar(
           title: Consumer<LanguageProvider>(
             builder: (context, languageProvider, child) {
-              final title =
-                  languageProvider.isArabic
-                      ? _titlesAr[_selectedIndex]
-                      : _titles[_selectedIndex];
               return Text(
-                title,
+                _getTitleForIndex(_selectedIndex, languageProvider.isArabic),
                 style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
               );
             },
@@ -205,16 +242,17 @@ class _AdministrationPageState extends State<AdministrationPage> {
             ),
           ],
         ),
-        drawer: _buildDrawer(isMobile),
+        drawer: _buildDrawerMobile(),
         body: _pages[_selectedIndex],
       );
     }
 
+    // Version web - avec menus déroulants
     return Scaffold(
       backgroundColor: const Color(0xfffcfbfa),
       body: Row(
         children: [
-          _buildSideMenu(isMobile, isTablet),
+          _buildSideMenuWeb(),
           Expanded(
             child: Column(
               children: [
@@ -229,9 +267,175 @@ class _AdministrationPageState extends State<AdministrationPage> {
   }
 
   // ============================================================
-  // SIDE MENU
+  // DRAWER MOBILE - Version inchangée (liste plate)
   // ============================================================
-  Widget _buildSideMenu(bool isMobile, bool isTablet) {
+  Widget _buildDrawerMobile() {
+    // Version mobile : liste plate de tous les items (inchangée)
+    final List<Map<String, dynamic>> flatMenuItems = [];
+    for (var group in _menuGroups) {
+      final children = group['children'] as List<Map<String, dynamic>>;
+      flatMenuItems.addAll(children);
+    }
+
+    return Drawer(
+      backgroundColor: const Color(0xff0D443E),
+      child: Column(
+        children: [
+          Container(
+            height: 120,
+            padding: const EdgeInsets.all(20),
+            decoration: const BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: Colors.white24, width: 1),
+              ),
+            ),
+            child: Consumer<LanguageProvider>(
+              builder: (context, languageProvider, child) {
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Nafahat',
+                          style: GoogleFonts.poppins(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Text(
+                          languageProvider.isArabic
+                              ? 'الإدارة'
+                              : 'Administration',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            color: Colors.white70,
+                          ),
+                        ),
+                      ],
+                    ),
+                    // Flèche landing page dans le drawer
+                    Tooltip(
+                      message:
+                          languageProvider.isArabic
+                              ? 'الذهاب إلى الصفحة الرئيسية'
+                              : 'Aller à la page d\'accueil',
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                languageProvider.isArabic
+                                    ? 'جاري التوجيه إلى الصفحة الرئيسية...'
+                                    : 'Redirection vers la page d\'accueil...',
+                              ),
+                              backgroundColor: const Color(0xffd57653),
+                              duration: const Duration(seconds: 1),
+                            ),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xffd57653).withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.arrow_forward_ios,
+                            color: Color(0xffd57653),
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: flatMenuItems.length,
+              itemBuilder: (context, index) {
+                final item = flatMenuItems[index];
+                final isSelected = _selectedIndex == item['page'];
+
+                return Consumer<LanguageProvider>(
+                  builder: (context, languageProvider, child) {
+                    final title =
+                        languageProvider.isArabic
+                            ? (item['titleAr'] ?? item['title'])
+                            : item['title'];
+                    return ListTile(
+                      leading: Icon(
+                        item['icon'],
+                        color:
+                            isSelected
+                                ? const Color(0xffd57653)
+                                : Colors.white70,
+                      ),
+                      title: Text(
+                        title,
+                        style: GoogleFonts.poppins(
+                          color: isSelected ? Colors.white : Colors.white70,
+                          fontWeight:
+                              isSelected ? FontWeight.w600 : FontWeight.w400,
+                        ),
+                      ),
+                      selected: isSelected,
+                      selectedTileColor: const Color(
+                        0xffd57653,
+                      ).withOpacity(0.2),
+                      onTap: () {
+                        setState(() {
+                          _selectedIndex = item['page'];
+                        });
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
+              border: Border(top: BorderSide(color: Colors.white24, width: 1)),
+            ),
+            child: Consumer<LanguageProvider>(
+              builder: (context, languageProvider, child) {
+                return ListTile(
+                  leading: const Icon(
+                    Icons.logout_rounded,
+                    color: Colors.white70,
+                  ),
+                  title: Text(
+                    languageProvider.isArabic ? 'تسجيل الخروج' : 'Déconnexion',
+                    style: GoogleFonts.poppins(color: Colors.white70),
+                  ),
+                  onTap: () {
+                    // TODO: Déconnexion
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // SIDE MENU WEB - AVEC GROUPES ET SOUS-MENUS DROPDOWN
+  // ============================================================
+  Widget _buildSideMenuWeb() {
     final screenWidth = MediaQuery.of(context).size.width;
     final bool isCollapsed = screenWidth < 900;
 
@@ -249,7 +453,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
       ),
       child: Column(
         children: [
-          // ---- Logo ----
+          // Logo avec flèche de redirection vers landing page
           Container(
             height: 80,
             padding: EdgeInsets.symmetric(horizontal: isCollapsed ? 8 : 20),
@@ -275,28 +479,72 @@ class _AdministrationPageState extends State<AdministrationPage> {
                   const SizedBox(width: 12),
                   Consumer<LanguageProvider>(
                     builder: (context, languageProvider, child) {
-                      return Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Nafahat',
-                            style: GoogleFonts.poppins(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                      return Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Nafahat',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                Text(
+                                  languageProvider.isArabic
+                                      ? 'الإدارة'
+                                      : 'Administration',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 10,
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          Text(
-                            languageProvider.isArabic
-                                ? 'الإدارة'
-                                : 'Administration',
-                            style: GoogleFonts.poppins(
-                              fontSize: 10,
-                              color: Colors.white70,
+                            // Flèche de redirection vers landing page
+                            Tooltip(
+                              message:
+                                  languageProvider.isArabic
+                                      ? 'الذهاب إلى الصفحة الرئيسية'
+                                      : 'Aller à la page d\'accueil',
+                              child: InkWell(
+                                onTap: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        languageProvider.isArabic
+                                            ? 'جاري التوجيه إلى الصفحة الرئيسية...'
+                                            : 'Redirection vers la page d\'accueil...',
+                                      ),
+                                      backgroundColor: const Color(0xffd57653),
+                                      duration: const Duration(seconds: 1),
+                                    ),
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(
+                                      0xffd57653,
+                                    ).withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.arrow_forward_ios,
+                                    color: Color(0xffd57653),
+                                    size: 16,
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       );
                     },
                   ),
@@ -305,41 +553,256 @@ class _AdministrationPageState extends State<AdministrationPage> {
             ),
           ),
 
-          // ---- Menu Items ----
+          // Menu Items avec groupes et sous-menus
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              itemCount: _menuItems.length,
-              itemBuilder: (context, index) {
-                final item = _menuItems[index];
-                final isSelected = _selectedIndex == item['page'];
-                final hasBadge = item['badge'] ?? false;
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: _menuGroups.length,
+              itemBuilder: (context, groupIndex) {
+                final group = _menuGroups[groupIndex];
+                final children =
+                    group['children'] as List<Map<String, dynamic>>;
 
-                return Consumer<LanguageProvider>(
-                  builder: (context, languageProvider, child) {
-                    final title =
-                        languageProvider.isArabic
-                            ? (item['titleAr'] ?? item['title'])
-                            : item['title'];
-                    return _buildMenuItem(
-                      icon: item['icon'],
-                      title: title,
-                      isSelected: isSelected,
-                      isCollapsed: isCollapsed,
-                      hasBadge: hasBadge,
+                // État d'expansion pour ce groupe
+                bool isExpanded;
+                if (group['title'] == 'Formation') {
+                  isExpanded = _isFormationExpanded;
+                } else if (group['title'] == 'Apparence') {
+                  isExpanded = _isApparenceExpanded;
+                } else {
+                  isExpanded = _isUserExpanded;
+                }
+
+                return Column(
+                  children: [
+                    // En-tête du groupe (cliquable pour expand/collapse)
+                    InkWell(
                       onTap: () {
                         setState(() {
-                          _selectedIndex = item['page'];
+                          if (group['title'] == 'Formation') {
+                            _isFormationExpanded = !_isFormationExpanded;
+                          } else if (group['title'] == 'Apparence') {
+                            _isApparenceExpanded = !_isApparenceExpanded;
+                          } else {
+                            _isUserExpanded = !_isUserExpanded;
+                          }
                         });
                       },
-                    );
-                  },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isCollapsed ? 0 : 16,
+                          vertical: 12,
+                        ),
+                        child: Consumer<LanguageProvider>(
+                          builder: (context, languageProvider, child) {
+                            final title =
+                                languageProvider.isArabic
+                                    ? (group['titleAr'] ?? group['title'])
+                                    : group['title'];
+                            return Row(
+                              mainAxisAlignment:
+                                  isCollapsed
+                                      ? MainAxisAlignment.center
+                                      : MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      group['icon'],
+                                      color: Colors.white70,
+                                      size: 24,
+                                    ),
+                                    if (!isCollapsed) ...[
+                                      const SizedBox(width: 16),
+                                      Text(
+                                        title,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white70,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                if (!isCollapsed)
+                                  Icon(
+                                    isExpanded
+                                        ? Icons.expand_less
+                                        : Icons.expand_more,
+                                    color: Colors.white54,
+                                    size: 20,
+                                  ),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+
+                    // Sous-menus (version dépliée)
+                    if (isExpanded && !isCollapsed) ...[
+                      ...children.map((child) {
+                        final isSelected = _selectedIndex == child['page'];
+                        return Consumer<LanguageProvider>(
+                          builder: (context, languageProvider, childWidget) {
+                            final displayTitle =
+                                languageProvider.isArabic
+                                    ? child['titleAr']
+                                    : child['title'];
+                            return InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _selectedIndex = child['page'];
+                                });
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                margin: const EdgeInsets.only(
+                                  left: 24,
+                                  right: 12,
+                                  top: 2,
+                                  bottom: 2,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color:
+                                      isSelected
+                                          ? const Color(
+                                            0xffd57653,
+                                          ).withOpacity(0.2)
+                                          : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border:
+                                      isSelected
+                                          ? Border.all(
+                                            color: const Color(
+                                              0xffd57653,
+                                            ).withOpacity(0.3),
+                                            width: 1,
+                                          )
+                                          : null,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      child['icon'],
+                                      color:
+                                          isSelected
+                                              ? const Color(0xffd57653)
+                                              : Colors.white70,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Text(
+                                        displayTitle,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 13,
+                                          fontWeight:
+                                              isSelected
+                                                  ? FontWeight.w600
+                                                  : FontWeight.w400,
+                                          color:
+                                              isSelected
+                                                  ? Colors.white
+                                                  : Colors.white70,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      }).toList(),
+                    ],
+
+                    // Version collapsée - afficher les sous-menus en icônes
+                    if (isCollapsed) ...[
+                      ...children.map((child) {
+                        final isSelected = _selectedIndex == child['page'];
+                        return Consumer<LanguageProvider>(
+                          builder: (context, languageProvider, childWidget) {
+                            return InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _selectedIndex = child['page'];
+                                });
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 2,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color:
+                                      isSelected
+                                          ? const Color(
+                                            0xffd57653,
+                                          ).withOpacity(0.2)
+                                          : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border:
+                                      isSelected
+                                          ? Border.all(
+                                            color: const Color(
+                                              0xffd57653,
+                                            ).withOpacity(0.3),
+                                            width: 1,
+                                          )
+                                          : null,
+                                ),
+                                child: Center(
+                                  child: Icon(
+                                    child['icon'],
+                                    color:
+                                        isSelected
+                                            ? const Color(0xffd57653)
+                                            : Colors.white70,
+                                    size: 22,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      }).toList(),
+                    ],
+
+                    // Séparateur entre groupes
+                    if (groupIndex < _menuGroups.length - 1)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        child: Divider(
+                          color: Colors.white.withOpacity(0.1),
+                          thickness: 1,
+                        ),
+                      ),
+                  ],
                 );
               },
             ),
           ),
 
-          // ---- Footer (Déconnexion) ----
+          // Footer (Déconnexion)
           Container(
             padding: EdgeInsets.all(isCollapsed ? 8 : 16),
             decoration: const BoxDecoration(
@@ -393,270 +856,6 @@ class _AdministrationPageState extends State<AdministrationPage> {
     );
   }
 
-  Widget _buildMenuItem({
-    required IconData icon,
-    required String title,
-    required bool isSelected,
-    required bool isCollapsed,
-    required VoidCallback onTap,
-    bool hasBadge = false,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        padding: EdgeInsets.symmetric(
-          horizontal: isCollapsed ? 0 : 16,
-          vertical: 12,
-        ),
-        decoration: BoxDecoration(
-          color:
-              isSelected
-                  ? const Color(0xffd57653).withOpacity(0.2)
-                  : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          border:
-              isSelected
-                  ? Border.all(
-                    color: const Color(0xffd57653).withOpacity(0.3),
-                    width: 1,
-                  )
-                  : null,
-        ),
-        child: Row(
-          mainAxisAlignment:
-              isCollapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
-          children: [
-            Stack(
-              children: [
-                Icon(
-                  icon,
-                  color: isSelected ? const Color(0xffd57653) : Colors.white70,
-                  size: 24,
-                ),
-                if (hasBadge && !isCollapsed)
-                  Positioned(
-                    right: -8,
-                    top: -8,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Text(
-                        '!',
-                        style: GoogleFonts.poppins(
-                          fontSize: 8,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            if (!isCollapsed) ...[
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  title,
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                    color: isSelected ? Colors.white : Colors.white70,
-                  ),
-                ),
-              ),
-              if (hasBadge)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    'Nouveau',
-                    style: GoogleFonts.poppins(
-                      fontSize: 8,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // DRAWER (Mobile)
-  // ============================================================
-  Widget _buildDrawer(bool isMobile) {
-    return Drawer(
-      backgroundColor: const Color(0xff0D443E),
-      child: Column(
-        children: [
-          Container(
-            height: 120,
-            padding: const EdgeInsets.all(20),
-            decoration: const BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: Colors.white24, width: 1),
-              ),
-            ),
-            child: Consumer<LanguageProvider>(
-              builder: (context, languageProvider, child) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Nafahat',
-                      style: GoogleFonts.poppins(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    Text(
-                      languageProvider.isArabic ? 'الإدارة' : 'Administration',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: Colors.white70,
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: _menuItems.length,
-              itemBuilder: (context, index) {
-                final item = _menuItems[index];
-                final isSelected = _selectedIndex == item['page'];
-                final hasBadge = item['badge'] ?? false;
-
-                return Consumer<LanguageProvider>(
-                  builder: (context, languageProvider, child) {
-                    final title =
-                        languageProvider.isArabic
-                            ? (item['titleAr'] ?? item['title'])
-                            : item['title'];
-                    return ListTile(
-                      leading: Stack(
-                        children: [
-                          Icon(
-                            item['icon'],
-                            color:
-                                isSelected
-                                    ? const Color(0xffd57653)
-                                    : Colors.white70,
-                          ),
-                          if (hasBadge)
-                            Positioned(
-                              right: -4,
-                              top: -4,
-                              child: Container(
-                                padding: const EdgeInsets.all(3),
-                                decoration: const BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Text(
-                                  '!',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 6,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      title: Text(
-                        title,
-                        style: GoogleFonts.poppins(
-                          color: isSelected ? Colors.white : Colors.white70,
-                          fontWeight:
-                              isSelected ? FontWeight.w600 : FontWeight.w400,
-                        ),
-                      ),
-                      trailing:
-                          hasBadge
-                              ? Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.red,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  'Nouveau',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 8,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              )
-                              : null,
-                      selected: isSelected,
-                      selectedTileColor: const Color(
-                        0xffd57653,
-                      ).withOpacity(0.2),
-                      onTap: () {
-                        setState(() {
-                          _selectedIndex = item['page'];
-                        });
-                        Navigator.pop(context);
-                      },
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              border: Border(top: BorderSide(color: Colors.white24, width: 1)),
-            ),
-            child: Consumer<LanguageProvider>(
-              builder: (context, languageProvider, child) {
-                return ListTile(
-                  leading: const Icon(
-                    Icons.logout_rounded,
-                    color: Colors.white70,
-                  ),
-                  title: Text(
-                    languageProvider.isArabic ? 'تسجيل الخروج' : 'Déconnexion',
-                    style: GoogleFonts.poppins(color: Colors.white70),
-                  ),
-                  onTap: () {
-                    // TODO: Déconnexion
-                  },
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // ============================================================
   // HEADER
   // ============================================================
@@ -673,12 +872,8 @@ class _AdministrationPageState extends State<AdministrationPage> {
         children: [
           Consumer<LanguageProvider>(
             builder: (context, languageProvider, child) {
-              final title =
-                  languageProvider.isArabic
-                      ? _titlesAr[_selectedIndex]
-                      : _titles[_selectedIndex];
               return Text(
-                title,
+                _getTitleForIndex(_selectedIndex, languageProvider.isArabic),
                 style: GoogleFonts.poppins(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
@@ -2989,8 +3184,6 @@ class _TypesFormationManagementPageState
     );
   }
 }
-// lib/pages/adminisration/administration_page.dart
-// Ajouter cette classe après TypesFormationManagementPage
 
 // ============================================================
 // CIBLES MANAGEMENT PAGE

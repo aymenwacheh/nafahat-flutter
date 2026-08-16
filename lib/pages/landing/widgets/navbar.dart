@@ -56,9 +56,30 @@ class Navbar extends StatelessWidget {
   }
 
   // ============================================================
-  // MENU ADMINISTRATION - ITEMS AVEC PERMISSIONS
+  // MENU ADMINISTRATION - ITEMS POUR WEB (SEULEMENT COMPLÈTE)
   // ============================================================
   List<Map<String, dynamic>> _getAdminMenuItems(
+    BuildContext context,
+    bool isArabic,
+  ) {
+    return [
+      {
+        'value': 'go_to_admin',
+        'icon': Icons.dashboard_outlined,
+        'title': isArabic ? 'لوحة الإدارة الكاملة' : 'Administration complète',
+        'subtitle':
+            isArabic
+                ? 'Accéder à toutes les fonctionnalités'
+                : 'Accéder à toutes les fonctionnalités',
+        'isHeader': true,
+      },
+    ];
+  }
+
+  // ============================================================
+  // MENU ADMINISTRATION - ITEMS COMPLETS POUR MOBILE
+  // ============================================================
+  List<Map<String, dynamic>> _getAdminMenuItemsFull(
     BuildContext context,
     bool isArabic,
   ) {
@@ -408,7 +429,7 @@ class Navbar extends StatelessWidget {
   }
 
   // ============================================================
-  // MENU ADMINISTRATION
+  // MENU ADMINISTRATION - WEB
   // ============================================================
   Widget _buildAdminMenu(BuildContext context, bool isArabic) {
     return PopupMenuButton<String>(
@@ -873,7 +894,7 @@ class Navbar extends StatelessWidget {
                             _closeDrawerAndNavigate(context, const AboutPage()),
                   ),
 
-                  // === SÉPARATEUR ===
+                  // === SÉPARATEUR 1 : Sous "À propos" ===
                   const Divider(
                     height: 30,
                     thickness: 1.5,
@@ -882,29 +903,11 @@ class Navbar extends StatelessWidget {
                     endIndent: 8,
                   ),
 
-                  // === SECTION ADMINISTRATION (si permissions) ===
+                  // === SECTION ADMINISTRATION (si permissions) - AVEC TOUS LES SOUS-MENUS ===
                   if (canViewAdmin) _buildDrawerAdminSection(context, isArabic),
-
-                  // === SÉPARATEUR ===
-                  const Divider(
-                    height: 30,
-                    thickness: 1.5,
-                    color: Color(0xff0D443E),
-                    indent: 8,
-                    endIndent: 8,
-                  ),
 
                   // === SECTION COMPTE ===
                   _buildDrawerAccountSection(context, isArabic, userProvider),
-
-                  // === SÉPARATEUR ===
-                  const Divider(
-                    height: 30,
-                    thickness: 1.5,
-                    color: Color(0xff0D443E),
-                    indent: 8,
-                    endIndent: 8,
-                  ),
 
                   // === OPTIONS SUPPLÉMENTAIRES ===
                   if (isLoggedIn && isAdherentOrFormateur)
@@ -945,7 +948,7 @@ class Navbar extends StatelessWidget {
                     },
                   ),
 
-                  // === SÉPARATEUR ===
+                  // === SÉPARATEUR 2 : Au-dessus de "Changer en français" ===
                   const Divider(
                     height: 30,
                     thickness: 1.5,
@@ -976,7 +979,7 @@ class Navbar extends StatelessWidget {
                       },
                     ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 10),
 
                   // === BOUTON DE LANGUE ===
                   ListTile(
@@ -1107,7 +1110,7 @@ class Navbar extends StatelessWidget {
   }
 
   // ============================================================
-  // SECTION ADMIN DANS LE DRAWER (MOBILE) - AMÉLIORÉE
+  // SECTION ADMIN DANS LE DRAWER (MOBILE) - AVEC TOUS LES SOUS-MENUS
   // ============================================================
   Widget _buildDrawerAdminSection(BuildContext context, bool isArabic) {
     final canCreateUser = _canCreateUser(context);
@@ -1139,12 +1142,11 @@ class Navbar extends StatelessWidget {
         childrenPadding: const EdgeInsets.only(left: 16, bottom: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         children: [
-          // Sous-menu Administration
-          ..._getAdminMenuItems(context, isArabic)
+          // Utiliser _getAdminMenuItemsFull pour avoir tous les sous-menus
+          ..._getAdminMenuItemsFull(context, isArabic)
               .where(
                 (item) =>
                     !item.containsKey('isDivider') &&
-                    !item.containsKey('isHeader') &&
                     (item['isAdminOnly'] != true || canCreateUser),
               )
               .map((item) {

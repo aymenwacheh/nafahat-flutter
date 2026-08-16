@@ -235,13 +235,14 @@ class _VideoFavSectionState extends State<VideoFavSection> {
                   ),
         ),
 
-        // Indicateurs de pagination
+        // ✅ PAGINATION (Uniquement les 2 flèches, plus de points)
         if (_totalPages > 1)
           Padding(
             padding: const EdgeInsets.only(top: 16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                // Flèche Précédente
                 GestureDetector(
                   onTap: _prevPage,
                   child: Container(
@@ -260,24 +261,11 @@ class _VideoFavSectionState extends State<VideoFavSection> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
-                Row(
-                  children: List.generate(_totalPages, (index) {
-                    return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color:
-                            _currentPage == index
-                                ? const Color(0xffd57653)
-                                : Colors.grey[300],
-                      ),
-                    );
-                  }),
-                ),
-                const SizedBox(width: 16),
+
+                // Espace entre les deux flèches
+                const SizedBox(width: 40),
+
+                // Flèche Suivante
                 GestureDetector(
                   onTap: _nextPage,
                   child: Container(
