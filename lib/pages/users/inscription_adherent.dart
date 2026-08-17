@@ -14,6 +14,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../config/api_config.dart';
 import '../../services/verification_service.dart';
+import 'profile_dashboard_page.dart';
 import 'verif_code.dart';
 
 // ----- PAGE PRINCIPALE -----
@@ -792,9 +793,22 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
             Navigator.pop(context, result);
           }
         } else {
-          // ✅ Cas normal : après inscription, rediriger vers login
-          if (mounted) {
-            Navigator.pushReplacementNamed(context, '/login');
+          // ✅ Cas normal : après inscription réussie, rediriger vers ProfileDashboardPage
+          if (mounted && result == true) {
+            print(
+              '✅ [INSCRIPTION] Inscription réussie, redirection vers ProfileDashboardPage',
+            );
+
+            // 👇 NOUVEAU : Rediriger vers ProfileDashboardPage
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ProfileDashboardPage(),
+              ),
+            );
+          } else {
+            print('⚠️ [INSCRIPTION] Inscription non confirmée ou annulée');
+            // Si l'inscription n'est pas confirmée, rester sur la page
           }
         }
       }

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:nafahat/pages/landing/widgets/chatbot/chatbot_widget.dart';
+import 'package:nafahat/pages/users/inscription_adherent.dart';
 import 'package:provider/provider.dart';
 import '/pages/landing/splash_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -18,6 +19,8 @@ import 'pages/landing/widgets/chatbot/chatbot_widget.dart';
 import 'package:nafahat/config/api_config.dart';
 import 'pages/landing/landing_page.dart';
 import 'package:nafahat/models/card_config_model.dart';
+// 👇 Ajout de l'import pour la page d'inscription
+import 'package:nafahat/pages/users/inscription_adherent.dart';
 
 void main() {
   runApp(const MyApp());
@@ -117,6 +120,30 @@ class MyApp extends StatelessWidget {
                     hideOnRoute: false,
                     child: AuthPage(),
                   ),
+              // 👇 AJOUT DE LA ROUTE /login
+              '/login':
+                  (context) => const ChatbotGlobalWrapper(
+                    hideOnRoute: false,
+                    child: AuthPage(),
+                  ),
+              // 👇 AJOUT DE LA ROUTE /inscription
+              '/inscription':
+                  (context) => const ChatbotGlobalWrapper(
+                    hideOnRoute: false,
+                    child: InscriptionAdherentPage(),
+                  ),
+            },
+            // 👇 AJOUT DU GESTIONNAIRE POUR LES ROUTES INCONNUES
+            onUnknownRoute: (settings) {
+              print('⚠️ [ROUTE] Route inconnue: ${settings.name}');
+              // Rediriger vers la page d'authentification par défaut
+              return MaterialPageRoute(
+                builder:
+                    (context) => const ChatbotGlobalWrapper(
+                      hideOnRoute: false,
+                      child: AuthPage(),
+                    ),
+              );
             },
           );
         },
