@@ -92,6 +92,134 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
     {'flag': '🇩🇪', 'code': '+49'},
   ];
 
+  // ✅ LISTE DES PAYS AVEC DRAPEAUX (BILINGUE)
+  final List<Map<String, String>> _countries = [
+    {'nameFr': 'Tunisie', 'nameAr': 'تونس', 'flag': '🇹🇳', 'code': 'TN'},
+    {'nameFr': 'Algérie', 'nameAr': 'الجزائر', 'flag': '🇩🇿', 'code': 'DZ'},
+    {'nameFr': 'Maroc', 'nameAr': 'المغرب', 'flag': '🇲🇦', 'code': 'MA'},
+    {'nameFr': 'Libye', 'nameAr': 'ليبيا', 'flag': '🇱🇾', 'code': 'LY'},
+    {'nameFr': 'Égypte', 'nameAr': 'مصر', 'flag': '🇪🇬', 'code': 'EG'},
+    {
+      'nameFr': 'Arabie Saoudite',
+      'nameAr': 'المملكة العربية السعودية',
+      'flag': '🇸🇦',
+      'code': 'SA',
+    },
+    {
+      'nameFr': 'Émirats Arabes Unis',
+      'nameAr': 'الإمارات العربية المتحدة',
+      'flag': '🇦🇪',
+      'code': 'AE',
+    },
+    {'nameFr': 'Qatar', 'nameAr': 'قطر', 'flag': '🇶🇦', 'code': 'QA'},
+    {'nameFr': 'Koweït', 'nameAr': 'الكويت', 'flag': '🇰🇼', 'code': 'KW'},
+    {'nameFr': 'Jordanie', 'nameAr': 'الأردن', 'flag': '🇯🇴', 'code': 'JO'},
+    {'nameFr': 'Liban', 'nameAr': 'لبنان', 'flag': '🇱🇧', 'code': 'LB'},
+    {'nameFr': 'Palestine', 'nameAr': 'فلسطين', 'flag': '🇵🇸', 'code': 'PS'},
+    {'nameFr': 'Syrie', 'nameAr': 'سوريا', 'flag': '🇸🇾', 'code': 'SY'},
+    {'nameFr': 'Irak', 'nameAr': 'العراق', 'flag': '🇮🇶', 'code': 'IQ'},
+    {'nameFr': 'Yémen', 'nameAr': 'اليمن', 'flag': '🇾🇪', 'code': 'YE'},
+    {'nameFr': 'Soudan', 'nameAr': 'السودان', 'flag': '🇸🇩', 'code': 'SD'},
+    {
+      'nameFr': 'Mauritanie',
+      'nameAr': 'موريتانيا',
+      'flag': '🇲🇷',
+      'code': 'MR',
+    },
+    {'nameFr': 'Somalie', 'nameAr': 'الصومال', 'flag': '🇸🇴', 'code': 'SO'},
+    {'nameFr': 'Djibouti', 'nameAr': 'جيبوتي', 'flag': '🇩🇯', 'code': 'DJ'},
+    {'nameFr': 'Comores', 'nameAr': 'جزر القمر', 'flag': '🇰🇲', 'code': 'KM'},
+    {'nameFr': 'Turquie', 'nameAr': 'تركيا', 'flag': '🇹🇷', 'code': 'TR'},
+    {'nameFr': 'France', 'nameAr': 'فرنسا', 'flag': '🇫🇷', 'code': 'FR'},
+    {'nameFr': 'Belgique', 'nameAr': 'بلجيكا', 'flag': '🇧🇪', 'code': 'BE'},
+    {'nameFr': 'Suisse', 'nameAr': 'سويسرا', 'flag': '🇨🇭', 'code': 'CH'},
+    {'nameFr': 'Canada', 'nameAr': 'كندا', 'flag': '🇨🇦', 'code': 'CA'},
+    {
+      'nameFr': 'États-Unis',
+      'nameAr': 'الولايات المتحدة',
+      'flag': '🇺🇸',
+      'code': 'US',
+    },
+    {'nameFr': 'Allemagne', 'nameAr': 'ألمانيا', 'flag': '🇩🇪', 'code': 'DE'},
+    {'nameFr': 'Italie', 'nameAr': 'إيطاليا', 'flag': '🇮🇹', 'code': 'IT'},
+    {'nameFr': 'Espagne', 'nameAr': 'إسبانيا', 'flag': '🇪🇸', 'code': 'ES'},
+    {
+      'nameFr': 'Royaume-Uni',
+      'nameAr': 'المملكة المتحدة',
+      'flag': '🇬🇧',
+      'code': 'GB',
+    },
+    {'nameFr': 'Suède', 'nameAr': 'السويد', 'flag': '🇸🇪', 'code': 'SE'},
+    {'nameFr': 'Norvège', 'nameAr': 'النرويج', 'flag': '🇳🇴', 'code': 'NO'},
+    {'nameFr': 'Danemark', 'nameAr': 'الدنمارك', 'flag': '🇩🇰', 'code': 'DK'},
+    {'nameFr': 'Pays-Bas', 'nameAr': 'هولندا', 'flag': '🇳🇱', 'code': 'NL'},
+    {'nameFr': 'Russie', 'nameAr': 'روسيا', 'flag': '🇷🇺', 'code': 'RU'},
+    {'nameFr': 'Chine', 'nameAr': 'الصين', 'flag': '🇨🇳', 'code': 'CN'},
+    {'nameFr': 'Japon', 'nameAr': 'اليابان', 'flag': '🇯🇵', 'code': 'JP'},
+    {'nameFr': 'Inde', 'nameAr': 'الهند', 'flag': '🇮🇳', 'code': 'IN'},
+    {'nameFr': 'Brésil', 'nameAr': 'البرازيل', 'flag': '🇧🇷', 'code': 'BR'},
+    {'nameFr': 'Mexique', 'nameAr': 'المكسيك', 'flag': '🇲🇽', 'code': 'MX'},
+    {
+      'nameFr': 'Argentine',
+      'nameAr': 'الأرجنتين',
+      'flag': '🇦🇷',
+      'code': 'AR',
+    },
+    {'nameFr': 'Australie', 'nameAr': 'أستراليا', 'flag': '🇦🇺', 'code': 'AU'},
+    {
+      'nameFr': 'Nouvelle-Zélande',
+      'nameAr': 'نيوزيلندا',
+      'flag': '🇳🇿',
+      'code': 'NZ',
+    },
+    {
+      'nameFr': 'Afrique du Sud',
+      'nameAr': 'جنوب أفريقيا',
+      'flag': '🇿🇦',
+      'code': 'ZA',
+    },
+    {'nameFr': 'Nigeria', 'nameAr': 'نيجيريا', 'flag': '🇳🇬', 'code': 'NG'},
+    {'nameFr': 'Sénégal', 'nameAr': 'السنغال', 'flag': '🇸🇳', 'code': 'SN'},
+    {
+      'nameFr': 'Côte d\'Ivoire',
+      'nameAr': 'ساحل العاج',
+      'flag': '🇨🇮',
+      'code': 'CI',
+    },
+    {'nameFr': 'Mali', 'nameAr': 'مالي', 'flag': '🇲🇱', 'code': 'ML'},
+    {'nameFr': 'Guinée', 'nameAr': 'غينيا', 'flag': '🇬🇳', 'code': 'GN'},
+    {'nameFr': 'Ghana', 'nameAr': 'غانا', 'flag': '🇬🇭', 'code': 'GH'},
+    {'nameFr': 'Cameroun', 'nameAr': 'الكاميرون', 'flag': '🇨🇲', 'code': 'CM'},
+  ];
+
+  // ✅ LISTE DES 24 GOUVERNORATS DE TUNISIE (BILINGUE)
+  final List<Map<String, String>> _tunisiaGovernorates = [
+    {'nameFr': 'Tunis', 'nameAr': 'تونس'},
+    {'nameFr': 'Ariana', 'nameAr': 'أريانة'},
+    {'nameFr': 'Ben Arous', 'nameAr': 'بن عروس'},
+    {'nameFr': 'Manouba', 'nameAr': 'منوبة'},
+    {'nameFr': 'Nabeul', 'nameAr': 'نابل'},
+    {'nameFr': 'Zaghouan', 'nameAr': 'زغوان'},
+    {'nameFr': 'Bizerte', 'nameAr': 'بنزرت'},
+    {'nameFr': 'Béja', 'nameAr': 'باجة'},
+    {'nameFr': 'Jendouba', 'nameAr': 'جندوبة'},
+    {'nameFr': 'Kef', 'nameAr': 'الكاف'},
+    {'nameFr': 'Siliana', 'nameAr': 'سليانة'},
+    {'nameFr': 'Kairouan', 'nameAr': 'القيروان'},
+    {'nameFr': 'Kasserine', 'nameAr': 'القصرين'},
+    {'nameFr': 'Sidi Bouzid', 'nameAr': 'سيدي بوزيد'},
+    {'nameFr': 'Sousse', 'nameAr': 'سوسة'},
+    {'nameFr': 'Monastir', 'nameAr': 'المنستير'},
+    {'nameFr': 'Mahdia', 'nameAr': 'المهدية'},
+    {'nameFr': 'Sfax', 'nameAr': 'صفاقس'},
+    {'nameFr': 'Gafsa', 'nameAr': 'قفصة'},
+    {'nameFr': 'Tozeur', 'nameAr': 'توزر'},
+    {'nameFr': 'Kebili', 'nameAr': 'قبلي'},
+    {'nameFr': 'Médnine', 'nameAr': 'مدنين'},
+    {'nameFr': 'Tataouine', 'nameAr': 'تطاوين'},
+    {'nameFr': 'Gabès', 'nameAr': 'قابس'},
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -688,6 +816,26 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
       return;
     }
 
+    // ✅ VÉRIFICATION DE L'ACCORD DE PUBLICATION (REQUIRED)
+    if (!_accordPublication) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isArabic
+                ? '⚠️ Veuillez accepter la publication du contenu'
+                : '⚠️ Veuillez accepter la publication du contenu',
+            style: GoogleFonts.cairo(),
+          ),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+      return;
+    }
+
     // ✅ 2. VÉRIFICATION FINALE DES DOUBLONS
     _debounceTimer?.cancel();
 
@@ -920,7 +1068,7 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
     final double topMargin = isMobile ? 100 : 90;
 
     return ChatbotWrapper(
-      apiBaseUrl: 'http://localhost:3000',
+      apiBaseUrl: ApiConfig.baseUrl,
       langue: isArabic ? 'ar' : 'fr',
       primaryColor: const Color(0xff0D443E),
       child: Scaffold(
@@ -972,20 +1120,14 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
                                   fontSize: fontSize,
                                   focusNode: _nomFocusNode,
                                 ),
-                                _buildTextField(
-                                  label: isArabic ? 'بلد الإقامة *' : 'Pays *',
-                                  initialValue: _pays,
-                                  onChanged:
-                                      (v) => _updateAdherentField('pays', v),
-                                  required: true,
+                                // ✅ PAYS EN MODE DROPDOWN AVEC DRAPEAUX (BILINGUE) - CORRIGÉ
+                                _buildCountryDropdown(
+                                  isArabic: isArabic,
                                   fontSize: fontSize,
                                 ),
-                                _buildTextField(
-                                  label: isArabic ? 'المدينة *' : 'Ville *',
-                                  initialValue: _ville,
-                                  onChanged:
-                                      (v) => _updateAdherentField('ville', v),
-                                  required: true,
+                                // ✅ VILLE / GOUVERNORAT EN MODE DROPDOWN (BILINGUE) - CORRIGÉ
+                                _buildGovernorateDropdown(
+                                  isArabic: isArabic,
                                   fontSize: fontSize,
                                 ),
                                 _buildDatePicker(
@@ -1376,6 +1518,213 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
     );
   }
 
+  // ✅ DROPDOWN PAYS AVEC DRAPEAUX (BILINGUE) - CORRIGÉ
+  Widget _buildCountryDropdown({
+    required bool isArabic,
+    required double fontSize,
+  }) {
+    // Récupérer la valeur actuelle du pays
+    String? currentValue = _pays.isNotEmpty ? _pays : null;
+
+    // Vérifier si la valeur existe dans la liste
+    bool hasValidValue = false;
+    if (currentValue != null) {
+      hasValidValue = _countries.any(
+        (country) =>
+            country['nameFr'] == currentValue ||
+            country['nameAr'] == currentValue,
+      );
+    }
+
+    // Si la valeur n'est pas valide, on la met à null
+    if (!hasValidValue) {
+      currentValue = null;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: DropdownButtonFormField<String>(
+        value: currentValue,
+        isExpanded: true,
+        decoration: InputDecoration(
+          labelText: isArabic ? 'الدولة *' : 'Pays *',
+          labelStyle: GoogleFonts.cairo(fontSize: fontSize),
+          border: const OutlineInputBorder(),
+          prefixIcon: Icon(
+            Icons.public_rounded,
+            color: const Color(0xff0D443E).withOpacity(0.6),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 8,
+          ),
+        ),
+        style: GoogleFonts.cairo(fontSize: fontSize, color: Colors.black87),
+        items:
+            _countries.map((country) {
+              return DropdownMenuItem<String>(
+                value: isArabic ? country['nameAr'] : country['nameFr'],
+                child: Row(
+                  children: [
+                    Text(
+                      country['flag']!,
+                      style: const TextStyle(fontSize: 20),
+                    ),
+                    const SizedBox(width: 10),
+                    Flexible(
+                      child: Text(
+                        isArabic ? country['nameAr']! : country['nameFr']!,
+                        style: GoogleFonts.cairo(fontSize: fontSize),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+        onChanged: (value) {
+          if (value != null) {
+            setState(() {
+              _pays = value;
+              // Si le pays n'est pas la Tunisie, réinitialiser la ville
+              if (value != 'Tunisie' && value != 'تونس') {
+                _ville = '';
+              }
+            });
+          }
+        },
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return isArabic
+                ? 'الرجاء اختيار الدولة'
+                : 'Veuillez sélectionner un pays';
+          }
+          return null;
+        },
+      ),
+    );
+  }
+
+  // ✅ DROPDOWN GOUVERNORATS DE TUNISIE (BILINGUE) - CORRIGÉ
+  Widget _buildGovernorateDropdown({
+    required bool isArabic,
+    required double fontSize,
+  }) {
+    // Si le pays n'est pas la Tunisie ou si aucun pays n'est sélectionné
+    if (_pays != 'Tunisie' && _pays != 'تونس') {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6.0),
+        child: TextFormField(
+          initialValue: _ville,
+          decoration: InputDecoration(
+            labelText: isArabic ? 'المدينة / الولاية *' : 'Ville *',
+            labelStyle: GoogleFonts.cairo(fontSize: fontSize),
+            border: const OutlineInputBorder(),
+            prefixIcon: Icon(
+              Icons.location_city_outlined,
+              color: const Color(0xff0D443E).withOpacity(0.6),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 8,
+            ),
+          ),
+          style: GoogleFonts.cairo(fontSize: fontSize),
+          onChanged: (v) {
+            setState(() {
+              _ville = v;
+            });
+          },
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return isArabic
+                  ? 'الرجاء إدخال المدينة'
+                  : 'Veuillez entrer votre ville';
+            }
+            return null;
+          },
+        ),
+      );
+    }
+
+    // Récupérer la valeur actuelle du gouvernorat
+    String? currentValue = _ville.isNotEmpty ? _ville : null;
+
+    // Vérifier si la valeur existe dans la liste
+    bool hasValidValue = false;
+    if (currentValue != null) {
+      hasValidValue = _tunisiaGovernorates.any(
+        (gov) => gov['nameFr'] == currentValue || gov['nameAr'] == currentValue,
+      );
+    }
+
+    // Si la valeur n'est pas valide, on la met à null
+    if (!hasValidValue) {
+      currentValue = null;
+    }
+
+    // Si le pays est la Tunisie, afficher la liste des 24 gouvernorats
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: DropdownButtonFormField<String>(
+        value: currentValue,
+        isExpanded: true,
+        decoration: InputDecoration(
+          labelText: isArabic ? 'الولاية *' : 'Gouvernorat *',
+          labelStyle: GoogleFonts.cairo(fontSize: fontSize),
+          border: const OutlineInputBorder(),
+          prefixIcon: Icon(
+            Icons.location_city_outlined,
+            color: const Color(0xff0D443E).withOpacity(0.6),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 8,
+          ),
+        ),
+        style: GoogleFonts.cairo(fontSize: fontSize, color: Colors.black87),
+        items:
+            _tunisiaGovernorates.map((gov) {
+              return DropdownMenuItem<String>(
+                value: isArabic ? gov['nameAr'] : gov['nameFr'],
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.location_on_rounded,
+                      size: 18,
+                      color: Color(0xff0D443E),
+                    ),
+                    const SizedBox(width: 10),
+                    Flexible(
+                      child: Text(
+                        isArabic ? gov['nameAr']! : gov['nameFr']!,
+                        style: GoogleFonts.cairo(fontSize: fontSize),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+        onChanged: (value) {
+          if (value != null) {
+            setState(() {
+              _ville = value;
+            });
+          }
+        },
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return isArabic
+                ? 'الرجاء اختيار الولاية'
+                : 'Veuillez sélectionner un gouvernorat';
+          }
+          return null;
+        },
+      ),
+    );
+  }
+
   Widget _buildTextField({
     required String label,
     String? initialValue,
@@ -1398,6 +1747,10 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
           border: const OutlineInputBorder(),
           labelStyle: GoogleFonts.cairo(fontSize: fontSize),
           hintStyle: GoogleFonts.cairo(fontSize: fontSize),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 8,
+          ),
         ),
         style: GoogleFonts.cairo(fontSize: fontSize),
         maxLines: maxLines,
@@ -1430,6 +1783,10 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
             labelText: label,
             border: const OutlineInputBorder(),
             labelStyle: GoogleFonts.cairo(fontSize: fontSize),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 8,
+            ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1892,6 +2249,7 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
     );
   }
 
+  // ✅ DROPDOWN CORRIGÉ POUR LES ENFANTS
   Widget _buildDropdown({
     required String label,
     required String value,
@@ -1899,14 +2257,23 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
     required Function(String?) onChanged,
     double fontSize = 14,
   }) {
+    // Vérifier si la valeur existe dans les items
+    bool hasValidValue = items.any((item) => item.value == value);
+    String? validValue = hasValidValue ? value : null;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
       child: DropdownButtonFormField<String>(
-        initialValue: value,
+        value: validValue,
+        isExpanded: true,
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
           labelStyle: GoogleFonts.cairo(fontSize: fontSize),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 8,
+          ),
         ),
         style: GoogleFonts.cairo(fontSize: fontSize, color: Colors.black87),
         items: items,
@@ -1915,17 +2282,38 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
     );
   }
 
+  // ✅ CHECKBOX CORRIGÉE AVEC REQUIRED
   Widget _buildCheckbox({
     required String label,
     required bool value,
     required Function(bool?) onChanged,
     double fontSize = 14,
   }) {
-    return CheckboxListTile(
-      title: Text(label, style: GoogleFonts.cairo(fontSize: fontSize)),
-      value: value,
-      onChanged: onChanged,
-      controlAffinity: ListTileControlAffinity.leading,
+    final isArabic =
+        Provider.of<LanguageProvider>(context, listen: false).isArabic;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Checkbox(
+          value: value,
+          onChanged: onChanged,
+          activeColor: const Color(0xff0D443E),
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text(
+              label,
+              style: GoogleFonts.cairo(
+                fontSize: fontSize,
+                color: value ? Colors.black87 : Colors.red.shade700,
+                fontWeight: value ? FontWeight.normal : FontWeight.w500,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
