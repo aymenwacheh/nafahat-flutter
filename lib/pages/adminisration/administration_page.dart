@@ -7,6 +7,7 @@ import 'package:nafahat/pages/adminisration/edit_categorie.dart';
 import 'package:nafahat/pages/adminisration/add_formateur.dart';
 import 'package:nafahat/pages/adminisration/add_video_fav_page.dart';
 import 'package:nafahat/pages/adminisration/edit_formation.dart';
+import 'package:nafahat/pages/landing/widgets/BackToLandingButton.dart';
 import 'package:nafahat/pages/users/edit_profile_page.dart';
 import 'package:nafahat/pages/adminisration/add_duree.dart';
 import 'package:nafahat/pages/adminisration/apparence_card.dart';
@@ -28,9 +29,9 @@ import 'package:nafahat/models/cible_model.dart';
 import 'package:http/http.dart' as http;
 import 'package:nafahat/pages/adminisration/add_typeFormation.dart';
 import 'add_about.dart';
-// Ajouter ces imports en haut du fichier
 import 'package:nafahat/pages/adminisration/creerUserPage.dart';
 import 'package:nafahat/pages/users/inscription_adherent.dart';
+import '../../services/navigation_service.dart'; // 👈 AJOUTER
 
 class AdministrationPage extends StatefulWidget {
   const AdministrationPage({super.key});
@@ -181,13 +182,13 @@ class _AdministrationPageState extends State<AdministrationPage> {
           'title': 'Créer un utilisateur',
           'titleAr': 'إنشاء مستخدم',
           'page': 11,
-        }, // AJOUTER
+        },
         {
           'icon': Icons.person_add,
           'title': 'Inscription adhérent',
           'titleAr': 'تسجيل منخرط',
           'page': 12,
-        }, // AJOUTER
+        },
       ],
     },
   ];
@@ -267,7 +268,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
   }
 
   // ============================================================
-  // DRAWER MOBILE - Version inchangée (liste plate)
+  // DRAWER MOBILE - Version avec BackToLandingButton
   // ============================================================
   Widget _buildDrawerMobile() {
     // Version mobile : liste plate de tous les items (inchangée)
@@ -317,42 +318,8 @@ class _AdministrationPageState extends State<AdministrationPage> {
                         ),
                       ],
                     ),
-                    // Flèche landing page dans le drawer
-                    Tooltip(
-                      message:
-                          languageProvider.isArabic
-                              ? 'الذهاب إلى الصفحة الرئيسية'
-                              : 'Aller à la page d\'accueil',
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                languageProvider.isArabic
-                                    ? 'جاري التوجيه إلى الصفحة الرئيسية...'
-                                    : 'Redirection vers la page d\'accueil...',
-                              ),
-                              backgroundColor: const Color(0xffd57653),
-                              duration: const Duration(seconds: 1),
-                            ),
-                          );
-                        },
-                        borderRadius: BorderRadius.circular(8),
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xffd57653).withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(
-                            Icons.arrow_forward_ios,
-                            color: Color(0xffd57653),
-                            size: 18,
-                          ),
-                        ),
-                      ),
-                    ),
+                    // ✅ Flèche landing page avec BackToLandingButton
+                    const BackToLandingButton(),
                   ],
                 );
               },
@@ -433,7 +400,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
   }
 
   // ============================================================
-  // SIDE MENU WEB - AVEC GROUPES ET SOUS-MENUS DROPDOWN
+  // SIDE MENU WEB - AVEC BackToLandingButton
   // ============================================================
   Widget _buildSideMenuWeb() {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -506,43 +473,8 @@ class _AdministrationPageState extends State<AdministrationPage> {
                                 ),
                               ],
                             ),
-                            // Flèche de redirection vers landing page
-                            Tooltip(
-                              message:
-                                  languageProvider.isArabic
-                                      ? 'الذهاب إلى الصفحة الرئيسية'
-                                      : 'Aller à la page d\'accueil',
-                              child: InkWell(
-                                onTap: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        languageProvider.isArabic
-                                            ? 'جاري التوجيه إلى الصفحة الرئيسية...'
-                                            : 'Redirection vers la page d\'accueil...',
-                                      ),
-                                      backgroundColor: const Color(0xffd57653),
-                                      duration: const Duration(seconds: 1),
-                                    ),
-                                  );
-                                },
-                                borderRadius: BorderRadius.circular(8),
-                                child: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: const Color(
-                                      0xffd57653,
-                                    ).withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Icon(
-                                    Icons.arrow_forward_ios,
-                                    color: Color(0xffd57653),
-                                    size: 16,
-                                  ),
-                                ),
-                              ),
-                            ),
+                            // ✅ Flèche de redirection vers landing page avec BackToLandingButton
+                            const BackToLandingButton(),
                           ],
                         ),
                       );

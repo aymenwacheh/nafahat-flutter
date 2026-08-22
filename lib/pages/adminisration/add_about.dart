@@ -1,6 +1,7 @@
 // lib/pages/adminisration/add_about.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:nafahat/pages/landing/widgets/back_to_admin_button.dart';
 import 'package:provider/provider.dart';
 import 'package:nafahat/providers/language_provider.dart';
 import 'package:nafahat/providers/about_provider.dart';
@@ -80,7 +81,6 @@ class _AddAboutPageState extends State<AddAboutPage> {
 
   @override
   void dispose() {
-    // Libérer les contrôleurs
     _titleFrController.dispose();
     _titleArController.dispose();
     _sloganFrController.dispose();
@@ -341,7 +341,12 @@ class _AddAboutPageState extends State<AddAboutPage> {
         backgroundColor: const Color(0xff0D443E),
         foregroundColor: Colors.white,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.pop(context),
+        ),
         actions: [
+          const BackToAdminButton(),
           if (_isSaving)
             const Padding(
               padding: EdgeInsets.all(16.0),
@@ -375,7 +380,6 @@ class _AddAboutPageState extends State<AddAboutPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // ID affiché si existant
                           if (_aboutId != null)
                             Container(
                               padding: const EdgeInsets.all(12),
@@ -410,7 +414,6 @@ class _AddAboutPageState extends State<AddAboutPage> {
                                 ],
                               ),
                             ),
-
                           _buildSection(
                             title:
                                 isArabic
@@ -439,7 +442,6 @@ class _AddAboutPageState extends State<AddAboutPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-
                           _buildSection(
                             title: isArabic ? '✨ الشعار' : '✨ Slogan',
                             child: Column(
@@ -465,7 +467,6 @@ class _AddAboutPageState extends State<AddAboutPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-
                           _buildSection(
                             title: isArabic ? '📖 Sous-titre' : '📖 Sous-titre',
                             child: Column(
@@ -491,7 +492,6 @@ class _AddAboutPageState extends State<AddAboutPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-
                           _buildSection(
                             title:
                                 isArabic ? '📝 Description' : '📝 Description',
@@ -520,7 +520,6 @@ class _AddAboutPageState extends State<AddAboutPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-
                           _buildSection(
                             title:
                                 isArabic
@@ -547,7 +546,6 @@ class _AddAboutPageState extends State<AddAboutPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-
                           _buildSection(
                             title: isArabic ? '👁️ Vision' : '👁️ Vision',
                             child: Column(
@@ -577,7 +575,6 @@ class _AddAboutPageState extends State<AddAboutPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-
                           _buildSection(
                             title: isArabic ? '🎯 Mission' : '🎯 Mission',
                             child: Column(
@@ -607,7 +604,6 @@ class _AddAboutPageState extends State<AddAboutPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-
                           _buildSection(
                             title:
                                 isArabic
@@ -679,7 +675,6 @@ class _AddAboutPageState extends State<AddAboutPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-
                           _buildSection(
                             title:
                                 isArabic
@@ -734,7 +729,6 @@ class _AddAboutPageState extends State<AddAboutPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-
                           _buildSection(
                             title: isArabic ? '📬 Contact' : '📬 Contact',
                             child: Column(
@@ -772,7 +766,6 @@ class _AddAboutPageState extends State<AddAboutPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-
                           _buildSection(
                             title:
                                 isArabic
@@ -821,7 +814,6 @@ class _AddAboutPageState extends State<AddAboutPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-
                           _buildSection(
                             title: isArabic ? '👥 Équipe' : '👥 Équipe',
                             child: Column(
@@ -954,8 +946,6 @@ class _AddAboutPageState extends State<AddAboutPage> {
                             ),
                           ),
                           const SizedBox(height: 30),
-
-                          // Bouton de sauvegarde
                           SizedBox(
                             width: double.infinity,
                             height: 56,

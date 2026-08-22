@@ -1,3 +1,4 @@
+// lib/pages/formations/formation_detail_page.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/models/training_model.dart';
@@ -8,7 +9,7 @@ import 'package:nafahat/services/payment_service.dart';
 import 'package:nafahat/services/cmpl_user_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../landing/widgets/chatbot/chatbot_wrapper.dart';
-import '../users/inscription_adherent.dart';
+import '../users/auth_page.dart';
 import '../users/cmpl_info_form.dart';
 import '../paiement/modalite_paiment.dart';
 
@@ -38,9 +39,6 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
   Map<String, dynamic>? _userData;
   bool _isCheckingAuth = true;
 
-  final TextEditingController _whatsappController = TextEditingController();
-  bool _isWhatsappDialogOpen = false;
-
   bool _isProcessingPayment = false;
   String? _currentPaymentId;
 
@@ -63,7 +61,6 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
   @override
   void dispose() {
     print('🔴 [DISPOSE] FormationDetailPage');
-    _whatsappController.dispose();
     super.dispose();
   }
 
@@ -131,6 +128,17 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
     }
   }
 
+  Future<void> _refreshAuthStatus() async {
+    print('🔵 [AUTH] Rafraîchissement du statut...');
+    _isAuthenticated = await AuthService.isAuthenticated();
+    print('🟡 [AUTH] Authentifié: $_isAuthenticated');
+    if (_isAuthenticated) {
+      _userData = await AuthService.getUserData();
+      print('🟡 [AUTH] ID: ${_userData?['id']}');
+      print('🟡 [AUTH] Nom: ${_userData?['nomPrenom']}');
+    }
+  }
+
   Future<void> _loadFormation() async {
     print('🔵 [FORMATION] Chargement...');
     setState(() {
@@ -175,21 +183,6 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
       prefs.setString('language', _isArabic ? 'ar' : 'fr');
     });
     print('🟡 [LANGUE] Bascule: ${_isArabic ? "AR" : "FR"}');
-  }
-
-  // ============================================================
-  // RAFRAÎCHIR L'AUTHENTIFICATION
-  // ============================================================
-
-  Future<void> _refreshAuthStatus() async {
-    print('🔵 [AUTH] Rafraîchissement du statut...');
-    _isAuthenticated = await AuthService.isAuthenticated();
-    print('🟡 [AUTH] Authentifié: $_isAuthenticated');
-    if (_isAuthenticated) {
-      _userData = await AuthService.getUserData();
-      print('🟡 [AUTH] ID: ${_userData?['id']}');
-      print('🟡 [AUTH] Nom: ${_userData?['nomPrenom']}');
-    }
   }
 
   // ============================================================
@@ -261,9 +254,7 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
                   onComplete ??
                   () async {
                     print('🟢 [CMPL] Formulaire complété');
-                    // ✅ Rafraîchir le statut d'authentification
                     await _refreshAuthStatus();
-                    // ✅ Relancer l'inscription (maintenant l'utilisateur est connecté)
                     _handleInscription();
                   },
             ),
@@ -272,7 +263,7 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
   }
 
   // ============================================================
-  // GESTION DE L'INSCRIPTION / PAIEMENT
+  // GESTION DE L'INSCRIPTION / PAIEMENT - NOUVELLE LOGIQUE
   // ============================================================
 
   Future<void> _handleInscription() async {
@@ -293,12 +284,14 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
 
     try {
       // ==========================================================
-      // CAS 1: UTILISATEUR CONNECTÉ
+      // SCÉNARIO 1: UTILISATEUR DÉJÀ CONNECTÉ
       // ==========================================================
       if (_isAuthenticated) {
-        print('🟢 [INSCRIPTION] CAS 1: Utilisateur connecté');
+        print('🟢 [INSCRIPTION] SCÉNARIO 1: Utilisateur connecté');
 
-        final userId = await AuthService.getUserIdForPayment();
+        final userId =
+            _userData?['id']?.toString() ??
+            await AuthService.getUserIdForPayment();
         print('🟡 [INSCRIPTION] userId: $userId');
 
         if (userId == null) {
@@ -329,57 +322,68 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
           print('🟢 [INSCRIPTION] Formation non religieuse');
         }
 
-        print('🟢 [INSCRIPTION] Paiement...');
+        print('🟢 [INSCRIPTION] Redirection vers paiement...');
         await _proceedToPayment(userId);
         return;
       }
 
       // ==========================================================
-      // CAS 2: UTILISATEUR NON CONNECTÉ
+      // SCÉNARIO 2: UTILISATEUR NON CONNECTÉ
       // ==========================================================
-      print('🟡 [INSCRIPTION] CAS 2: Utilisateur non connecté');
+      print('🟡 [INSCRIPTION] SCÉNARIO 2: Utilisateur non connecté');
 
-      final result = await _showWhatsappDialog();
-      print('🟡 [INSCRIPTION] Dialogue résultat: $result');
+      // ✅ REDIRECTION VERS AUTH_PAGE AVEC PARAMÈTRE
+      print('🟡 [INSCRIPTION] SCÉNARIO 2: Utilisateur non connecté');
 
-      if (result != null && result['exists'] == true) {
-        // CAS 2A: WHATSAPP EXISTE
-        print('🟢 [INSCRIPTION] CAS 2A: WhatsApp existe');
-        final user = result['user'];
+      setState(() => _isProcessingPayment = false);
 
-        if (user != null) {
-          final userId =
-              user['id']?.toString() ?? user['adherent_id']?.toString();
-          print('🟡 [INSCRIPTION] userId: $userId');
+      // ✅ REDIRECTION VERS AUTH_PAGE AVEC PARAMÈTRE
+      final result = await Navigator.pushNamed(
+        context,
+        '/login',
+        arguments: {'returnToPrevious': true}, // 👈 PASSER LE PARAMÈTRE
+      );
 
-          if (userId != null) {
-            final adherentId = int.tryParse(userId);
-            if (adherentId != null && _isFormationReligieuse()) {
-              final cmplExists = await _checkCmplExists(adherentId);
-              if (!cmplExists) {
-                print('🔴 [INSCRIPTION] Infos manquantes -> CmplInfoForm');
-                setState(() => _isProcessingPayment = false);
-                _navigateToCmplInfoForm(adherentId);
-                return;
-              }
-            }
-            print('🟢 [INSCRIPTION] Paiement...');
-            await _proceedToPayment(userId);
-          } else {
-            throw Exception('ID utilisateur non trouvé');
-          }
+      print('═══════════════════════════════════════════════════════════');
+      print('🔵 [INSCRIPTION] RETOUR D\'AUTH_PAGE');
+      print('🔵 [INSCRIPTION] result: $result');
+      print('═══════════════════════════════════════════════════════════');
+
+      if (!mounted) return;
+
+      // ✅ Après le retour d'AuthPage, vérifier si l'utilisateur est maintenant connecté
+      await _refreshAuthStatus();
+
+      if (_isAuthenticated) {
+        print('🟢 [INSCRIPTION] Utilisateur connecté après AuthPage');
+
+        final userId =
+            _userData?['id']?.toString() ??
+            await AuthService.getUserIdForPayment();
+        if (userId != null) {
+          setState(() => _isProcessingPayment = true);
+          await _proceedToPayment(userId);
         } else {
-          throw Exception('Données utilisateur non trouvées');
-        }
-      } else if (result != null && result['exists'] == false) {
-        // CAS 2B: WHATSAPP N'EXISTE PAS
-        print('🟡 [INSCRIPTION] CAS 2B: WhatsApp n\'existe pas');
-        _isWhatsappDialogOpen = false;
-        if (mounted) {
-          _showAccountNotFoundDialog();
+          print('❌ [INSCRIPTION] ID utilisateur non trouvé après connexion');
+          throw Exception('ID utilisateur non trouvé');
         }
       } else {
-        print('🟡 [INSCRIPTION] Dialogue annulé');
+        print('🟡 [INSCRIPTION] Utilisateur non connecté après AuthPage');
+        // L'utilisateur a annulé ou n'a pas réussi à se connecter
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                _isArabic
+                    ? '❌ Veuillez vous connecter pour continuer'
+                    : '❌ Veuillez vous connecter pour continuer',
+                style: GoogleFonts.cairo(),
+              ),
+              backgroundColor: Colors.orange,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       }
     } catch (e) {
       print('❌ [INSCRIPTION] Erreur: $e');
@@ -396,404 +400,6 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
       if (mounted) setState(() => _isProcessingPayment = false);
       print('🔵 [INSCRIPTION] FIN');
     }
-  }
-
-  // ============================================================
-  // POPUP "COMPTE NON TROUVÉ"
-  // ============================================================
-
-  void _showAccountNotFoundDialog() {
-    if (!mounted) return;
-    print('🔵 [POPUP] Compte non trouvé');
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          elevation: 0,
-          backgroundColor: Colors.white,
-          title: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.person_outline_rounded,
-                  color: Colors.orange,
-                  size: 48,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                _isArabic
-                    ? '🔍 لا يوجد حساب بهذا الرقم'
-                    : '🔍 Aucun compte trouvé',
-                style: GoogleFonts.cairo(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.orange[700],
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                _isArabic
-                    ? 'رقم الواتساب الذي أدخلته غير مسجل في نظامنا.\n\n'
-                        '📝 للاستمرار في التسجيل في هذه التكوين، '
-                        'يجب عليك إنشاء حساب أولاً.\n\n'
-                        '✅ العملية سريعة ومجانية !'
-                    : 'Le numéro WhatsApp que vous avez saisi n\'est pas enregistré.\n\n'
-                        '📝 Pour continuer votre inscription à cette formation, '
-                        'vous devez d\'abord créer un compte.\n\n'
-                        '✅ C\'est rapide et gratuit !',
-                style: GoogleFonts.cairo(
-                  fontSize: 15,
-                  color: Colors.grey[700],
-                  height: 1.6,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xff0D443E).withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: const Color(0xff0D443E).withOpacity(0.1),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.school_outlined,
-                      color: Color(0xff0D443E),
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        _isArabic
-                            ? '🎯 التكوين: ${_training?.titleAr ?? ''}'
-                            : '🎯 Formation: ${_training?.titleFr ?? ''}',
-                        style: GoogleFonts.cairo(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xff0D443E),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (_isFormationReligieuse()) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.blue.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        color: Colors.blue.shade700,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _isArabic
-                              ? '📖 هذه الدورة دينية، ستحتاج إلى إكمال معلومات إضافية بعد التسجيل'
-                              : '📖 Cette formation est religieuse, vous devrez compléter des informations supplémentaires après l\'inscription',
-                          style: GoogleFonts.cairo(
-                            fontSize: 13,
-                            color: Colors.blue.shade700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ],
-          ),
-          actions: [
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  print('🔵 [POPUP] Clic sur "Créer un compte"');
-                  Navigator.pop(dialogContext);
-                  _redirectToInscriptionAndBack();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xff0D443E),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 0,
-                ),
-                child: Text(
-                  _isArabic
-                      ? '📝 إنشاء حساب والمتابعة'
-                      : '📝 Créer un compte et continuer',
-                  style: GoogleFonts.cairo(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: () {
-                print('🔵 [POPUP] Annulation');
-                Navigator.pop(dialogContext);
-              },
-              child: Text(
-                _isArabic ? 'إلغاء' : 'Annuler',
-                style: TextStyle(color: Colors.grey[600]),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // ============================================================
-  // DIALOGUE WHATSAPP
-  // ============================================================
-
-  Future<Map<String, dynamic>?> _showWhatsappDialog() async {
-    print('🔵 [WHATSAPP] Début');
-
-    if (_isWhatsappDialogOpen) {
-      print('⚠️ [WHATSAPP] Déjà ouvert');
-      return null;
-    }
-
-    _isWhatsappDialogOpen = true;
-    String whatsapp = '';
-    String? error;
-    bool isLoading = false;
-
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-              title: Row(
-                children: [
-                  Icon(
-                    Icons.phone_android_rounded,
-                    color: const Color(0xff0D443E),
-                    size: 28,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      _isArabic ? '📱 رقم الواتساب' : '📱 Numéro WhatsApp',
-                      style: GoogleFonts.cairo(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    _isArabic
-                        ? 'أدخل رقم الواتساب الخاص بك للتحقق من حسابك'
-                        : 'Entrez votre numéro WhatsApp pour vérifier votre compte',
-                    style: GoogleFonts.cairo(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _whatsappController,
-                    decoration: InputDecoration(
-                      labelText: _isArabic ? 'رقم الواتساب' : 'Numéro WhatsApp',
-                      hintText: '25 357 461',
-                      helperText:
-                          _isArabic
-                              ? '📌 مثال: 25 357 461 (بدون +216)'
-                              : '📌 Exemple: 25 357 461 (sans +216)',
-                      helperStyle: GoogleFonts.cairo(
-                        fontSize: 11,
-                        color: Colors.grey[500],
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      prefixIcon: const Icon(Icons.phone_android_rounded),
-                      suffixIcon:
-                          isLoading
-                              ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: Padding(
-                                  padding: EdgeInsets.all(10.0),
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Color(0xff0D443E),
-                                  ),
-                                ),
-                              )
-                              : null,
-                      errorText: error,
-                      errorStyle: GoogleFonts.cairo(
-                        fontSize: 13,
-                        color: Colors.red[700],
-                      ),
-                    ),
-                    style: GoogleFonts.cairo(),
-                    keyboardType: TextInputType.phone,
-                    onChanged: (value) {
-                      whatsapp = value;
-                      if (error != null) setDialogState(() => error = null);
-                    },
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    _isWhatsappDialogOpen = false;
-                    Navigator.pop(context, null);
-                  },
-                  child: Text(
-                    _isArabic ? 'إلغاء' : 'Annuler',
-                    style: TextStyle(color: Colors.grey[600]),
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed:
-                      isLoading
-                          ? null
-                          : () async {
-                            print('🔵 [WHATSAPP] Vérification');
-                            final cleanWhatsapp = whatsapp.replaceAll(
-                              RegExp(r'[\s\-\(\)]'),
-                              '',
-                            );
-                            if (cleanWhatsapp.length < 8) {
-                              setDialogState(() {
-                                error =
-                                    _isArabic
-                                        ? '⚠️ الرجاء إدخال رقم صحيح (8 أرقام على الأقل)'
-                                        : '⚠️ Veuillez entrer un numéro valide (8 chiffres minimum)';
-                              });
-                              return;
-                            }
-
-                            setDialogState(() => isLoading = true);
-
-                            try {
-                              final fullWhatsapp = '+216$cleanWhatsapp';
-                              print('🟡 [WHATSAPP] Numéro: $fullWhatsapp');
-
-                              final exists =
-                                  await AuthService.checkWhatsappExists(
-                                    fullWhatsapp,
-                                  );
-                              print('🟡 [WHATSAPP] Existe: $exists');
-
-                              if (exists) {
-                                final user =
-                                    await AuthService.getUserByWhatsapp(
-                                      fullWhatsapp,
-                                    );
-                                _isWhatsappDialogOpen = false;
-                                if (mounted) {
-                                  Navigator.pop(context, {
-                                    'exists': true,
-                                    'user': user,
-                                  });
-                                }
-                              } else {
-                                setDialogState(() => isLoading = false);
-                                _isWhatsappDialogOpen = false;
-                                if (mounted) {
-                                  Navigator.pop(context, {
-                                    'exists': false,
-                                    'whatsapp': fullWhatsapp,
-                                  });
-                                }
-                              }
-                            } catch (e) {
-                              print('❌ [WHATSAPP] Erreur: $e');
-                              setDialogState(() {
-                                isLoading = false;
-                                error =
-                                    _isArabic
-                                        ? '❌ Erreur de vérification'
-                                        : '❌ Erreur de vérification';
-                              });
-                            }
-                          },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xff0D443E),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child:
-                      isLoading
-                          ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                          : Text(
-                            _isArabic ? '🔍 التحقق' : '🔍 Vérifier',
-                            style: GoogleFonts.cairo(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-
-    _isWhatsappDialogOpen = false;
-    print('🔵 [WHATSAPP] Résultat: $result');
-    return result;
   }
 
   // ============================================================
@@ -837,100 +443,9 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
     } catch (e) {
       print('❌ [PAIEMENT] Erreur: $e');
       throw Exception(e);
+    } finally {
+      if (mounted) setState(() => _isProcessingPayment = false);
     }
-  }
-
-  // ============================================================
-  // REDIRECTION VERS L'INSCRIPTION
-  // ============================================================
-
-  Future<void> _redirectToInscriptionAndBack() async {
-    if (!mounted) return;
-
-    print('═══════════════════════════════════════════════════════════');
-    print('🔵 [REDIRECTION] VERS INSCRIPTION');
-    print('═══════════════════════════════════════════════════════════');
-
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder:
-            (context) =>
-                const InscriptionAdherentPage(fromFormationDetail: true),
-      ),
-    );
-
-    print('═══════════════════════════════════════════════════════════');
-    print('🔵 [REDIRECTION] RETOUR D\'INSCRIPTION');
-    print('🔵 [REDIRECTION] result: $result');
-    print('🔵 [REDIRECTION] result type: ${result.runtimeType}');
-    print('🔵 [REDIRECTION] result is Map: ${result is Map}');
-    print('═══════════════════════════════════════════════════════════');
-
-    if (!mounted) return;
-
-    if (result is Map<String, dynamic> && result['success'] == true) {
-      final newAdherentId = result['adherentId']?.toString();
-      print('🟢 [REDIRECTION] Inscription réussie !');
-      print('🟢 [REDIRECTION] newAdherentId: $newAdherentId');
-
-      if (newAdherentId != null && newAdherentId.isNotEmpty) {
-        // ✅ Rafraîchir le statut d'authentification avant de continuer
-        await _refreshAuthStatus();
-
-        setState(() => _isProcessingPayment = true);
-        try {
-          final isReligieuse = _isFormationReligieuse();
-          print('🟡 [REDIRECTION] Formation religieuse: $isReligieuse');
-
-          if (isReligieuse) {
-            final adherentId = int.tryParse(newAdherentId);
-            print('🟡 [REDIRECTION] adherentId parsé: $adherentId');
-
-            if (adherentId != null) {
-              final cmplExists = await _checkCmplExists(adherentId);
-              print('🟡 [REDIRECTION] cmplExists: $cmplExists');
-
-              if (!cmplExists) {
-                print('🔴 [REDIRECTION] INFOS MANQUANTES -> CmplInfoForm');
-                setState(() => _isProcessingPayment = false);
-                _navigateToCmplInfoForm(adherentId);
-                return;
-              } else {
-                print('🟢 [REDIRECTION] Infos déjà remplies');
-              }
-            } else {
-              print('❌ [REDIRECTION] adherentId null');
-            }
-          } else {
-            print('🟢 [REDIRECTION] Formation non religieuse');
-          }
-
-          print('🟢 [REDIRECTION] Paiement...');
-          await _proceedToPayment(newAdherentId);
-        } catch (e) {
-          print('❌ [REDIRECTION] Erreur paiement: $e');
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('❌ Erreur: $e', style: GoogleFonts.cairo()),
-                backgroundColor: Colors.red,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          }
-        } finally {
-          if (mounted) setState(() => _isProcessingPayment = false);
-        }
-      } else {
-        print('❌ [REDIRECTION] newAdherentId null ou vide');
-      }
-    } else {
-      print('🟡 [REDIRECTION] Inscription annulée ou échouée');
-      print('🟡 [REDIRECTION] result detail: $result');
-    }
-
-    print('🔵 [REDIRECTION] FIN');
   }
 
   // ============================================================
@@ -1590,21 +1105,10 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
                       : Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            isUserLoggedIn
-                                ? Icons.payment_rounded
-                                : Icons.person_add_rounded,
-                            size: 20,
-                          ),
+                          Icon(Icons.payment_rounded, size: 20),
                           const SizedBox(width: 8),
                           Text(
-                            isUserLoggedIn
-                                ? (_isArabic
-                                    ? '💳 الدفع الآن'
-                                    : '💳 Payer maintenant')
-                                : (_isArabic
-                                    ? '📝 التسجيل والدفع'
-                                    : '📝 S\'inscrire et payer'),
+                            _isArabic ? '💳 الدفع الآن' : '💳 Payer maintenant',
                             style: GoogleFonts.poppins(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
@@ -1631,8 +1135,8 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
                 isUserLoggedIn
                     ? (_isArabic ? '✅ أنت متصل' : '✅ Vous êtes connecté')
                     : (_isArabic
-                        ? '📱 التحقق عبر واتساب مطلوب'
-                        : '📱 Vérification WhatsApp requise'),
+                        ? '📱 Veuillez vous connecter'
+                        : '📱 Veuillez vous connecter'),
                 style: GoogleFonts.poppins(
                   fontSize: 12,
                   color: isUserLoggedIn ? Colors.green[600] : Colors.grey[500],
@@ -1650,7 +1154,7 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    _isArabic ? 'سريع' : 'Rapide',
+                    _isArabic ? 'Connexion requise' : 'Connexion requise',
                     style: GoogleFonts.poppins(
                       fontSize: 9,
                       fontWeight: FontWeight.bold,

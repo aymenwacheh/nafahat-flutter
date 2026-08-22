@@ -7,7 +7,11 @@ import 'package:nafahat/services/AdminUserService.dart';
 class AuthService {
   static const String _tokenKey = 'auth_token';
   static const String _userKey = 'user_data';
-  static const String _userIdKey = 'user_id';
+  // ⚠️ NE PAS renommer en 'user_id' : UserProvider utilise déjà cette clé
+  // (en String) pour sa propre session. Deux types différents sur la même
+  // clé SharedPreferences provoquent une collision et un plantage silencieux
+  // au chargement (getString sur une valeur stockée en int, ou l'inverse).
+  static const String _userIdKey = 'auth_user_id';
 
   // ============================================================
   // GESTION DU TOKEN ET DE L'UTILISATEUR

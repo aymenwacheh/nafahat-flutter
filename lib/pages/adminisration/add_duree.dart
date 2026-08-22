@@ -1,6 +1,7 @@
-// lib/pages/administration/add_duree.dart
+// lib/pages/adminisration/add_duree.dart
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:nafahat/pages/landing/widgets/back_to_admin_button.dart';
 import 'dart:convert';
 import 'package:nafahat/services/training_service.dart';
 
@@ -326,7 +327,12 @@ class _AddDureePageState extends State<AddDureePage> {
         backgroundColor: nafahatGreen,
         foregroundColor: Colors.white,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.pop(context),
+        ),
         actions: [
+          const BackToAdminButton(),
           IconButton(
             icon: const Icon(Icons.language),
             onPressed: () => setState(() => _isArabic = !_isArabic),
@@ -395,7 +401,6 @@ class _AddDureePageState extends State<AddDureePage> {
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     children: [
-                      // Type de durée (obligatoire)
                       _buildField(
                         label: _isArabic ? 'نوع المدة *' : 'Type de durée *',
                         controller: _typeDureeController,
@@ -405,8 +410,6 @@ class _AddDureePageState extends State<AddDureePage> {
                                 : 'Ex: Jour, Mois, Année...',
                       ),
                       const SizedBox(height: 16),
-
-                      // Séparateur
                       Container(
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         alignment: Alignment.center,
@@ -422,8 +425,6 @@ class _AddDureePageState extends State<AddDureePage> {
                         ),
                       ),
                       const SizedBox(height: 8),
-
-                      // Ch1 à Ch6
                       _buildField(
                         label: 'Ch1',
                         controller: _ch1Controller,
@@ -431,7 +432,6 @@ class _AddDureePageState extends State<AddDureePage> {
                         keyboardType: TextInputType.number,
                       ),
                       const SizedBox(height: 16),
-
                       _buildField(
                         label: 'Ch2',
                         controller: _ch2Controller,
@@ -439,7 +439,6 @@ class _AddDureePageState extends State<AddDureePage> {
                         keyboardType: TextInputType.number,
                       ),
                       const SizedBox(height: 16),
-
                       _buildField(
                         label: 'Ch3',
                         controller: _ch3Controller,
@@ -447,7 +446,6 @@ class _AddDureePageState extends State<AddDureePage> {
                         keyboardType: TextInputType.number,
                       ),
                       const SizedBox(height: 16),
-
                       _buildField(
                         label: 'Ch4',
                         controller: _ch4Controller,
@@ -455,7 +453,6 @@ class _AddDureePageState extends State<AddDureePage> {
                         keyboardType: TextInputType.number,
                       ),
                       const SizedBox(height: 16),
-
                       _buildField(
                         label: 'Ch5',
                         controller: _ch5Controller,
@@ -463,7 +460,6 @@ class _AddDureePageState extends State<AddDureePage> {
                         keyboardType: TextInputType.number,
                       ),
                       const SizedBox(height: 16),
-
                       _buildField(
                         label: 'Ch6',
                         controller: _ch6Controller,

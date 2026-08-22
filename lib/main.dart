@@ -20,6 +20,8 @@ import 'package:nafahat/config/api_config.dart';
 import 'pages/landing/landing_page.dart';
 import 'package:nafahat/models/card_config_model.dart';
 import 'package:nafahat/pages/users/profile_dashboard_page.dart'; // 👈 AJOUTER CET IMPORT
+import 'package:nafahat/pages/adminisration/administration_page.dart';
+import 'services/navigation_service.dart';
 
 void main() {
   runApp(const MyApp());
@@ -71,6 +73,7 @@ class MyApp extends StatelessWidget {
             title: 'Nafahat Platform',
             debugShowCheckedModeBanner: false,
             locale: languageProvider.locale,
+            navigatorKey: NavigationService.navigatorKey,
             theme: ThemeData(
               textTheme: GoogleFonts.cairoTextTheme(),
               appBarTheme: AppBarTheme(
@@ -119,16 +122,46 @@ class MyApp extends StatelessWidget {
                     hideOnRoute: false,
                     child: AuthPage(),
                   ),
-              '/login':
+              '/admin':
                   (context) => const ChatbotGlobalWrapper(
                     hideOnRoute: false,
-                    child: AuthPage(),
+                    child: AdministrationPage(),
                   ),
-              '/inscription':
-                  (context) => const ChatbotGlobalWrapper(
-                    hideOnRoute: false,
-                    child: InscriptionAdherentPage(),
-                  ),
+            },
+            // ✅ ROUTES DYNAMIQUES : lisent les `arguments` passés par
+            // Navigator.pushNamed(..., arguments: {...}) au lieu de valeurs figées.
+            onGenerateRoute: (settings) {
+              if (settings.name == '/login') {
+                final args = settings.arguments as Map<String, dynamic>?;
+                final returnToPrevious =
+                    args?['returnToPrevious'] as bool? ?? false;
+                return MaterialPageRoute(
+                  settings: settings,
+                  builder:
+                      (context) => ChatbotGlobalWrapper(
+                        hideOnRoute: false,
+                        child: AuthPage(returnToPrevious: returnToPrevious),
+                      ),
+                );
+              }
+
+              if (settings.name == '/inscription') {
+                final args = settings.arguments as Map<String, dynamic>?;
+                final fromFormationDetail =
+                    args?['fromFormationDetail'] as bool? ?? false;
+                return MaterialPageRoute(
+                  settings: settings,
+                  builder:
+                      (context) => ChatbotGlobalWrapper(
+                        hideOnRoute: false,
+                        child: InscriptionAdherentPage(
+                          fromFormationDetail: fromFormationDetail,
+                        ),
+                      ),
+                );
+              }
+
+              return null; // Laisse `onUnknownRoute` gérer le reste
             },
             onUnknownRoute: (settings) {
               print('⚠️ [ROUTE] Route inconnue: ${settings.name}');

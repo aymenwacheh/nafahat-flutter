@@ -6,6 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../providers/language_provider.dart';
 import '../../services/verification_service.dart';
 import '../../services/auth_service.dart';
+import '../../providers/user_provider.dart';
+import '../../models/role.dart';
 import '../landing/widgets/navbar.dart';
 import '../../models/adherent.dart';
 import '../../models/enfant.dart';
@@ -154,7 +156,9 @@ class _VerifCodePageState extends State<VerifCodePage> {
     });
 
     try {
-      print('🟡 [VERIF_CODE] Appel à VerificationService.verifyCodeAndCreateUser()...');
+      print(
+        '🟡 [VERIF_CODE] Appel à VerificationService.verifyCodeAndCreateUser()...',
+      );
       final result = await VerificationService.verifyCodeAndCreateUser(
         email: widget.email,
         code: code,
@@ -175,7 +179,9 @@ class _VerifCodePageState extends State<VerifCodePage> {
         print('✅ [VERIF_CODE] AdherentId: $adherentId');
         print('✅ [VERIF_CODE] Mot de passe: $motDePasse');
         print('✅ [VERIF_CODE] Identifiant: $identifiant');
-        print('✅ [VERIF_CODE] fromFormationDetail: ${widget.fromFormationDetail}');
+        print(
+          '✅ [VERIF_CODE] fromFormationDetail: ${widget.fromFormationDetail}',
+        );
         print('═══════════════════════════════════════════════════════════');
 
         // ✅ CONNECTER L'UTILISATEUR AUTOMATIQUEMENT
@@ -185,9 +191,38 @@ class _VerifCodePageState extends State<VerifCodePage> {
           'whatsapp': widget.whatsapp,
           'nomPrenom': widget.nomPrenom,
           'email': widget.email,
+          // ✅ FIX : sans 'token', AuthService.saveUserData() n'écrit jamais
+          // le token, et AuthService.isAuthenticated() exige un token non-vide
+          // → restait "false" pour toujours après une inscription.
+          'token':
+              (result['token']?.toString().isNotEmpty ?? false)
+                  ? result['token'].toString()
+                  : 'session_$adherentId',
         });
         await AuthService.saveUserId(adherentId);
-        print('✅ [VERIF_CODE] Utilisateur connecté automatiquement');
+
+        // ✅ FIX : synchroniser aussi UserProvider, sinon la Navbar et
+        // ProfileDashboardPage (qui ne lisent QUE UserProvider, jamais
+        // AuthService) continuent d'afficher l'utilisateur comme déconnecté.
+        if (mounted) {
+          await Provider.of<UserProvider>(context, listen: false).setUser(
+            id: adherentId.toString(),
+            name: widget.nomPrenom,
+            whatsapp: widget.whatsapp,
+            email: widget.email,
+            role: Role(
+              id: 4,
+              nom: 'adherent',
+              libelle: 'Adhérent',
+              description: 'Accès à l\'espace membre',
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+            ),
+          );
+        }
+        print(
+          '✅ [VERIF_CODE] Utilisateur connecté automatiquement (AuthService + UserProvider)',
+        );
 
         _showSuccessPopup(
           context,
@@ -198,7 +233,9 @@ class _VerifCodePageState extends State<VerifCodePage> {
         );
       } else {
         print('❌ [VERIF_CODE] Échec: result["success"] != true');
-        throw Exception(result['error'] ?? 'Erreur lors de la création du compte');
+        throw Exception(
+          result['error'] ?? 'Erreur lors de la création du compte',
+        );
       }
     } catch (e) {
       print('❌ [VERIF_CODE] Erreur: $e');
@@ -370,17 +407,27 @@ class _VerifCodePageState extends State<VerifCodePage> {
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
-                        print('═══════════════════════════════════════════════════════════');
+                        print(
+                          '═══════════════════════════════════════════════════════════',
+                        );
                         print('🔵 [VERIF_CODE] Clic sur le bouton principal');
-                        print('🔵 [VERIF_CODE] fromFormationDetail: ${widget.fromFormationDetail}');
+                        print(
+                          '🔵 [VERIF_CODE] fromFormationDetail: ${widget.fromFormationDetail}',
+                        );
                         print('🔵 [VERIF_CODE] adherentId: $adherentId');
-                        print('═══════════════════════════════════════════════════════════');
+                        print(
+                          '═══════════════════════════════════════════════════════════',
+                        );
 
                         Navigator.pop(dialogContext);
 
                         if (widget.fromFormationDetail) {
-                          print('🟢 [VERIF_CODE] RETOUR VERS FormationDetailPage');
-                          print('🟢 [VERIF_CODE] Navigation.pop avec: {success: true, adherentId: ${adherentId?.toString()}}');
+                          print(
+                            '🟢 [VERIF_CODE] RETOUR VERS FormationDetailPage',
+                          );
+                          print(
+                            '🟢 [VERIF_CODE] Navigation.pop avec: {success: true, adherentId: ${adherentId?.toString()}}',
+                          );
                           Navigator.pop(context, {
                             'success': true,
                             'adherentId': adherentId?.toString(),

@@ -24,6 +24,7 @@ import 'package:nafahat/pages/users/profile_dashboard_page.dart';
 import 'package:nafahat/pages/users/edit_profile_page.dart';
 import 'package:nafahat/providers/language_provider.dart';
 import 'package:nafahat/providers/user_provider.dart';
+import 'package:nafahat/services/auth_service.dart';
 import 'package:provider/provider.dart';
 import '../landing_page.dart';
 import 'package:nafahat/services/training_service.dart';
@@ -797,6 +798,9 @@ class Navbar extends StatelessWidget {
       case 'logout':
         final userProvider = Provider.of<UserProvider>(context, listen: false);
         userProvider.logout();
+        // ✅ FIX : nettoyer aussi AuthService, sinon la session de paiement
+        // reste active même après déconnexion de l'UI.
+        AuthService.logout();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -966,6 +970,8 @@ class Navbar extends StatelessWidget {
                       onTap: () {
                         _closeDrawer(context);
                         userProvider.logout();
+                        // ✅ FIX : nettoyer aussi AuthService (voir menu desktop)
+                        AuthService.logout();
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(

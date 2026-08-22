@@ -8,13 +8,16 @@ import 'inscription_adherent.dart';
 import '../../providers/language_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../services/adherent_service.dart';
+import '../../services/auth_service.dart';
 import '../../models/role.dart';
 import '../landing/widgets/chatbot/chatbot_wrapper.dart';
-// 👇 AJOUTER CET IMPORT
 import '../../config/api_config.dart';
 
 class AuthPage extends StatefulWidget {
-  const AuthPage({super.key});
+  // ✅ AJOUTER UN PARAMÈTRE POUR SAVOIR D'OÙ VIENT L'UTILISATEUR
+  final bool returnToPrevious;
+
+  const AuthPage({super.key, this.returnToPrevious = false});
 
   @override
   State<AuthPage> createState() => _AuthPageState();
@@ -81,6 +84,28 @@ class _AuthPageState extends State<AuthPage> {
             role: userRole,
           );
 
+          // ✅ FIX : synchroniser aussi AuthService (SharedPreferences)
+          // sinon AuthService.isAuthenticated() reste "false" après connexion,
+          // et FormationDetailPage redemande la connexion même si l'utilisateur l'est déjà.
+          final int adherentId =
+              userData['adherent_id'] is int
+                  ? userData['adherent_id']
+                  : int.tryParse(userData['adherent_id'].toString()) ?? 0;
+
+          await AuthService.saveUserData({
+            'id': adherentId,
+            'nomPrenom': userData['nom_prenom'],
+            'whatsapp': userData['whatsapp'],
+            'email': userData['email'],
+            // 👇 Si le backend renvoie un vrai token, on le garde ; sinon fallback local
+            // pour que isAuthenticated() (qui exige un token non-vide) fonctionne.
+            'token':
+                (userData['token']?.toString().isNotEmpty ?? false)
+                    ? userData['token'].toString()
+                    : 'session_$adherentId',
+          });
+          await AuthService.saveUserId(adherentId);
+
           final isArabic =
               Provider.of<LanguageProvider>(context, listen: false).isArabic;
 
@@ -98,13 +123,20 @@ class _AuthPageState extends State<AuthPage> {
             ),
           );
 
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const ProfileDashboardPage(),
-            ),
-            (route) => false,
-          );
+          // ✅ SI returnToPrevious EST TRUE, RETOURNER À LA PAGE PRÉCÉDENTE
+          if (widget.returnToPrevious) {
+            // Retourner avec un résultat de succès
+            Navigator.pop(context, true);
+          } else {
+            // Sinon, rediriger vers le dashboard
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ProfileDashboardPage(),
+              ),
+              (route) => false,
+            );
+          }
         }
       } catch (e) {
         if (mounted) {
@@ -181,8 +213,7 @@ class _AuthPageState extends State<AuthPage> {
     return Directionality(
       textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
       child: ChatbotWrapper(
-        // ✅ CORRECTION : Utiliser ApiConfig.baseUrl au lieu de l'URL en dur
-        apiBaseUrl: ApiConfig.baseUrl, // http://localhost:3000/api
+        apiBaseUrl: ApiConfig.baseUrl,
         langue: isArabic ? 'ar' : 'fr',
         primaryColor: nafahatGreen,
         child: Scaffold(
@@ -457,15 +488,31 @@ class _AuthPageState extends State<AuthPage> {
                                           ),
                                         ),
                                         TextButton(
-                                          onPressed: () {
-                                            Navigator.push(
+                                          onPressed: () async {
+                                            // ✅ FIX : on ATTEND le résultat de InscriptionAdherentPage,
+                                            // puis on relaie ce résultat en popant AuthPage elle-même.
+                                            // Sinon, quand fromFormationDetail est true, le pop de
+                                            // InscriptionAdherentPage ne fait que révéler AuthPage
+                                            // (jamais fermée) au lieu de remonter jusqu'à
+                                            // FormationDetailPage qui attend ce pop.
+                                            final result = await Navigator.push(
                                               context,
                                               MaterialPageRoute(
                                                 builder:
-                                                    (context) =>
-                                                        const InscriptionAdherentPage(),
+                                                    (
+                                                      context,
+                                                    ) => InscriptionAdherentPage(
+                                                      fromFormationDetail:
+                                                          widget
+                                                              .returnToPrevious, // ✅ PROPAGER LE PARAMÈTRE
+                                                    ),
                                               ),
                                             );
+
+                                            if (widget.returnToPrevious &&
+                                                mounted) {
+                                              Navigator.pop(context, result);
+                                            }
                                           },
                                           style: TextButton.styleFrom(
                                             foregroundColor: nafahatGreen,

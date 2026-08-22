@@ -1,6 +1,7 @@
-// lib/pages/administration/add_formateur.dart
+// lib/pages/adminisration/add_formateur.dart
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:nafahat/pages/landing/widgets/back_to_admin_button.dart';
 import 'dart:convert';
 import 'package:nafahat/services/training_service.dart';
 
@@ -95,7 +96,7 @@ class _AddFormateurPageState extends State<AddFormateurPage> {
               backgroundColor: nafahatGreen,
             ),
           );
-          Navigator.pop(context);
+          Navigator.pop(context, true);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -131,7 +132,12 @@ class _AddFormateurPageState extends State<AddFormateurPage> {
         backgroundColor: nafahatGreen,
         foregroundColor: Colors.white,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.pop(context),
+        ),
         actions: [
+          const BackToAdminButton(),
           IconButton(
             icon: const Icon(Icons.language),
             onPressed: () => setState(() => _isArabic = !_isArabic),
@@ -190,7 +196,6 @@ class _AddFormateurPageState extends State<AddFormateurPage> {
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     children: [
-                      // Nom Français
                       _buildField(
                         label:
                             _isArabic
@@ -201,8 +206,6 @@ class _AddFormateurPageState extends State<AddFormateurPage> {
                             _isArabic ? 'مثال: Jean Dupont' : 'Ex: Jean Dupont',
                       ),
                       const SizedBox(height: 16),
-
-                      // Nom Arabe
                       _buildField(
                         label:
                             _isArabic
@@ -213,8 +216,6 @@ class _AddFormateurPageState extends State<AddFormateurPage> {
                         textDirection: TextDirection.rtl,
                       ),
                       const SizedBox(height: 16),
-
-                      // Email
                       _buildField(
                         label: _isArabic ? 'البريد الإلكتروني' : 'Email',
                         controller: _emailController,
@@ -225,8 +226,6 @@ class _AddFormateurPageState extends State<AddFormateurPage> {
                         keyboardType: TextInputType.emailAddress,
                       ),
                       const SizedBox(height: 16),
-
-                      // Téléphone
                       _buildField(
                         label: _isArabic ? 'رقم الهاتف' : 'Téléphone',
                         controller: _telephoneController,
@@ -234,8 +233,6 @@ class _AddFormateurPageState extends State<AddFormateurPage> {
                         keyboardType: TextInputType.phone,
                       ),
                       const SizedBox(height: 16),
-
-                      // Catégorie
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -289,8 +286,6 @@ class _AddFormateurPageState extends State<AddFormateurPage> {
                         ],
                       ),
                       const SizedBox(height: 16),
-
-                      // Bio Français
                       _buildField(
                         label:
                             _isArabic
@@ -301,8 +296,6 @@ class _AddFormateurPageState extends State<AddFormateurPage> {
                         maxLines: 3,
                       ),
                       const SizedBox(height: 16),
-
-                      // Bio Arabe
                       _buildField(
                         label:
                             _isArabic

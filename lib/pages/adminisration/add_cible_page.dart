@@ -1,5 +1,6 @@
 // lib/pages/adminisration/add_cible_page.dart
 import 'package:flutter/material.dart';
+import 'package:nafahat/pages/landing/widgets/back_to_admin_button.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/models/cible_model.dart';
@@ -140,7 +141,7 @@ class _AddCiblePageState extends State<AddCiblePage> {
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
-          // ✅ Bouton de changement de langue
+          const BackToAdminButton(),
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
@@ -174,7 +175,6 @@ class _AddCiblePageState extends State<AddCiblePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header
                   Row(
                     children: [
                       Container(
@@ -205,8 +205,6 @@ class _AddCiblePageState extends State<AddCiblePage> {
                     ],
                   ),
                   const SizedBox(height: 24),
-
-                  // Nom de la cible
                   _buildField(
                     label: isArabic ? 'Nom de la cible *' : 'Nom de la cible *',
                     controller: _nomCibleController,
@@ -216,8 +214,6 @@ class _AddCiblePageState extends State<AddCiblePage> {
                     isArabic: isArabic,
                   ),
                   const SizedBox(height: 16),
-
-                  // Séparateur
                   Container(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Row(
@@ -241,8 +237,6 @@ class _AddCiblePageState extends State<AddCiblePage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // Champ 1
                   _buildField(
                     label: isArabic ? 'ch1' : 'ch1',
                     controller: _ch1Controller,
@@ -252,8 +246,6 @@ class _AddCiblePageState extends State<AddCiblePage> {
                     isArabic: isArabic,
                   ),
                   const SizedBox(height: 16),
-
-                  // Champ 2
                   _buildField(
                     label: isArabic ? 'ch2' : 'ch2',
                     controller: _ch2Controller,
@@ -263,8 +255,6 @@ class _AddCiblePageState extends State<AddCiblePage> {
                     isArabic: isArabic,
                   ),
                   const SizedBox(height: 16),
-
-                  // Champ 3
                   _buildField(
                     label: isArabic ? 'ch3' : 'ch3',
                     controller: _ch3Controller,
@@ -274,8 +264,6 @@ class _AddCiblePageState extends State<AddCiblePage> {
                     isArabic: isArabic,
                   ),
                   const SizedBox(height: 24),
-
-                  // Boutons
                   Row(
                     children: [
                       Expanded(
