@@ -199,7 +199,7 @@ class AdherentService {
   }
 
   // ============================================================
-  // MISE À JOUR D'UN ADHÉRENT - CORRIGÉE
+  // MISE À JOUR D'UN ADHÉRENT
   // ============================================================
 
   static Future<void> updateAdherent(int id, Adherent adherent) async {
@@ -331,6 +331,105 @@ class AdherentService {
     } catch (e) {
       print('❌ Erreur getAdherentCredentials: $e');
       rethrow;
+    }
+  }
+
+  // ============================================================
+  // ✅ NOUVEAU : CHANGER LE MOT DE PASSE
+  // ============================================================
+
+  static Future<void> changePassword(
+    int adherentId,
+    String currentPassword,
+    String newPassword,
+  ) async {
+    try {
+      final url = Uri.parse(
+        '$apiBaseUrl/adherents/$adherentId/change-password',
+      );
+
+      print('═' * 50);
+      print('📤 [changePassword] URL: $url');
+      print('📤 [changePassword] ID: $adherentId');
+      print('═' * 50);
+
+      final response = await http
+          .post(
+            url,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({
+              'currentPassword': currentPassword,
+              'newPassword': newPassword,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      print('📥 [changePassword] Status: ${response.statusCode}');
+      print('📥 [changePassword] Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          print('✅ [changePassword] Mot de passe changé avec succès');
+          return;
+        }
+        throw Exception(data['error'] ?? 'Erreur changement de mot de passe');
+      }
+
+      if (response.statusCode == 401) {
+        throw Exception('Mot de passe actuel incorrect');
+      }
+
+      if (response.statusCode == 400) {
+        final data = json.decode(response.body);
+        throw Exception(data['error'] ?? 'Données invalides');
+      }
+
+      if (response.statusCode == 404) {
+        throw Exception('Adhérent non trouvé');
+      }
+
+      throw Exception('Erreur ${response.statusCode}: ${response.body}');
+    } catch (e) {
+      print('❌ Erreur changePassword: $e');
+      rethrow;
+    }
+  }
+
+  // lib/services/adherent_service.dart
+  // Ajoutez cette fonction à la fin de la classe AdherentService
+
+  // ============================================================
+  // RÉCUPÉRATION DU MOT DE PASSE ACTUEL
+  // ============================================================
+
+  static Future<String?> getCurrentPassword(int adherentId) async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$apiBaseUrl/adherents/$adherentId/credentials'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          // Le mot de passe est dans data['data']['mot_de_passe']
+          return data['data']['mot_de_passe'] ?? '';
+        }
+        return null;
+      }
+      return null;
+    } catch (e) {
+      print('❌ Erreur getCurrentPassword: $e');
+      return null;
     }
   }
 }

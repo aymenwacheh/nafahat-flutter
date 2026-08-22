@@ -26,6 +26,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
   bool _isLoading = false;
   bool _isDataLoading = true;
 
+  // 👈 Contrôle de la visibilité des mots de passe
+  bool _obscureCurrentPassword = true;
+  bool _obscureNewPassword = true;
+  bool _obscureConfirmPassword = true;
+
   // Contrôleurs
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
@@ -36,7 +41,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
   late TextEditingController _sourceConnaissanceController;
   late TextEditingController _objectifController;
   late TextEditingController _suggestionsController;
-  final TextEditingController _passwordController = TextEditingController();
+
+  // 👈 Contrôleurs pour les mots de passe
+  final TextEditingController _currentPasswordController =
+      TextEditingController();
+  final TextEditingController _newPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   // Variables pour les champs de sélection
   String _selectedGenre = 'homme';
@@ -45,6 +56,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   // Données originales pour comparer les modifications
   Adherent? _originalData;
+  String? _currentPassword; // Pour stocker le mot de passe actuel récupéré
 
   @override
   void initState() {
@@ -65,6 +77,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
             final userId = int.parse(userProvider.userId!);
             final adherent = await AdherentService.getAdherentById(userId);
             data = adherent;
+
+            // 👈 RÉCUPÉRER LE MOT DE PASSE ACTUEL
+            final password = await AdherentService.getCurrentPassword(userId);
+            if (password != null) {
+              _currentPassword = password;
+              _currentPasswordController.text =
+                  password; // 👈 Pré-remplir le champ
+            }
           } catch (e) {
             debugPrint('❌ Erreur récupération données: $e');
             data = Adherent(
@@ -145,7 +165,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _sourceConnaissanceController.dispose();
     _objectifController.dispose();
     _suggestionsController.dispose();
-    _passwordController.dispose();
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -165,7 +187,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         original.objectif != _objectifController.text.trim() ||
         original.suggestions != _suggestionsController.text.trim() ||
         original.accordPublication != _accordPublication ||
-        _passwordController.text.trim().isNotEmpty;
+        _newPasswordController.text.trim().isNotEmpty;
   }
 
   Future<void> _saveProfile() async {
@@ -190,6 +212,54 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ),
       );
       return;
+    }
+
+    // 👈 VÉRIFICATION DU MOT DE PASSE ACTUEL
+    if (_newPasswordController.text.trim().isNotEmpty) {
+      // Vérifier que le mot de passe actuel est correct
+      if (_currentPasswordController.text.trim() != _currentPassword) {
+        final isArabic =
+            Provider.of<LanguageProvider>(context, listen: false).isArabic;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isArabic
+                  ? "كلمة المرور الحالية غير صحيحة"
+                  : "Le mot de passe actuel est incorrect",
+              style: GoogleFonts.cairo(),
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+        return;
+      }
+
+      // Vérifier que les nouveaux mots de passe correspondent
+      if (_newPasswordController.text.trim() !=
+          _confirmPasswordController.text.trim()) {
+        final isArabic =
+            Provider.of<LanguageProvider>(context, listen: false).isArabic;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isArabic
+                  ? "كلمات المرور غير متطابقة"
+                  : "Les mots de passe ne correspondent pas",
+              style: GoogleFonts.cairo(),
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+        return;
+      }
     }
 
     setState(() => _isLoading = true);
@@ -249,6 +319,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
           int.parse(idToUpdate),
           updatedAdherent,
         );
+
+        // 👈 Si le mot de passe est changé, mettre à jour le mot de passe
+        if (_newPasswordController.text.trim().isNotEmpty) {
+          await AdherentService.changePassword(
+            int.parse(idToUpdate),
+            _currentPasswordController.text.trim(),
+            _newPasswordController.text.trim(),
+          );
+          // Mettre à jour le mot de passe stocké localement
+          _currentPassword = _newPasswordController.text.trim();
+          _currentPasswordController.text = _currentPassword!;
+        }
       }
 
       final isArabic =
@@ -324,7 +406,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
       child: Scaffold(
         key: _scaffoldKey,
         backgroundColor: AppColors.surface,
-        // ✅ Ajout du drawer pour la version mobile
         drawer: Navbar(
           isMobile: isMobile,
           scaffoldKey: _scaffoldKey,
@@ -333,7 +414,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
           top: false,
           child: Stack(
             children: [
-              // ---- Contenu principal ----
               Center(
                 child: SingleChildScrollView(
                   padding: EdgeInsets.only(top: topMargin),
@@ -570,7 +650,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                     ),
                                     const SizedBox(height: 16),
 
-                                    // ---- Genre (Dropdown corrigé) ----
+                                    // ---- Genre (Dropdown) ----
                                     _buildDropdown(
                                       labelFr: "Genre",
                                       labelAr: "الجنس",
@@ -597,7 +677,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                     ),
                                     const SizedBox(height: 16),
 
-                                    // ---- Source (Dropdown corrigé) ----
+                                    // ---- Source (Dropdown) ----
                                     _buildDropdown(
                                       labelFr: "Source de connaissance",
                                       labelAr: "كيف تعرفت على الأكاديمية؟",
@@ -671,21 +751,143 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                         );
                                       },
                                     ),
-                                    const SizedBox(height: 16),
 
-                                    _buildEditField(
-                                      controller: _passwordController,
-                                      labelFr:
-                                          "Nouveau mot de passe (optionnel)",
-                                      labelAr: "كلمة مرور جديدة (اختياري)",
-                                      icon: Icons.lock_outline_rounded,
-                                      isPassword: true,
-                                      validator:
-                                          (v) =>
-                                              (v!.isNotEmpty && v.length < 6)
-                                                  ? "6 caractères minimum"
-                                                  : null,
+                                    const SizedBox(height: 24),
+
+                                    // ---- SECTION CHANGEMENT DE MOT DE PASSE ----
+                                    Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade50,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: Colors.grey.shade200,
+                                        ),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            isArabic
+                                                ? "🔒 تغيير كلمة المرور"
+                                                : "🔒 Changer le mot de passe",
+                                            style: GoogleFonts.cairo(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.textDark,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            isArabic
+                                                ? "Laissez vide si vous ne souhaitez pas le modifier"
+                                                : "Laissez vide si vous ne souhaitez pas le modifier",
+                                            style: GoogleFonts.cairo(
+                                              fontSize: 12,
+                                              color: Colors.grey.shade600,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 16),
+
+                                          // 👈 MOT DE PASSE ACTUEL (pré-rempli)
+                                          _buildPasswordField(
+                                            controller:
+                                                _currentPasswordController,
+                                            labelFr: "Mot de passe actuel",
+                                            labelAr: "كلمة المرور الحالية",
+                                            isArabic: isArabic,
+                                            obscureText:
+                                                _obscureCurrentPassword,
+                                            onToggle: () {
+                                              setState(() {
+                                                _obscureCurrentPassword =
+                                                    !_obscureCurrentPassword;
+                                              });
+                                            },
+                                            validator: (value) {
+                                              // Validation seulement si l'utilisateur change le mot de passe
+                                              if (_newPasswordController.text
+                                                      .trim()
+                                                      .isNotEmpty &&
+                                                  (value == null ||
+                                                      value.isEmpty)) {
+                                                return isArabic
+                                                    ? "يرجى إدخال كلمة المرور الحالية"
+                                                    : "Veuillez entrer votre mot de passe actuel";
+                                              }
+                                              return null;
+                                            },
+                                          ),
+                                          const SizedBox(height: 12),
+
+                                          // 👈 NOUVEAU MOT DE PASSE
+                                          _buildPasswordField(
+                                            controller: _newPasswordController,
+                                            labelFr: "Nouveau mot de passe",
+                                            labelAr: "كلمة المرور الجديدة",
+                                            isArabic: isArabic,
+                                            obscureText: _obscureNewPassword,
+                                            onToggle: () {
+                                              setState(() {
+                                                _obscureNewPassword =
+                                                    !_obscureNewPassword;
+                                              });
+                                            },
+                                            validator: (value) {
+                                              if (value != null &&
+                                                  value.isNotEmpty &&
+                                                  value.length < 6) {
+                                                return isArabic
+                                                    ? "كلمة المرور قصيرة جداً (6 أحرف على الأقل)"
+                                                    : "6 caractères minimum";
+                                              }
+                                              return null;
+                                            },
+                                          ),
+                                          const SizedBox(height: 12),
+
+                                          // 👈 CONFIRMER NOUVEAU MOT DE PASSE
+                                          _buildPasswordField(
+                                            controller:
+                                                _confirmPasswordController,
+                                            labelFr:
+                                                "Confirmer le mot de passe",
+                                            labelAr: "تأكيد كلمة المرور",
+                                            isArabic: isArabic,
+                                            obscureText:
+                                                _obscureConfirmPassword,
+                                            onToggle: () {
+                                              setState(() {
+                                                _obscureConfirmPassword =
+                                                    !_obscureConfirmPassword;
+                                              });
+                                            },
+                                            validator: (value) {
+                                              if (_newPasswordController.text
+                                                  .trim()
+                                                  .isNotEmpty) {
+                                                if (value == null ||
+                                                    value.isEmpty) {
+                                                  return isArabic
+                                                      ? "يرجى تأكيد كلمة المرور"
+                                                      : "Veuillez confirmer le mot de passe";
+                                                }
+                                                if (value !=
+                                                    _newPasswordController.text
+                                                        .trim()) {
+                                                  return isArabic
+                                                      ? "كلمات المرور غير متطابقة"
+                                                      : "Les mots de passe ne correspondent pas";
+                                                }
+                                              }
+                                              return null;
+                                            },
+                                          ),
+                                        ],
+                                      ),
                                     ),
+
                                     const SizedBox(height: 30),
 
                                     // ---- Boutons ----
@@ -811,6 +1013,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   // ---- WIDGETS PRIVÉS ----
+
   Widget _buildEditField({
     required TextEditingController controller,
     required String labelFr,
@@ -865,7 +1068,63 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  // ---- DROPDOWN CORRIGÉ AVEC VÉRIFICATION ----
+  // 👈 WIDGET CHAMP DE MOT DE PASSE AVEC ICÔNE ŒIL
+  Widget _buildPasswordField({
+    required TextEditingController controller,
+    required String labelFr,
+    required String labelAr,
+    required bool isArabic,
+    required bool obscureText,
+    required VoidCallback onToggle,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      obscureText: obscureText,
+      keyboardType: TextInputType.visiblePassword,
+      validator: validator,
+      style: GoogleFonts.cairo(color: AppColors.textDark, fontSize: 15),
+      decoration: InputDecoration(
+        labelText: isArabic ? labelAr : labelFr,
+        labelStyle: GoogleFonts.cairo(color: AppColors.textMuted),
+        prefixIcon: Icon(
+          Icons.lock_outline_rounded,
+          color: AppColors.primary.withOpacity(0.6),
+          size: 20,
+        ),
+        suffixIcon: IconButton(
+          icon: Icon(
+            obscureText
+                ? Icons.visibility_outlined
+                : Icons.visibility_off_outlined,
+            color: AppColors.primary.withOpacity(0.6),
+            size: 20,
+          ),
+          onPressed: onToggle,
+          splashRadius: 20,
+        ),
+        filled: true,
+        fillColor: AppColors.primary.withOpacity(0.01),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: AppColors.primary.withOpacity(0.1)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 1),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+        ),
+      ),
+    );
+  }
+
   Widget _buildDropdown({
     required String labelFr,
     required String labelAr,
@@ -876,7 +1135,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final isArabic =
         Provider.of<LanguageProvider>(context, listen: false).isArabic;
 
-    // ✅ Vérifier que la valeur existe dans les items
     final bool hasValidValue = items.any((item) => item.value == value);
     final String? effectiveValue = hasValidValue ? value : null;
 

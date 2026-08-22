@@ -10,6 +10,8 @@ import '../../providers/user_provider.dart';
 import '../../services/adherent_service.dart';
 import '../../models/role.dart';
 import '../landing/widgets/chatbot/chatbot_wrapper.dart';
+// 👇 AJOUTER CET IMPORT
+import '../../config/api_config.dart';
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
@@ -20,6 +22,7 @@ class AuthPage extends StatefulWidget {
 
 class _AuthPageState extends State<AuthPage> {
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
   final TextEditingController _whatsappController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -27,7 +30,6 @@ class _AuthPageState extends State<AuthPage> {
   final _formKey = GlobalKey<FormState>();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // --- COULEURS ---
   static const Color nafahatGreenDark = Color(0xff092E2A);
   static const Color nafahatGreen = Color(0xff0D443E);
   static const Color nafahatGold = Color(0xffC4A46C);
@@ -44,7 +46,6 @@ class _AuthPageState extends State<AuthPage> {
         );
 
         if (mounted) {
-          // ✅ Récupérer les informations du rôle
           Role? userRole;
           if (userData['role'] != null) {
             userRole = Role(
@@ -57,7 +58,6 @@ class _AuthPageState extends State<AuthPage> {
               updatedAt: DateTime.now(),
             );
           } else {
-            // Rôle par défaut pour les adhérents
             userRole = Role(
               id: 4,
               nom: 'adherent',
@@ -68,12 +68,12 @@ class _AuthPageState extends State<AuthPage> {
             );
           }
 
-          // ✅ Sauvegarder l'utilisateur dans le provider
           final userProvider = Provider.of<UserProvider>(
             context,
             listen: false,
           );
-          userProvider.setUser(
+
+          await userProvider.setUser(
             id: userData['adherent_id'].toString(),
             name: userData['nom_prenom'],
             whatsapp: userData['whatsapp'],
@@ -98,11 +98,12 @@ class _AuthPageState extends State<AuthPage> {
             ),
           );
 
-          Navigator.pushReplacement(
+          Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(
               builder: (context) => const ProfileDashboardPage(),
             ),
+            (route) => false,
           );
         }
       } catch (e) {
@@ -180,7 +181,8 @@ class _AuthPageState extends State<AuthPage> {
     return Directionality(
       textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
       child: ChatbotWrapper(
-        apiBaseUrl: 'http://localhost:3000',
+        // ✅ CORRECTION : Utiliser ApiConfig.baseUrl au lieu de l'URL en dur
+        apiBaseUrl: ApiConfig.baseUrl, // http://localhost:3000/api
         langue: isArabic ? 'ar' : 'fr',
         primaryColor: nafahatGreen,
         child: Scaffold(
@@ -192,7 +194,6 @@ class _AuthPageState extends State<AuthPage> {
               children: [
                 Row(
                   children: [
-                    // --- PANNEAU VISUEL ---
                     if (!isMobile)
                       Expanded(
                         flex: 5,
@@ -284,7 +285,6 @@ class _AuthPageState extends State<AuthPage> {
                         ),
                       ),
 
-                    // --- ZONE FORMULAIRE DE CONNEXION ---
                     Expanded(
                       flex: 6,
                       child: Container(
@@ -322,7 +322,6 @@ class _AuthPageState extends State<AuthPage> {
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
-                                    // --- TITRE ---
                                     Text(
                                       isArabic
                                           ? "تسجيل الدخول"
@@ -347,7 +346,6 @@ class _AuthPageState extends State<AuthPage> {
                                     ),
                                     const SizedBox(height: 30),
 
-                                    // --- CHAMP WHATSAPP (identifiant) ---
                                     _buildTextField(
                                       controller: _whatsappController,
                                       labelFr: "Numéro WhatsApp",
@@ -366,14 +364,11 @@ class _AuthPageState extends State<AuthPage> {
                                     ),
                                     const SizedBox(height: 18),
 
-                                    // --- CHAMP MOT DE PASSE ---
-                                    _buildTextField(
+                                    _buildPasswordField(
                                       controller: _passwordController,
                                       labelFr: "Mot de passe",
                                       labelAr: "كلمة المرور",
-                                      icon: Icons.lock_outline_rounded,
                                       isArabic: isArabic,
-                                      isPassword: true,
                                       validator: (value) {
                                         if (value == null || value.isEmpty) {
                                           return isArabic
@@ -390,7 +385,6 @@ class _AuthPageState extends State<AuthPage> {
                                     ),
                                     const SizedBox(height: 12),
 
-                                    // --- LIEN "MOT DE PASSE OUBLIÉ" ---
                                     Align(
                                       alignment: Alignment.centerRight,
                                       child: TextButton(
@@ -411,7 +405,6 @@ class _AuthPageState extends State<AuthPage> {
                                     ),
                                     const SizedBox(height: 30),
 
-                                    // --- BOUTON SE CONNECTER ---
                                     ElevatedButton(
                                       onPressed: _isLoading ? null : _login,
                                       style: ElevatedButton.styleFrom(
@@ -450,7 +443,6 @@ class _AuthPageState extends State<AuthPage> {
                                     ),
                                     const SizedBox(height: 20),
 
-                                    // --- LIEN "CRÉER UN COMPTE" ---
                                     Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
@@ -504,7 +496,6 @@ class _AuthPageState extends State<AuthPage> {
                   ],
                 ),
 
-                // --- NAVBAR ---
                 Positioned(
                   top: 0,
                   left: 0,
@@ -519,7 +510,6 @@ class _AuthPageState extends State<AuthPage> {
     );
   }
 
-  // --- WIDGET CHAMP DE TEXTE ---
   Widget _buildTextField({
     required TextEditingController controller,
     required String labelFr,
@@ -563,6 +553,75 @@ class _AuthPageState extends State<AuthPage> {
           borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
         ),
       ),
+    );
+  }
+
+  Widget _buildPasswordField({
+    required TextEditingController controller,
+    required String labelFr,
+    required String labelAr,
+    required bool isArabic,
+    required String? Function(String?)? validator,
+  }) {
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return TextFormField(
+          controller: controller,
+          obscureText: _obscurePassword,
+          keyboardType: TextInputType.visiblePassword,
+          validator: validator,
+          style: GoogleFonts.cairo(color: AppColors.textDark, fontSize: 14),
+          decoration: InputDecoration(
+            labelText: isArabic ? labelAr : labelFr,
+            labelStyle: GoogleFonts.cairo(
+              color: AppColors.textMuted,
+              fontSize: 13,
+            ),
+            prefixIcon: Icon(
+              Icons.lock_outline_rounded,
+              color: nafahatGreen.withOpacity(0.6),
+              size: 18,
+            ),
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscurePassword
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
+                color: nafahatGreen.withOpacity(0.6),
+                size: 20,
+              ),
+              onPressed: () {
+                setState(() {
+                  _obscurePassword = !_obscurePassword;
+                });
+              },
+              splashRadius: 20,
+            ),
+            filled: true,
+            fillColor: nafahatGreen.withOpacity(0.01),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: nafahatGreen.withOpacity(0.1)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: nafahatGreen, width: 1.5),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.redAccent, width: 1),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -19,8 +19,7 @@ import 'pages/landing/widgets/chatbot/chatbot_widget.dart';
 import 'package:nafahat/config/api_config.dart';
 import 'pages/landing/landing_page.dart';
 import 'package:nafahat/models/card_config_model.dart';
-// 👇 Ajout de l'import pour la page d'inscription
-import 'package:nafahat/pages/users/inscription_adherent.dart';
+import 'package:nafahat/pages/users/profile_dashboard_page.dart'; // 👈 AJOUTER CET IMPORT
 
 void main() {
   runApp(const MyApp());
@@ -58,7 +57,9 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => LanguageProvider()),
         ChangeNotifierProvider(create: (_) => ChatbotProvider()),
-        ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(
+          create: (_) => UserProvider(),
+        ), // 👈 Le constructeur charge la session
         ChangeNotifierProvider(create: (_) => AboutProvider()),
         // Ajouter d'autres providers si nécessaire
       ],
@@ -99,11 +100,9 @@ class MyApp extends StatelessWidget {
             localeResolutionCallback: (deviceLocale, supportedLocales) {
               return const Locale('ar');
             },
-            // 👇 Navigation avec route observer pour contrôler le chatbot
             navigatorObservers: [ChatbotRouteObserver()],
             // 👈 ICI on utilise la fonction pour déterminer la page initiale
             home: _getInitialPage(),
-            // 👇 Routes nommées pour un meilleur contrôle
             routes: {
               '/landing':
                   (context) => const ChatbotGlobalWrapper(
@@ -120,23 +119,19 @@ class MyApp extends StatelessWidget {
                     hideOnRoute: false,
                     child: AuthPage(),
                   ),
-              // 👇 AJOUT DE LA ROUTE /login
               '/login':
                   (context) => const ChatbotGlobalWrapper(
                     hideOnRoute: false,
                     child: AuthPage(),
                   ),
-              // 👇 AJOUT DE LA ROUTE /inscription
               '/inscription':
                   (context) => const ChatbotGlobalWrapper(
                     hideOnRoute: false,
                     child: InscriptionAdherentPage(),
                   ),
             },
-            // 👇 AJOUT DU GESTIONNAIRE POUR LES ROUTES INCONNUES
             onUnknownRoute: (settings) {
               print('⚠️ [ROUTE] Route inconnue: ${settings.name}');
-              // Rediriger vers la page d'authentification par défaut
               return MaterialPageRoute(
                 builder:
                     (context) => const ChatbotGlobalWrapper(
@@ -154,7 +149,6 @@ class MyApp extends StatelessWidget {
 
 // 👇 OBSERVATEUR DE ROUTE pour mettre à jour le ChatbotProvider
 class ChatbotRouteObserver extends NavigatorObserver {
-  // Liste des routes où le chatbot doit être caché
   static const List<String> _hideRoutes = ['/splash', '/landing'];
 
   @override
@@ -176,19 +170,15 @@ class ChatbotRouteObserver extends NavigatorObserver {
   }
 
   void _updateChatbotVisibility(String? routeName) {
-    // Récupérer le contexte du navigateur
     final context = navigator?.context;
     if (context != null) {
-      // Récupérer le ChatbotProvider
       final chatbotProvider = Provider.of<ChatbotProvider>(
         context,
         listen: false,
       );
 
-      // Vérifier si la route actuelle doit cacher le chatbot
       final shouldHide = _hideRoutes.contains(routeName);
 
-      // Mettre à jour la visibilité
       if (shouldHide) {
         chatbotProvider.hide();
         print('🔍 Chatbot CACHÉ sur la route: $routeName');
@@ -200,7 +190,7 @@ class ChatbotRouteObserver extends NavigatorObserver {
   }
 }
 
-// 📄 PAGE COMING SOON avec bouton non cliquable et effet de rebondissement
+// 📄 PAGE COMING SOON
 class ComingSoonPage extends StatefulWidget {
   const ComingSoonPage({super.key});
 
@@ -216,16 +206,12 @@ class _ComingSoonPageState extends State<ComingSoonPage>
   @override
   void initState() {
     super.initState();
-    // Configuration de l'animation de rebondissement plus prononcée
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 1200), // Plus rapide
+      duration: const Duration(milliseconds: 1200),
       vsync: this,
     )..repeat(reverse: true);
 
-    _scaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: 1.12, // Rebondissement plus prononcé
-    ).animate(
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.12).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
   }
@@ -238,16 +224,13 @@ class _ComingSoonPageState extends State<ComingSoonPage>
 
   @override
   Widget build(BuildContext context) {
-    // Couleur orange utilisée dans le bouton
     const Color orangeColor = Color.fromARGB(255, 180, 5, 20);
 
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
           image: DecorationImage(
-            image: AssetImage(
-              'assets/images/slide1.png',
-            ), // Remplacez par votre image
+            image: AssetImage('assets/images/slide1.png'),
             fit: BoxFit.cover,
           ),
         ),
@@ -257,8 +240,8 @@ class _ComingSoonPageState extends State<ComingSoonPage>
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Colors.black.withOpacity(0.15), // Plus clair
-                Colors.black.withOpacity(0.4), // Plus clair
+                Colors.black.withOpacity(0.15),
+                Colors.black.withOpacity(0.4),
               ],
             ),
           ),
@@ -268,7 +251,6 @@ class _ComingSoonPageState extends State<ComingSoonPage>
               children: [
                 const SizedBox(height: 40),
                 const SizedBox(height: 40),
-                // Bouton avec animation de rebondissement et non cliquable
                 Padding(
                   padding: const EdgeInsets.only(top: 220.0),
                   child: AnimatedBuilder(
@@ -277,11 +259,11 @@ class _ComingSoonPageState extends State<ComingSoonPage>
                       return Transform.scale(
                         scale: _scaleAnimation.value,
                         child: AbsorbPointer(
-                          absorbing: true, // Rend le bouton non cliquable
+                          absorbing: true,
                           child: ElevatedButton.icon(
-                            onPressed: null, // null = non cliquable
+                            onPressed: null,
                             icon: Icon(
-                              Icons.hourglass_empty, // Icône sablier
+                              Icons.hourglass_empty,
                               size: 28,
                               color: orangeColor,
                             ),
@@ -294,7 +276,7 @@ class _ComingSoonPageState extends State<ComingSoonPage>
                               ),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white, // Fond blanc
+                              backgroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 40,
                                 vertical: 16,
@@ -325,7 +307,7 @@ class _ComingSoonPageState extends State<ComingSoonPage>
 // ✅ WRAPPER avec ChatbotProvider
 class ChatbotGlobalWrapper extends StatefulWidget {
   final Widget child;
-  final bool hideOnRoute; // 👈 Paramètre pour cacher sur une route spécifique
+  final bool hideOnRoute;
 
   const ChatbotGlobalWrapper({
     super.key,
@@ -341,7 +323,6 @@ class _ChatbotGlobalWrapperState extends State<ChatbotGlobalWrapper> {
   @override
   void initState() {
     super.initState();
-    // Si hideOnRoute est true, cacher le chatbot immédiatement
     if (widget.hideOnRoute) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final provider = Provider.of<ChatbotProvider>(context, listen: false);
@@ -356,15 +337,12 @@ class _ChatbotGlobalWrapperState extends State<ChatbotGlobalWrapper> {
     final isArabic = Provider.of<LanguageProvider>(context).isArabic;
     final chatbotProvider = Provider.of<ChatbotProvider>(context);
 
-    // Vérifier si le chatbot doit être caché via le provider
     bool showChatbot = chatbotProvider.isVisible;
 
-    // Vérification supplémentaire via le type du widget enfant
     if (widget.child is SplashScreen || widget.child is LandingPage) {
       showChatbot = false;
     }
 
-    // Vérification via le nom de la route
     final route = ModalRoute.of(context);
     final routeName = route?.settings.name ?? '';
     if (routeName == '/splash' || routeName == '/landing') {
@@ -378,7 +356,6 @@ class _ChatbotGlobalWrapperState extends State<ChatbotGlobalWrapper> {
     return Stack(
       children: [
         widget.child,
-        // 👇 Afficher le chatbot SEULEMENT si showChatbot est true
         if (showChatbot)
           ChatbotWidget(
             apiBaseUrl: ApiConfig.baseUrl,
