@@ -61,6 +61,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     const AdherentsManagementPage(),
     const AdherentsManagementPage(),
     const CreerUserPage(),
+    const VideosManagementPage(),
   ];
 
   // Titres pour l'AppBar
@@ -78,6 +79,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     'Adhérents',
     'Créer un utilisateur',
     'Inscription adhérent',
+    'Vidéos',
   ];
 
   final List<String> _titlesAr = [
@@ -94,6 +96,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     'المنخرطين',
     'إنشاء مستخدم',
     'تسجيل منخرط',
+    'الفيديوهات',
   ];
 
   // Structure des menus avec groupes
@@ -138,6 +141,12 @@ class _AdministrationPageState extends State<AdministrationPage> {
           'title': 'Cibles',
           'titleAr': 'الجمهور المستهدف',
           'page': 6,
+        },
+        {
+          'icon': Icons.video_library_outlined,
+          'title': 'Vidéos',
+          'titleAr': 'الفيديوهات',
+          'page': 13, // Nouvel index
         },
       ],
     },
