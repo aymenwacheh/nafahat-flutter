@@ -31,7 +31,8 @@ import 'package:nafahat/pages/adminisration/add_typeFormation.dart';
 import 'add_about.dart';
 import 'package:nafahat/pages/adminisration/creerUserPage.dart';
 import 'package:nafahat/pages/users/inscription_adherent.dart';
-import '../../services/navigation_service.dart'; // 👈 AJOUTER
+import '../../services/navigation_service.dart';
+import 'etat_paiement.dart';
 
 class AdministrationPage extends StatefulWidget {
   const AdministrationPage({super.key});
@@ -62,6 +63,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     const AdherentsManagementPage(),
     const CreerUserPage(),
     const VideosManagementPage(),
+    const EtatPaiementPage(),
   ];
 
   // Titres pour l'AppBar
@@ -80,6 +82,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     'Créer un utilisateur',
     'Inscription adhérent',
     'Vidéos',
+    'paiement',
   ];
 
   final List<String> _titlesAr = [
@@ -97,6 +100,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     'إنشاء مستخدم',
     'تسجيل منخرط',
     'الفيديوهات',
+    'منتمنة ',
   ];
 
   // Structure des menus avec groupes
@@ -197,6 +201,12 @@ class _AdministrationPageState extends State<AdministrationPage> {
           'title': 'Inscription adhérent',
           'titleAr': 'تسجيل منخرط',
           'page': 12,
+        },
+        {
+          'icon': Icons.verified,
+          'title': 'État des paiements',
+          'titleAr': 'حالة المدفوعات',
+          'page': 14,
         },
       ],
     },
