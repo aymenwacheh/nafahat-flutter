@@ -29,7 +29,6 @@ class PaymentService {
       print('   📋 userId: $userId');
       print('   📋 currency: $currency');
 
-      // ✅ URL correcte : baseUrl + /payments/initiate
       final url = '$baseUrl/payments/initiate';
       print('   📋 URL: $url');
 
@@ -113,7 +112,6 @@ class PaymentService {
       print('   📋 fileName: $fileName');
       print('   📋 Platform: ${kIsWeb ? "Web" : "Mobile/Desktop"}');
 
-      // ✅ Utiliser UploadService avec la bonne URL
       return await UploadService.uploadQuittance(
         fileData: fileData,
         fileName: fileName,
@@ -126,10 +124,13 @@ class PaymentService {
   }
 
   // ============================================================
-  // RÉCUPÉRATION DES PAIEMENTS
+  // RÉCUPÉRATION DES PAIEMENTS D'UN UTILISATEUR
+  // ✅ RETOURNE UNE LISTE (pour utilisation dans profile_dashboard_page)
   // ============================================================
 
-  static Future<Map<String, dynamic>> getUserPayments(String userId) async {
+  static Future<List<Map<String, dynamic>>> getUserPayments(
+    String userId,
+  ) async {
     try {
       print('🔵 [PaymentService] Récupération paiements utilisateur: $userId');
 
@@ -139,13 +140,17 @@ class PaymentService {
       final response = await http.get(Uri.parse(url));
 
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        final data = jsonDecode(response.body);
+        // ✅ Extraire la liste des paiements
+        final List<dynamic> payments = data['data'] ?? [];
+        return payments.map((e) => Map<String, dynamic>.from(e)).toList();
       } else {
-        throw Exception('Erreur: ${response.statusCode}');
+        print('❌ Erreur: ${response.statusCode} - ${response.body}');
+        return [];
       }
     } catch (e) {
       print('❌ [PaymentService] Erreur getUserPayments: $e');
-      return {'success': false, 'message': e.toString()};
+      return [];
     }
   }
 
@@ -231,6 +236,31 @@ class PaymentService {
     } catch (e) {
       print('❌ [PaymentService] Erreur updateStatus: $e');
       return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  // ============================================================
+  // RÉCUPÉRATION D'UN PAIEMENT PAR ID
+  // ============================================================
+
+  static Future<Map<String, dynamic>?> getPaymentById(String paymentId) async {
+    try {
+      print('🔵 [PaymentService] Récupération paiement: $paymentId');
+
+      final url = '$baseUrl/payments/$paymentId';
+      print('   📋 URL: $url');
+
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['data'] as Map<String, dynamic>;
+      } else {
+        return null;
+      }
+    } catch (e) {
+      print('❌ [PaymentService] Erreur getPaymentById: $e');
+      return null;
     }
   }
 }

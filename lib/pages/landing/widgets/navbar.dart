@@ -35,6 +35,7 @@ class Navbar extends StatelessWidget {
 
   static const Color nafahatGreen = Color(0xff0D443E);
   static const Color nafahatGold = Color(0xffC4A46C);
+  static const Color nafahatGoldLight = Color(0xffE8D5B7);
 
   const Navbar({super.key, required this.isMobile, this.scaffoldKey});
 
@@ -57,7 +58,7 @@ class Navbar extends StatelessWidget {
   }
 
   // ============================================================
-  // MENU ADMINISTRATION - ITEMS POUR WEB (SEULEMENT COMPLÈTE)
+  // MENU ADMINISTRATION - ITEMS POUR WEB
   // ============================================================
   List<Map<String, dynamic>> _getAdminMenuItems(
     BuildContext context,
@@ -77,9 +78,6 @@ class Navbar extends StatelessWidget {
     ];
   }
 
-  // ============================================================
-  // MENU ADMINISTRATION - ITEMS COMPLETS POUR MOBILE
-  // ============================================================
   List<Map<String, dynamic>> _getAdminMenuItemsFull(
     BuildContext context,
     bool isArabic,
@@ -179,93 +177,346 @@ class Navbar extends StatelessWidget {
   }
 
   // ============================================================
-  // OUVRIR LE DRAWER DE MANIÈRE SÉCURISÉE AVEC LOGS
+  // OUVRIR LE DRAWER
   // ============================================================
   void _openDrawer() {
     debugPrint('🔍 [MENU MOBILE] _openDrawer() appelé');
-    debugPrint('🔍 [MENU MOBILE] scaffoldKey = $scaffoldKey');
-
     if (scaffoldKey == null) {
       debugPrint('❌ [MENU MOBILE] scaffoldKey est null!');
       return;
     }
-
-    debugPrint(
-      '🔍 [MENU MOBILE] scaffoldKey.currentState = ${scaffoldKey!.currentState}',
-    );
-
     if (scaffoldKey!.currentState != null) {
-      debugPrint('✅ [MENU MOBILE] Ouverture du drawer...');
       scaffoldKey!.currentState!.openDrawer();
-      debugPrint('✅ [MENU MOBILE] Drawer ouvert avec succès');
     } else {
       debugPrint('❌ [MENU MOBILE] scaffoldKey.currentState est null!');
-      debugPrint('❌ [MENU MOBILE] Vérifiez que le Scaffold a bien une clé');
     }
   }
 
   // ============================================================
-  // BUILD PRINCIPAL AVEC LOGS
+  // BUILD PRINCIPAL - NOUVEAU DESIGN
   // ============================================================
   @override
   Widget build(BuildContext context) {
-    debugPrint('🔍 [NAVBAR] build() - isMobile: $isMobile');
-
     final languageProvider = Provider.of<LanguageProvider>(context);
     final userProvider = Provider.of<UserProvider>(context);
     final isArabic = languageProvider.isArabic;
     final canViewAdmin = _canViewAdmin(context);
     final isLoggedIn = userProvider.isLoggedIn;
 
-    debugPrint('🔍 [NAVBAR] isArabic: $isArabic, isLoggedIn: $isLoggedIn');
-
-    // Logs pour le mode d'affichage
-    if (isMobile) {
-      debugPrint('🔍 [NAVBAR] 📱 Mode mobile - affichage du bouton hamburger');
-      debugPrint('🔍 [NAVBAR] 📱 scaffoldKey = $scaffoldKey');
-    } else {
-      debugPrint('💻 [NAVBAR] Mode desktop - affichage du menu complet');
-    }
-
     return ClipRRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: Container(
-          height: 85,
+          height: isMobile ? 70 : 80,
           padding: EdgeInsets.symmetric(
-            horizontal: isMobile ? 12 : 50,
-            vertical: 12,
+            horizontal: isMobile ? 12 : 40,
+            vertical: 8,
           ),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.75),
+            color: Colors.white.withOpacity(0.92),
             border: Border(
               bottom: BorderSide(
-                color: nafahatGreen.withOpacity(0.08),
+                color: nafahatGreen.withOpacity(0.06),
                 width: 1,
               ),
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildLogo(isArabic),
-              // Mode mobile - bouton hamburger
+              _buildLogo(isArabic, isMobile),
               if (isMobile) _buildMobileMenuButton(),
-              // Mode desktop - menu complet
               if (!isMobile)
-                _buildDesktopMenu(
-                  context,
-                  isArabic,
-                  languageProvider,
-                  userProvider,
-                  canViewAdmin,
-                  isLoggedIn,
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      _buildSearchBar(isArabic),
+                      const SizedBox(width: 16),
+                      _buildDesktopMenu(
+                        context,
+                        isArabic,
+                        languageProvider,
+                        userProvider,
+                        canViewAdmin,
+                        isLoggedIn,
+                      ),
+                      const SizedBox(width: 16),
+                      if (canViewAdmin) _buildAdminMenu(context, isArabic),
+                      _buildCartIcon(context, isArabic),
+                      _buildUserSection(context, isArabic, userProvider),
+                    ],
+                  ),
                 ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  // ============================================================
+  // LOGO - TEXTE SEULEMENT
+  // ============================================================
+  Widget _buildLogo(bool isArabic, bool isMobile) {
+    return Row(
+      children: [
+        Text(
+          isArabic ? "نفحات" : "Nafahat",
+          style: GoogleFonts.cairo(
+            fontSize: isMobile ? 20 : 26,
+            fontWeight: FontWeight.w800,
+            color: nafahatGreen,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Container(
+          width: 6,
+          height: 6,
+          decoration: const BoxDecoration(
+            color: nafahatGold,
+            shape: BoxShape.circle,
+          ),
+        ),
+        Text(
+          isArabic ? "أكاديمية" : "Academy",
+          style: GoogleFonts.cairo(
+            fontSize: isMobile ? 12 : 16,
+            fontWeight: FontWeight.w400,
+            color: nafahatGold,
+            letterSpacing: 0.3,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // BARRE DE RECHERCHE
+  // ============================================================
+  Widget _buildSearchBar(bool isArabic) {
+    return Container(
+      width: 220,
+      height: 40,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(25),
+        border: Border.all(color: Colors.grey.shade200, width: 1),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(width: 12),
+          Icon(Icons.search_rounded, size: 18, color: Colors.grey.shade500),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              decoration: InputDecoration(
+                hintText:
+                    isArabic ? 'ابحث عن دورة...' : 'Rechercher un cours...',
+                hintStyle: GoogleFonts.cairo(
+                  fontSize: 13,
+                  color: Colors.grey.shade400,
+                ),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 8),
+              ),
+              onSubmitted: (value) {},
+            ),
+          ),
+          const SizedBox(width: 4),
+          Container(
+            margin: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              color: nafahatGreen,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: IconButton(
+              icon: Icon(
+                Icons.arrow_forward_rounded,
+                size: 16,
+                color: Colors.white,
+              ),
+              onPressed: () {},
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            ),
+          ),
+          const SizedBox(width: 4),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // ICONE PANIER
+  // ============================================================
+  Widget _buildCartIcon(BuildContext context, bool isArabic) {
+    return Stack(
+      children: [
+        IconButton(
+          icon: Icon(
+            Icons.shopping_cart_outlined,
+            color: nafahatGreen,
+            size: 24,
+          ),
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  isArabic ? '🛒 قريباً...' : '🛒 Bientôt disponible...',
+                  style: GoogleFonts.cairo(),
+                ),
+                backgroundColor: nafahatGreen,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            );
+          },
+          tooltip: isArabic ? 'السلة' : 'Panier',
+        ),
+        Positioned(
+          right: 4,
+          top: 4,
+          child: Container(
+            width: 18,
+            height: 18,
+            decoration: const BoxDecoration(
+              color: nafahatGold,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                '0',
+                style: GoogleFonts.cairo(
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // SECTION UTILISATEUR / AUTHENTIFICATION
+  // ============================================================
+  Widget _buildUserSection(
+    BuildContext context,
+    bool isArabic,
+    UserProvider userProvider,
+  ) {
+    if (userProvider.isLoggedIn) {
+      return PopupMenuButton<String>(
+        tooltip: isArabic ? "حسابي" : "Mon compte",
+        offset: const Offset(0, 50),
+        onSelected: (value) => _handleAccountAction(context, value, isArabic),
+        itemBuilder:
+            (context) =>
+                _buildAccountPopupItems(context, isArabic, userProvider),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: nafahatGreen.withOpacity(0.06),
+            borderRadius: BorderRadius.circular(25),
+            border: Border.all(color: nafahatGreen.withOpacity(0.1)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: nafahatGreen,
+                child: Text(
+                  userProvider.initials,
+                  style: GoogleFonts.cairo(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                userProvider.displayName,
+                style: GoogleFonts.cairo(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: nafahatGreen,
+                ),
+                maxLines: 80,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(width: 4),
+              Icon(Icons.arrow_drop_down, color: nafahatGreen, size: 20),
+            ],
+          ),
+        ),
+      );
+    } else {
+      return Row(
+        children: [
+          OutlinedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const InscriptionAdherentPage(),
+                ),
+              );
+            },
+            style: OutlinedButton.styleFrom(
+              foregroundColor: nafahatGreen,
+              side: BorderSide(color: nafahatGreen.withOpacity(0.3)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(25),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              textStyle: GoogleFonts.cairo(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            child: Text(isArabic ? 'انضم' : "S'inscrire"),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AuthPage()),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: nafahatGreen,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(25),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              elevation: 0,
+              textStyle: GoogleFonts.cairo(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            child: Text(isArabic ? 'تسجيل الدخول' : 'Se connecter'),
+          ),
+        ],
+      );
+    }
   }
 
   // ============================================================
@@ -296,7 +547,6 @@ class Navbar extends StatelessWidget {
           context: context,
           title: isArabic ? "الدورات" : "Cycles",
           onTap: () {
-            // Navigation vers la page AllTrainingsPage
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const AllTrainingsPage()),
@@ -307,7 +557,6 @@ class Navbar extends StatelessWidget {
           context: context,
           title: isArabic ? "فيديوهات" : "Vidéos",
           onTap: () {
-            // Navigation vers la page AllVideoPage
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const AllVideoPage()),
@@ -318,114 +567,38 @@ class Navbar extends StatelessWidget {
           context: context,
           title: isArabic ? "عن المنصة" : "À propos",
           onTap: () {
-            // Navigation vers la page AboutPage
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const AboutPage()),
             );
           },
         ),
-        const SizedBox(width: 15),
-        IconButton(
-          icon: const Icon(Icons.language, color: nafahatGreen, size: 22),
-          onPressed: () {
-            languageProvider.toggleLanguage();
-          },
-          tooltip: isArabic ? "Français" : "العربية",
-        ),
-        const SizedBox(width: 15),
-
-        if (canViewAdmin) ...[
-          _buildAdminMenu(context, isArabic),
-          const SizedBox(width: 15),
-        ],
-
-        _buildAccountSection(context, isArabic, userProvider, isLoggedIn),
       ],
     );
   }
 
-  // ============================================================
-  // SECTION COMPTE AVEC "HELLO, NOM"
-  // ============================================================
-  Widget _buildAccountSection(
-    BuildContext context,
-    bool isArabic,
-    UserProvider userProvider,
-    bool isLoggedIn,
-  ) {
-    return Row(
-      children: [
-        if (isLoggedIn) ...[
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: nafahatGreen.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 14,
-                  backgroundColor: nafahatGreen,
-                  child: Text(
-                    userProvider.initials,
-                    style: GoogleFonts.cairo(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      isArabic ? 'مرحباً' : 'Bonjour',
-                      style: GoogleFonts.cairo(
-                        fontSize: 10,
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
-                    Text(
-                      userProvider.displayName,
-                      style: GoogleFonts.cairo(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: nafahatGreen,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 4),
-                if (userProvider.userRole != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: nafahatGold.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      userProvider.userRole!.libelle,
-                      style: GoogleFonts.cairo(
-                        fontSize: 8,
-                        fontWeight: FontWeight.w600,
-                        color: nafahatGold,
-                      ),
-                    ),
-                  ),
-              ],
+  Widget _navLink({
+    required BuildContext context,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          child: Text(
+            title,
+            style: GoogleFonts.cairo(
+              color: const Color(0xff2c221e),
+              fontWeight: FontWeight.w500,
+              fontSize: 14,
             ),
           ),
-          const SizedBox(width: 10),
-        ],
-        _buildAccountMenu(context, isArabic, userProvider),
-      ],
+        ),
+      ),
     );
   }
 
@@ -439,25 +612,21 @@ class Navbar extends StatelessWidget {
       onSelected: (value) => _handleAdminAction(context, value, isArabic),
       itemBuilder: (context) => _buildAdminPopupItems(context, isArabic),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: nafahatGreen.withOpacity(0.1),
+          color: nafahatGreen.withOpacity(0.08),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
           children: [
-            const Icon(
-              Icons.admin_panel_settings,
-              color: nafahatGreen,
-              size: 20,
-            ),
-            const SizedBox(width: 6),
+            Icon(Icons.admin_panel_settings, color: nafahatGreen, size: 18),
+            const SizedBox(width: 4),
             Text(
               isArabic ? "الإدارة" : "Admin",
               style: GoogleFonts.cairo(
                 color: nafahatGreen,
                 fontWeight: FontWeight.w600,
-                fontSize: 13,
+                fontSize: 12,
               ),
             ),
           ],
@@ -688,29 +857,6 @@ class Navbar extends StatelessWidget {
     return items;
   }
 
-  Widget _buildAccountMenu(
-    BuildContext context,
-    bool isArabic,
-    UserProvider userProvider,
-  ) {
-    return PopupMenuButton<String>(
-      tooltip: isArabic ? "حسابي" : "Mon compte",
-      offset: const Offset(0, 50),
-      onSelected: (value) => _handleAccountAction(context, value, isArabic),
-      itemBuilder:
-          (context) => _buildAccountPopupItems(context, isArabic, userProvider),
-      child: CircleAvatar(
-        backgroundColor: nafahatGreen.withOpacity(0.1),
-        child: Icon(
-          userProvider.isLoggedIn
-              ? Icons.person_rounded
-              : Icons.person_outline_rounded,
-          color: nafahatGreen,
-        ),
-      ),
-    );
-  }
-
   List<PopupMenuItem<String>> _buildAccountPopupItems(
     BuildContext context,
     bool isArabic,
@@ -798,8 +944,6 @@ class Navbar extends StatelessWidget {
       case 'logout':
         final userProvider = Provider.of<UserProvider>(context, listen: false);
         userProvider.logout();
-        // ✅ FIX : nettoyer aussi AuthService, sinon la session de paiement
-        // reste active même après déconnexion de l'UI.
         AuthService.logout();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -814,31 +958,21 @@ class Navbar extends StatelessWidget {
   }
 
   // ============================================================
-  // BOUTON MOBILE HAMBURGER AVEC LOGS
+  // BOUTON MOBILE HAMBURGER
   // ============================================================
   Widget _buildMobileMenuButton() {
-    debugPrint(
-      '🔍 [MENU MOBILE] _buildMobileMenuButton() - création du bouton',
-    );
-    debugPrint('🔍 [MENU MOBILE] scaffoldKey = $scaffoldKey');
-
     return IconButton(
-      icon: const Icon(Icons.menu_rounded, color: nafahatGreen, size: 30),
-      onPressed: () {
-        debugPrint('🔍 [MENU MOBILE] 🔘 Bouton hamburger CLICKÉ!');
-        _openDrawer();
-      },
+      icon: const Icon(Icons.menu_rounded, color: nafahatGreen, size: 28),
+      onPressed: _openDrawer,
       tooltip: 'Menu',
       splashColor: nafahatGreen.withOpacity(0.2),
     );
   }
 
   // ============================================================
-  // DRAWER MOBILE AVEC LOGS - AMÉLIORÉ
+  // DRAWER MOBILE
   // ============================================================
   Widget buildDrawer(BuildContext context) {
-    debugPrint('🔍 [DRAWER] buildDrawer() appelé');
-
     final isArabic = Provider.of<LanguageProvider>(context).isArabic;
     final userProvider = Provider.of<UserProvider>(context);
     final canViewAdmin = _canViewAdmin(context);
@@ -846,10 +980,8 @@ class Navbar extends StatelessWidget {
     final isAdherentOrFormateur =
         userProvider.isAdherent || userProvider.isFormateur;
 
-    debugPrint('🔍 [DRAWER] isArabic: $isArabic, isLoggedIn: $isLoggedIn');
-
     return Drawer(
-      backgroundColor: Colors.white.withOpacity(0.92),
+      backgroundColor: Colors.white.withOpacity(0.95),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Column(
@@ -862,7 +994,6 @@ class Navbar extends StatelessWidget {
                   vertical: 10,
                 ),
                 children: [
-                  // === MENU PRINCIPAL ===
                   _drawerTile(
                     icon: Icons.home_outlined,
                     title: isArabic ? "الرئيسية" : "Accueil",
@@ -897,23 +1028,13 @@ class Navbar extends StatelessWidget {
                         () =>
                             _closeDrawerAndNavigate(context, const AboutPage()),
                   ),
-
-                  // === SÉPARATEUR 1 : Sous "À propos" ===
                   const Divider(
                     height: 30,
                     thickness: 1.5,
-                    color: Color(0xff0D443E),
-                    indent: 8,
-                    endIndent: 8,
+                    color: nafahatGreen,
                   ),
-
-                  // === SECTION ADMINISTRATION (si permissions) - AVEC TOUS LES SOUS-MENUS ===
                   if (canViewAdmin) _buildDrawerAdminSection(context, isArabic),
-
-                  // === SECTION COMPTE ===
                   _buildDrawerAccountSection(context, isArabic, userProvider),
-
-                  // === OPTIONS SUPPLÉMENTAIRES ===
                   if (isLoggedIn && isAdherentOrFormateur)
                     _drawerTile(
                       icon: Icons.settings_outlined,
@@ -932,36 +1053,6 @@ class Navbar extends StatelessWidget {
                         );
                       },
                     ),
-
-                  _drawerTile(
-                    icon: Icons.build_circle_outlined,
-                    title:
-                        isArabic ? "🔧 معالجة النشاط" : "🔧 Traiter l'activité",
-                    onTap: () {
-                      _closeDrawer(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            isArabic
-                                ? 'معالجة النشاط - قريباً'
-                                : 'Traitement de l\'activité - Bientôt disponible',
-                          ),
-                          backgroundColor: nafahatGreen,
-                        ),
-                      );
-                    },
-                  ),
-
-                  // === SÉPARATEUR 2 : Au-dessus de "Changer en français" ===
-                  const Divider(
-                    height: 30,
-                    thickness: 1.5,
-                    color: Color(0xff0D443E),
-                    indent: 8,
-                    endIndent: 8,
-                  ),
-
-                  // === DÉCONNEXION ===
                   if (isLoggedIn)
                     _drawerTile(
                       icon: Icons.logout_rounded,
@@ -970,7 +1061,6 @@ class Navbar extends StatelessWidget {
                       onTap: () {
                         _closeDrawer(context);
                         userProvider.logout();
-                        // ✅ FIX : nettoyer aussi AuthService (voir menu desktop)
                         AuthService.logout();
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -984,10 +1074,7 @@ class Navbar extends StatelessWidget {
                         );
                       },
                     ),
-
                   const SizedBox(height: 10),
-
-                  // === BOUTON DE LANGUE ===
                   ListTile(
                     leading: const Icon(Icons.language, color: nafahatGreen),
                     title: Text(
@@ -1021,7 +1108,7 @@ class Navbar extends StatelessWidget {
 
   Widget _buildDrawerHeader(bool isArabic, UserProvider userProvider) {
     return Container(
-      height: 130,
+      height: 120,
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -1033,82 +1120,87 @@ class Navbar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              image: const DecorationImage(
-                image: AssetImage('assets/images/logo.jpg'),
-                fit: BoxFit.cover,
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    isArabic ? "نفحات" : "Nafahat",
+                    style: GoogleFonts.cairo(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Container(
+                    width: 5,
+                    height: 5,
+                    decoration: const BoxDecoration(
+                      color: nafahatGold,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  Text(
+                    isArabic ? "أكاديمية" : "Academy",
+                    style: GoogleFonts.cairo(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                      color: nafahatGold,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isArabic ? "نفحات" : "Nafahat",
-                  style: GoogleFonts.cairo(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+              Text(
+                isArabic ? "منصة التدريب والتطوير" : "Plateforme de formation",
+                style: GoogleFonts.cairo(
+                  fontSize: 11,
+                  color: Colors.white.withOpacity(0.7),
+                ),
+              ),
+              if (userProvider.isLoggedIn && userProvider.userRole != null)
+                Container(
+                  margin: const EdgeInsets.only(top: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '👤 ${userProvider.displayName} • ${userProvider.userRole!.libelle}',
+                    style: GoogleFonts.cairo(
+                      fontSize: 10,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-                Text(
-                  isArabic
-                      ? "منصة التدريب والتطوير"
-                      : "Plateforme de formation",
-                  style: GoogleFonts.cairo(
-                    fontSize: 11,
-                    color: Colors.white.withOpacity(0.7),
+              if (!userProvider.isLoggedIn)
+                Container(
+                  margin: const EdgeInsets.only(top: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    isArabic ? '⚠️ غير مسجل الدخول' : '⚠️ Non connecté',
+                    style: GoogleFonts.cairo(
+                      fontSize: 9,
+                      color: Colors.white.withOpacity(0.7),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
-                if (userProvider.isLoggedIn && userProvider.userRole != null)
-                  Container(
-                    margin: const EdgeInsets.only(top: 4),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '👤 ${userProvider.displayName} • ${userProvider.userRole!.libelle}',
-                      style: GoogleFonts.cairo(
-                        fontSize: 10,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                if (!userProvider.isLoggedIn)
-                  Container(
-                    margin: const EdgeInsets.only(top: 4),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      isArabic ? '⚠️ غير مسجل الدخول' : '⚠️ Non connecté',
-                      style: GoogleFonts.cairo(
-                        fontSize: 9,
-                        color: Colors.white.withOpacity(0.7),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+            ],
           ),
         ],
       ),
@@ -1116,7 +1208,7 @@ class Navbar extends StatelessWidget {
   }
 
   // ============================================================
-  // SECTION ADMIN DANS LE DRAWER (MOBILE) - AVEC TOUS LES SOUS-MENUS
+  // SECTION ADMIN DANS LE DRAWER
   // ============================================================
   Widget _buildDrawerAdminSection(BuildContext context, bool isArabic) {
     final canCreateUser = _canCreateUser(context);
@@ -1147,33 +1239,31 @@ class Navbar extends StatelessWidget {
         tilePadding: const EdgeInsets.symmetric(horizontal: 8),
         childrenPadding: const EdgeInsets.only(left: 16, bottom: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        children: [
-          // Utiliser _getAdminMenuItemsFull pour avoir tous les sous-menus
-          ..._getAdminMenuItemsFull(context, isArabic)
-              .where(
-                (item) =>
-                    !item.containsKey('isDivider') &&
-                    (item['isAdminOnly'] != true || canCreateUser),
-              )
-              .map((item) {
-                return _drawerTile(
-                  icon: item['icon'],
-                  title: item['title'],
-                  padding: const EdgeInsets.only(left: 32, right: 8),
-                  onTap: () {
-                    _closeDrawer(context);
-                    _handleAdminAction(context, item['value'], isArabic);
-                  },
-                );
-              })
-              .toList(),
-        ],
+        children:
+            _getAdminMenuItemsFull(context, isArabic)
+                .where(
+                  (item) =>
+                      !item.containsKey('isDivider') &&
+                      (item['isAdminOnly'] != true || canCreateUser),
+                )
+                .map((item) {
+                  return _drawerTile(
+                    icon: item['icon'],
+                    title: item['title'],
+                    padding: const EdgeInsets.only(left: 32, right: 8),
+                    onTap: () {
+                      _closeDrawer(context);
+                      _handleAdminAction(context, item['value'], isArabic);
+                    },
+                  );
+                })
+                .toList(),
       ),
     );
   }
 
   // ============================================================
-  // SECTION COMPTE DANS LE DRAWER (MOBILE) - AMÉLIORÉE
+  // SECTION COMPTE DANS LE DRAWER
   // ============================================================
   Widget _buildDrawerAccountSection(
     BuildContext context,
@@ -1262,69 +1352,12 @@ class Navbar extends StatelessWidget {
     );
   }
 
-  Widget _buildLogo(bool isArabic) {
-    return Row(
-      children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            image: const DecorationImage(
-              image: AssetImage('assets/images/logo.jpg'),
-              fit: BoxFit.cover,
-            ),
-          ),
-        ),
-        const SizedBox(width: 14),
-        Text(
-          isArabic ? "نفحات" : "Nafahat",
-          style: GoogleFonts.cairo(
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            color: nafahatGreen,
-            letterSpacing: 1.5,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _navLink({
-    required BuildContext context,
-    required String title,
-    required VoidCallback onTap,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-          child: Text(
-            title,
-            style: GoogleFonts.cairo(
-              color: const Color(0xff2c221e),
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   void _closeDrawer(BuildContext context) {
-    debugPrint('🔍 [DRAWER] _closeDrawer() appelé');
     Navigator.of(context).pop();
-    debugPrint('✅ [DRAWER] Drawer fermé');
   }
 
   void _closeDrawerAndNavigate(BuildContext context, Widget page) {
-    debugPrint('🔍 [DRAWER] _closeDrawerAndNavigate() appelé');
     Navigator.of(context).pop();
-    debugPrint('✅ [DRAWER] Drawer fermé, navigation vers: $page');
     Navigator.push(context, MaterialPageRoute(builder: (context) => page));
   }
 

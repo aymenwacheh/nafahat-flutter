@@ -3,10 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/pages/users/edit_profile_page.dart';
-import '../landing/widgets/navbar.dart' show Navbar;
-import '../../providers/language_provider.dart';
-import '../../providers/user_provider.dart';
-import '../landing/widgets/chatbot/chatbot_wrapper.dart';
+import 'package:nafahat/pages/landing/widgets/navbar.dart' show Navbar;
+import 'package:nafahat/providers/language_provider.dart';
+import 'package:nafahat/providers/user_provider.dart';
+import 'package:nafahat/pages/landing/widgets/chatbot/chatbot_wrapper.dart';
+import 'package:nafahat/models/training_model.dart';
+import 'package:nafahat/pages/landing/widgets/training_card.dart';
+import 'package:nafahat/services/payment_service.dart';
+import 'package:nafahat/services/training_service.dart';
 
 class ProfileDashboardPage extends StatefulWidget {
   const ProfileDashboardPage({super.key});
@@ -18,28 +22,84 @@ class ProfileDashboardPage extends StatefulWidget {
 class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  final List<Map<String, String>> paidCycles = [
-    {
-      "titleFr": "Excellence Executive MBA",
-      "titleAr": "الماجستير التنفيذي المتميز",
-      "progress": "0.65",
-      "nextLessonFr": "Module 4 : Leadership Stratégique",
-      "nextLessonAr": "الوحدة ٤: القيادة الاستراتيجية",
-    },
-    {
-      "titleFr": "Tech & Intelligence Artificielle",
-      "titleAr": "التكنولوجيا والذكاء الاصطناعي",
-      "progress": "0.20",
-      "nextLessonFr": "Module 1 : Introduction au Machine Learning",
-      "nextLessonAr": "الوحدة ١: مقدمة في تعلم الآلة",
-    },
-  ];
+  bool _showEnCours = false;
+  bool _showTerminees = false;
+
+  List<TrainingModel> _formationsEnCours = [];
+  List<TrainingModel> _formationsTerminees = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserFormations();
+  }
+
+  Future<void> _loadUserFormations() async {
+    setState(() => _isLoading = true);
+    try {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      if (userProvider.isLoggedIn && userProvider.userId != null) {
+        final userId = userProvider.userId!.toString();
+
+        final payments = await PaymentService.getUserPayments(userId);
+        final validPayments =
+            payments.where((p) => p['statut_paiement'] == 'valide').toList();
+
+        List<TrainingModel> formations = [];
+        for (var payment in validPayments) {
+          final formationId = payment['formation_id'];
+          if (formationId != null) {
+            try {
+              final training = await TrainingService.getTraining(
+                formationId.toString(),
+              );
+              if (training != null) {
+                formations.add(training);
+              }
+            } catch (e) {
+              print('❌ Erreur chargement formation $formationId: $e');
+            }
+          }
+        }
+
+        final now = DateTime.now();
+        _formationsEnCours =
+            formations.where((f) {
+              if (f.dateFin.isEmpty) return true;
+              try {
+                final dateFin = DateTime.parse(f.dateFin);
+                return dateFin.isAfter(now);
+              } catch (_) {
+                return true;
+              }
+            }).toList();
+
+        _formationsTerminees =
+            formations.where((f) {
+              if (f.dateFin.isEmpty) return false;
+              try {
+                final dateFin = DateTime.parse(f.dateFin);
+                return dateFin.isBefore(now);
+              } catch (_) {
+                return false;
+              }
+            }).toList();
+      }
+    } catch (e) {
+      print('❌ Erreur chargement formations: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final isArabic = Provider.of<LanguageProvider>(context).isArabic;
     final userProvider = Provider.of<UserProvider>(context);
-    bool isMobile = MediaQuery.of(context).size.width < 850;
+    final isMobile = MediaQuery.of(context).size.width < 850;
 
     return Directionality(
       textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
@@ -50,7 +110,6 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
         child: Scaffold(
           key: _scaffoldKey,
           backgroundColor: AppColors.surface,
-          // ✅ Ajout du drawer pour la version mobile
           drawer: Navbar(
             isMobile: isMobile,
             scaffoldKey: _scaffoldKey,
@@ -59,34 +118,65 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
             top: false,
             child: Stack(
               children: [
-                // Contenu principal
                 SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.only(
-                    top: 100,
-                  ), // ✅ Évite le chevauchement avec la Navbar
+                  padding: const EdgeInsets.only(top: 100),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 1. BLOC PROFIL / BIENVENUE
-                        _buildHeaderSection(isArabic, isMobile, userProvider),
-                        const SizedBox(height: 40),
+                        _buildProfileSection(isArabic, userProvider),
+                        const SizedBox(height: 32),
 
-                        // 2. SECTION MES CYCLES PAYÉS
-                        _buildPaidCyclesSection(isArabic),
-                        const SizedBox(height: 40),
+                        _buildSectionHeader(
+                          isArabic: isArabic,
+                          titleFr: 'Mes Formations en Cours',
+                          titleAr: 'تكويناتي الجارية',
+                          isExpanded: _showEnCours,
+                          onToggle: () {
+                            setState(() {
+                              _showEnCours = !_showEnCours;
+                              _showTerminees = false;
+                            });
+                          },
+                        ),
+                        if (_showEnCours) ...[
+                          const SizedBox(height: 16),
+                          _buildFormationsGrid(
+                            _formationsEnCours,
+                            isArabic,
+                            isMobile,
+                          ),
+                        ],
+                        const SizedBox(height: 24),
 
-                        // 3. SECTION AUTRES SERVICES
-                        _buildOtherServicesSection(isArabic),
+                        _buildSectionHeader(
+                          isArabic: isArabic,
+                          titleFr: 'Mes Formations Terminées',
+                          titleAr: 'تكويناتي المنتهية',
+                          isExpanded: _showTerminees,
+                          onToggle: () {
+                            setState(() {
+                              _showTerminees = !_showTerminees;
+                              _showEnCours = false;
+                            });
+                          },
+                        ),
+                        if (_showTerminees) ...[
+                          const SizedBox(height: 16),
+                          _buildFormationsGrid(
+                            _formationsTerminees,
+                            isArabic,
+                            isMobile,
+                          ),
+                        ],
                         const SizedBox(height: 60),
                       ],
                     ),
                   ),
                 ),
 
-                // ✅ Navbar en Positioned avec gestion du chevauchement
                 Positioned(
                   top: 0,
                   left: 0,
@@ -117,12 +207,7 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
     );
   }
 
-  // --- WIDGET : EN-TÊTE DU COMPTE ---
-  Widget _buildHeaderSection(
-    bool isArabic,
-    bool isMobile,
-    UserProvider userProvider,
-  ) {
+  Widget _buildProfileSection(bool isArabic, UserProvider userProvider) {
     final userName =
         userProvider.isLoggedIn ? userProvider.displayName : 'Utilisateur';
     final userEmail =
@@ -140,6 +225,13 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppColors.primary.withOpacity(0.08)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -163,7 +255,6 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
                 Row(
                   children: [
                     Flexible(
-                      // ✅ Ajout de Flexible pour éviter le débordement
                       child: Text(
                         isArabic ? "مرحباً، $userName" : "Bienvenue, $userName",
                         style: GoogleFonts.cairo(
@@ -237,240 +328,135 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
     );
   }
 
-  // --- WIDGET : LES CYCLES ACHETÉS ---
-  Widget _buildPaidCyclesSection(bool isArabic) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          isArabic ? "دوراتي التدريبية" : "Mes Cycles Achetés",
-          style: GoogleFonts.cairo(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: AppColors.primaryDark,
+  Widget _buildSectionHeader({
+    required bool isArabic,
+    required String titleFr,
+    required String titleAr,
+    required bool isExpanded,
+    required VoidCallback onToggle,
+  }) {
+    return GestureDetector(
+      onTap: onToggle,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        decoration: BoxDecoration(
+          color:
+              isExpanded ? AppColors.primary.withOpacity(0.08) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isExpanded ? AppColors.primary : Colors.grey.shade200,
+            width: 1.5,
           ),
         ),
-        const SizedBox(height: 16),
-        if (paidCycles.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(40),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.primary.withOpacity(0.05)),
+        child: Row(
+          children: [
+            Icon(
+              isExpanded ? Icons.expand_less : Icons.expand_more,
+              color: AppColors.primary,
             ),
-            child: Center(
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.school_outlined,
-                    size: 60,
-                    color: Colors.grey[300],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    isArabic
-                        ? "لا توجد دورات مشتركة حالياً"
-                        : "Aucun cycle acheté pour le moment",
-                    style: GoogleFonts.cairo(
-                      color: Colors.grey[600],
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                isArabic ? titleAr : titleFr,
+                style: GoogleFonts.cairo(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryDark,
+                ),
               ),
             ),
-          )
-        else
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: paidCycles.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 16),
-            itemBuilder: (context, index) {
-              final cycle = paidCycles[index];
-              double progressValue = double.parse(cycle['progress']!);
-
-              return Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.01),
-                      blurRadius: 10,
-                    ),
-                  ],
-                  border: Border.all(
-                    color: AppColors.primary.withOpacity(0.05),
-                  ),
+            if (_isLoading)
+              const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.primary,
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      isArabic ? cycle['titleAr']! : cycle['titleFr']!,
-                      style: GoogleFonts.cairo(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textDark,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      isArabic
-                          ? "الدرس التالي: ${cycle['nextLessonAr']}"
-                          : "Prochain cours : ${cycle['nextLessonFr']}",
-                      style: GoogleFonts.cairo(
-                        fontSize: 13,
-                        color: AppColors.textMuted,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Barre de progression
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: LinearProgressIndicator(
-                              value: progressValue,
-                              backgroundColor: AppColors.primary.withOpacity(
-                                0.1,
-                              ),
-                              color: AppColors.primary,
-                              minHeight: 8,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          "${(progressValue * 100).toInt()}%",
-                          style: GoogleFonts.cairo(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-      ],
+              ),
+          ],
+        ),
+      ),
     );
   }
 
-  // --- WIDGET : AUTRES SERVICES ---
-  Widget _buildOtherServicesSection(bool isArabic) {
-    final List<Map<String, dynamic>> services = [
-      {
-        "icon": Icons.verified_rounded,
-        "titleFr": "Mes Certificats",
-        "titleAr": "شهاداتي",
-      },
-      {
-        "icon": Icons.receipt_long_rounded,
-        "titleFr": "Factures & Paiements",
-        "titleAr": "الفواتير والمدفوعات",
-      },
-      {
-        "icon": Icons.headset_mic_rounded,
-        "titleFr": "Support Académique",
-        "titleAr": "الدعم الأكاديمي",
-      },
-    ];
+  Widget _buildFormationsGrid(
+    List<TrainingModel> formations,
+    bool isArabic,
+    bool isMobile,
+  ) {
+    if (_isLoading) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32.0),
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          isArabic ? "خدمات أخرى" : "Autres Services",
-          style: GoogleFonts.cairo(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: AppColors.primaryDark,
+    if (formations.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(40),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Center(
+          child: Column(
+            children: [
+              Icon(Icons.school_outlined, size: 60, color: Colors.grey[300]),
+              const SizedBox(height: 16),
+              Text(
+                isArabic
+                    ? 'لا توجد تكوينات في هذه الفئة'
+                    : 'Aucune formation dans cette catégorie',
+                style: GoogleFonts.cairo(color: Colors.grey[600], fontSize: 16),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 16),
-        GridView.builder(
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        final isTablet = screenWidth >= 600 && screenWidth < 1200;
+
+        int crossAxisCount;
+        if (isMobile) {
+          crossAxisCount = 1;
+        } else if (isTablet) {
+          crossAxisCount = 2;
+        } else {
+          crossAxisCount = 3;
+        }
+
+        return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 250,
-            mainAxisSpacing: 16,
-            crossAxisSpacing: 16,
-            mainAxisExtent: 100,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            childAspectRatio: isMobile ? 0.85 : 0.75,
+            crossAxisSpacing: isMobile ? 0 : 16,
+            mainAxisSpacing: isMobile ? 12 : 16,
           ),
-          itemCount: services.length,
+          itemCount: formations.length,
           itemBuilder: (context, index) {
-            final service = services[index];
-            return Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.primary.withOpacity(0.05)),
-              ),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        isArabic
-                            ? "🔧 ${service['titleAr']} - قريباً"
-                            : "🔧 ${service['titleFr']} - Bientôt disponible",
-                        style: GoogleFonts.cairo(),
-                      ),
-                      backgroundColor: AppColors.primary,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  );
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    children: [
-                      Icon(
-                        service['icon'] as IconData,
-                        color: AppColors.primary,
-                        size: 28,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          isArabic ? service['titleAr']! : service['titleFr']!,
-                          style: GoogleFonts.cairo(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: AppColors.textDark,
-                          ),
-                        ),
-                      ),
-                      Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 14,
-                        color: Colors.grey[400],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+            return TrainingCard(
+              training: formations[index],
+              isArabic: isArabic,
+              onRefresh: _loadUserFormations,
+              isMobile: isMobile,
             );
           },
-        ),
-      ],
+        );
+      },
     );
   }
 }
 
-// 👈 AppColors
 class AppColors {
   static const Color surface = Color(0xfffcfbfa);
   static const Color primary = Color(0xffd57653);

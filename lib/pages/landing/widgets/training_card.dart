@@ -264,8 +264,9 @@ class _TrainingCardState extends State<TrainingCard> {
                 context,
                 MaterialPageRoute(
                   builder:
-                      (context) =>
-                          FormationDetailPage(formationId: widget.training.id),
+                      (context) => FormationDetailPage(
+                        formationId: widget.training.id.toString(),
+                      ),
                 ),
               );
             },

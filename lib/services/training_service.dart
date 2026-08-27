@@ -619,4 +619,24 @@ class TrainingService {
       return null;
     }
   }
+  // lib/services/training_service.dart
+
+  static Future<TrainingModel?> getTraining(String id) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/formations/$id'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          return TrainingModel.fromApiJson(data['data']);
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('❌ Erreur getTraining: $e');
+      return null;
+    }
+  }
 }

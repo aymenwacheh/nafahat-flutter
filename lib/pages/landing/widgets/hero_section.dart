@@ -107,11 +107,6 @@ class _HeroSectionState extends State<HeroSection>
   }
 
   // Charger les slides
-  //
-  // IMPORTANT : cette méthode lit exactement la même clé SharedPreferences
-  // ('hero_slides') que apparence_hero.dart, et applique la même logique de
-  // décodage des images base64 via SlideItem.resolveImageBytes. Comme ça,
-  // toute image uploadée depuis la page d'admin (web) s'affiche aussi ici.
   Future<void> _loadSlides() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -133,13 +128,11 @@ class _HeroSectionState extends State<HeroSection>
           });
         }
       } else {
-        // Utiliser les slides par défaut
         if (mounted) {
           setState(() {
             _slides = List.from(_defaultSlides);
           });
         }
-        // Sauvegarder les slides par défaut
         await _saveSlidesToPrefs();
       }
     } catch (e) {
@@ -227,6 +220,7 @@ class _HeroSectionState extends State<HeroSection>
 
     return SizedBox(
       width: double.infinity,
+      height: double.infinity,
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -263,8 +257,8 @@ class _HeroSectionState extends State<HeroSection>
           // Contenu textuel
           Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 20 : 50,
-              vertical: isMobile ? 16 : 32,
+              horizontal: isMobile ? 20 : 60,
+              vertical: isMobile ? 20 : 40,
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -297,7 +291,7 @@ class _HeroSectionState extends State<HeroSection>
                 Text(
                   isRtl ? slide.titleAr : slide.titleFr,
                   style: TextStyle(
-                    fontSize: isMobile ? 24 : 42,
+                    fontSize: isMobile ? 28 : 48,
                     fontWeight: FontWeight.w900,
                     color: Colors.white,
                     height: 1.1,
@@ -318,7 +312,7 @@ class _HeroSectionState extends State<HeroSection>
                 Text(
                   isRtl ? slide.subtitleAr : slide.subtitleFr,
                   style: TextStyle(
-                    fontSize: isMobile ? 14 : 20,
+                    fontSize: isMobile ? 16 : 22,
                     color: Colors.white.withOpacity(0.9),
                     height: 1.4,
                     fontWeight: FontWeight.w400,
@@ -346,13 +340,6 @@ class _HeroSectionState extends State<HeroSection>
   }
 
   // Construire l'image de fond
-  //
-  // Ordre de résolution (identique à la logique de apparence_hero.dart) :
-  //   1. Asset déclaré dans pubspec.yaml
-  //   2. Bytes en mémoire (image uploadée sur le web, décodée depuis base64)
-  //   3. Fichier local (mobile/desktop uniquement — dart:io ne fonctionne
-  //      pas sur Flutter Web, donc on ne tente JAMAIS ce chemin sur le web)
-  //   4. Dégradé de secours
   Widget _buildBackgroundImage(SlideItem slide, int index) {
     try {
       if (slide.isAsset) {
@@ -440,7 +427,6 @@ class _HeroSectionState extends State<HeroSection>
       ),
       child: ElevatedButton(
         onPressed: () {
-          // Action personnalisée
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
@@ -456,8 +442,8 @@ class _HeroSectionState extends State<HeroSection>
           foregroundColor: Colors.white,
           shadowColor: Colors.transparent,
           padding: EdgeInsets.symmetric(
-            horizontal: isMobile ? 24 : 32,
-            vertical: isMobile ? 12 : 16,
+            horizontal: isMobile ? 24 : 36,
+            vertical: isMobile ? 14 : 18,
           ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
@@ -510,11 +496,17 @@ class _HeroSectionState extends State<HeroSection>
   Widget build(BuildContext context) {
     super.build(context);
     final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
     final isMobile = screenWidth < 600;
-    final isRtl = widget.isArabic;
 
-    // Hauteur adaptative
-    final double sliderHeight = isMobile ? 280 : 450;
+    // ✅ Hauteur adaptative :
+    // - Mobile : occupe tout l'écran (100% de la hauteur disponible)
+    // - Web : 80% de la hauteur de l'écran pour un effet plus large
+    final double sliderHeight =
+        isMobile
+            ? screenHeight -
+                70 // 70px pour la navbar
+            : screenHeight * 0.75; // 75% de la hauteur de l'écran
 
     if (_isLoading) {
       return Container(
@@ -534,7 +526,13 @@ class _HeroSectionState extends State<HeroSection>
         color: Colors.grey[900],
         child: Center(
           child: Text(
-            isRtl ? 'لا توجد شرائح لعرضها' : 'Aucun slide à afficher',
+            isMobile
+                ? (widget.isArabic
+                    ? 'لا توجد شرائح لعرضها'
+                    : 'Aucun slide à afficher')
+                : (widget.isArabic
+                    ? 'لا توجد شرائح لعرضها'
+                    : 'Aucun slide à afficher'),
             style: const TextStyle(color: Colors.white54),
           ),
         ),
@@ -553,7 +551,7 @@ class _HeroSectionState extends State<HeroSection>
               controller: _pageController,
               onPageChanged: (int index) {
                 setState(() => _currentPage = index);
-                _startTimer(); // Réinitialiser le timer
+                _startTimer();
               },
               itemCount: _slides.length,
               itemBuilder: (context, index) {
@@ -564,41 +562,39 @@ class _HeroSectionState extends State<HeroSection>
             ),
 
             // Overlay pour les contrôles
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: () {
-                  // Action au tap (peut être personnalisée)
-                },
-              ),
-            ),
+            Positioned.fill(child: GestureDetector(onTap: () {})),
 
             // Flèches de navigation (uniquement si > 1 slide)
             if (_slides.length > 1) ...[
               Positioned(
-                left: isRtl ? null : 8,
-                right: isRtl ? 8 : null,
+                left: isMobile ? 4 : 12,
                 top: 0,
                 bottom: 0,
                 child: Center(
                   child: _buildNavigationButton(
                     icon:
-                        isRtl ? Icons.arrow_forward_ios : Icons.arrow_back_ios,
+                        widget.isArabic
+                            ? Icons.arrow_forward_ios
+                            : Icons.arrow_back_ios,
                     isLeft: true,
-                    isRtl: isRtl,
+                    isRtl: widget.isArabic,
+                    isMobile: isMobile,
                   ),
                 ),
               ),
               Positioned(
-                left: isRtl ? 8 : null,
-                right: isRtl ? null : 8,
+                right: isMobile ? 4 : 12,
                 top: 0,
                 bottom: 0,
                 child: Center(
                   child: _buildNavigationButton(
                     icon:
-                        isRtl ? Icons.arrow_back_ios : Icons.arrow_forward_ios,
+                        widget.isArabic
+                            ? Icons.arrow_back_ios
+                            : Icons.arrow_forward_ios,
                     isLeft: false,
-                    isRtl: isRtl,
+                    isRtl: widget.isArabic,
+                    isMobile: isMobile,
                   ),
                 ),
               ),
@@ -606,21 +602,23 @@ class _HeroSectionState extends State<HeroSection>
 
             // Indicateurs de page
             Positioned(
-              bottom: 20,
+              bottom: isMobile ? 16 : 30,
               right: 20,
               left: 20,
               child: Row(
                 mainAxisAlignment:
-                    isRtl ? MainAxisAlignment.end : MainAxisAlignment.start,
+                    widget.isArabic
+                        ? MainAxisAlignment.end
+                        : MainAxisAlignment.start,
                 children: [_buildPageIndicators()],
               ),
             ),
 
-            // Indicateur de progression (optionnel)
+            // Indicateur de progression
             Positioned(
-              bottom: 20,
-              left: isRtl ? 20 : null,
-              right: isRtl ? null : 20,
+              bottom: isMobile ? 16 : 30,
+              left: widget.isArabic ? 20 : null,
+              right: widget.isArabic ? null : 20,
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
@@ -647,15 +645,19 @@ class _HeroSectionState extends State<HeroSection>
     required IconData icon,
     required bool isLeft,
     required bool isRtl,
+    bool isMobile = false,
   }) {
+    final double iconSize = isMobile ? 18 : 24;
+    final double buttonSize = isMobile ? 36 : 48;
+
     return Container(
-      margin: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.4),
+        color: Colors.black.withOpacity(0.35),
         shape: BoxShape.circle,
+        border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
       ),
       child: IconButton(
-        icon: Icon(icon, color: Colors.white, size: 20),
+        icon: Icon(icon, color: Colors.white, size: iconSize),
         onPressed: () {
           if (isLeft) {
             _previousPage();
@@ -663,8 +665,11 @@ class _HeroSectionState extends State<HeroSection>
             _nextPage();
           }
         },
-        padding: const EdgeInsets.all(8),
-        constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+        padding: EdgeInsets.all(isMobile ? 6 : 10),
+        constraints: BoxConstraints(
+          minWidth: buttonSize,
+          minHeight: buttonSize,
+        ),
         style: IconButton.styleFrom(
           backgroundColor: Colors.transparent,
           hoverColor: const Color(0xffd57653).withOpacity(0.3),

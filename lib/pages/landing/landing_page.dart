@@ -15,6 +15,7 @@ import 'widgets/training_card.dart';
 import 'package:nafahat/services/card_config_service.dart';
 import 'widgets/about.dart';
 import 'widgets/all_video_page.dart';
+import 'widgets/formateur_section.dart';
 
 // --- PALETTE DE COULEURS ---
 class AppColors {
@@ -64,9 +65,17 @@ class _LandingPageState extends State<LandingPage> {
                 child: Column(
                   children: [
                     const SizedBox(height: 90),
-                    HeroSection(isArabic: isArabic),
-                    VideoFavSection(isArabic: isArabic),
 
+                    // ✅ 1. HERO SECTION
+                    HeroSection(isArabic: isArabic),
+
+                    // ✅ 2. FORMATIONS (Cycles de formation) - Une seule ligne
+                    _TrainingCyclesSection(
+                      key: _trainingSectionKey,
+                      isArabic: isArabic,
+                    ),
+
+                    // ✅ 3. INSCRIPTION SECTION (après les formations)
                     Padding(
                       padding: EdgeInsets.symmetric(
                         horizontal: isMobile ? 0 : 20,
@@ -80,11 +89,13 @@ class _LandingPageState extends State<LandingPage> {
                       ),
                     ),
 
-                    _TrainingCyclesSection(
-                      key: _trainingSectionKey,
-                      isArabic: isArabic,
-                    ),
+                    // ✅ 4. VIDÉOS FAVORIS
+                    VideoFavSection(isArabic: isArabic),
 
+                    // ✅ 5. FORMATEURS - Une seule ligne
+                    _FormateurSection(isArabic: isArabic),
+
+                    // ✅ 6. INSCRIPTION SECTION (finale)
                     Padding(
                       padding: EdgeInsets.symmetric(
                         horizontal: isMobile ? 0 : 20,
@@ -101,6 +112,7 @@ class _LandingPageState extends State<LandingPage> {
                                 : 'Commencez votre parcours',
                       ),
                     ),
+
                     const SizedBox(height: 40),
                   ],
                 ),
@@ -123,7 +135,9 @@ class _LandingPageState extends State<LandingPage> {
   }
 }
 
-// --- SECTION CYCLES DE FORMATION ---
+// ============================================================
+// SECTION FORMATIONS (UNE SEULE LIGNE)
+// ============================================================
 class _TrainingCyclesSection extends StatefulWidget {
   final bool isArabic;
 
@@ -139,11 +153,9 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
   List<TrainingModel> _displayedTrainings = [];
   bool _isLoading = true;
 
-  // Configuration
   CardConfig _config = CardConfig.defaultConfig();
   bool _isConfigLoaded = false;
 
-  // Filtres
   String _selectedCategorie = 'Toutes';
   String _selectedTypeFormation = 'Tous';
   String _selectedFormateur = 'Tous';
@@ -157,7 +169,6 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
     _loadConfig();
   }
 
-  // Charger la configuration
   Future<void> _loadConfig() async {
     try {
       final config = await CardConfigService().loadConfig();
@@ -175,44 +186,30 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
     }
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  // Récupérer les formations à afficher selon la config
   List<TrainingModel> _getTrainingsToDisplay() {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     if (_allTrainings.isEmpty) return [];
 
     if (isMobile && _isConfigLoaded) {
-      // MOBILE : Utiliser la configuration
       final displayCount = _config.mobileDisplayCount;
       final selectedIds = _config.mobileSelectedTrainings;
 
-      // Si des formations sont sélectionnées explicitement
       if (selectedIds.isNotEmpty) {
         final selected = <TrainingModel>[];
         for (final id in selectedIds) {
           try {
             final training = _allTrainings.firstWhere((t) => t.id == id);
             selected.add(training);
-          } catch (e) {
-            // Formation non trouvée, ignorer
-          }
+          } catch (e) {}
         }
         if (selected.isNotEmpty) {
-          // Limiter au nombre demandé
           return selected.take(displayCount).toList();
         }
       }
-
-      // Sinon, prendre les N premières formations (les plus récentes car reversed)
       return _allTrainings.take(displayCount).toList();
     }
 
-    // WEB : Toujours les 6 dernières formations (les plus récentes)
     return _allTrainings.take(6).toList();
   }
 
@@ -223,10 +220,7 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
         _allTrainings = trainings.reversed.toList();
         _extractFilters();
         _applyFilters();
-
-        // Mettre à jour l'affichage avec la nouvelle config
         _updateDisplayedTrainings();
-
         _isLoading = false;
       });
     } catch (e) {
@@ -243,14 +237,13 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     if (isMobile) {
-      // Mobile : utiliser la configuration
       _displayedTrainings = _getTrainingsToDisplay();
     } else {
-      // Web : toujours les 6 dernières formations
       _displayedTrainings = _allTrainings.take(6).toList();
     }
   }
 
+  // ✅ Récupération des vrais noms de catégories (FR et AR)
   void _extractFilters() {
     final cats = <String>{'Toutes'};
     final types = <String>{'Tous'};
@@ -258,6 +251,7 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
 
     for (var t in _allTrainings) {
       if (t.categorieFr.isNotEmpty) cats.add(t.categorieFr);
+      if (t.categorieAr.isNotEmpty) cats.add(t.categorieAr);
       if (t.typeFormation.isNotEmpty) types.add(t.typeFormation);
       if (t.trainer.isNotEmpty) formateurs.add(t.trainer);
     }
@@ -279,12 +273,14 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
     });
   }
 
+  // ✅ Filtrage avec les noms FR et AR
   void _applyFilters() {
     _filteredTrainings =
         _allTrainings.where((t) {
           bool matchCategorie =
               _selectedCategorie == 'Toutes' ||
-              t.categorieFr == _selectedCategorie;
+              t.categorieFr == _selectedCategorie ||
+              t.categorieAr == _selectedCategorie;
           bool matchType =
               _selectedTypeFormation == 'Tous' ||
               t.typeFormation == _selectedTypeFormation;
@@ -293,7 +289,6 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
           return matchCategorie && matchType && matchFormateur;
         }).toList();
 
-    // Mettre à jour l'affichage selon le contexte (mobile ou web)
     _updateDisplayedTrainings();
   }
 
@@ -305,12 +300,10 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
     final isMobile = screenWidth < 600;
     final isTablet = screenWidth >= 600 && screenWidth < 900;
     final paddingHorizontal = isMobile ? 0.0 : (isTablet ? 32.0 : 50.0);
 
-    // Mettre à jour l'affichage à chaque build
     _updateDisplayedTrainings();
 
     return Container(
@@ -338,7 +331,6 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
                 ),
                 Row(
                   children: [
-                    // Bouton "Voir plus" en version mobile
                     if (isMobile && _allTrainings.length > 3)
                       TextButton(
                         onPressed: () {
@@ -354,10 +346,10 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
                         ),
                         child: Text(
                           widget.isArabic
-                              ? 'اكتشف المزيد من الدورات >>>'
-                              : 'Découvrir plus de formations >>>',
+                              ? 'اكتشف المزيد >>>'
+                              : 'Découvrir plus >>>',
                           style: GoogleFonts.cairo(
-                            fontSize: 14,
+                            fontSize: 13,
                             fontWeight: FontWeight.w600,
                             color: AppColors.primary,
                           ),
@@ -373,16 +365,17 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
-          // Filtres (uniquement en version desktop)
-          if (!isMobile && !_isLoading && _allTrainings.isNotEmpty) ...[
+          // ✅ FILTRES AFFICHÉS SUR MOBILE ET WEB
+          if (!_isLoading && _allTrainings.isNotEmpty) ...[
             Padding(
               padding: EdgeInsets.symmetric(horizontal: isMobile ? 16.0 : 0.0),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
+                    // ✅ Filtre Catégorie
                     _buildElegantFilter(
                       value: _selectedCategorie,
                       items: _categories,
@@ -397,6 +390,8 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
                       isArabic: widget.isArabic,
                     ),
                     const SizedBox(width: 8),
+
+                    // ✅ Filtre Type
                     _buildElegantFilter(
                       value: _selectedTypeFormation,
                       items: _typesFormation,
@@ -411,6 +406,8 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
                       isArabic: widget.isArabic,
                     ),
                     const SizedBox(width: 8),
+
+                    // ✅ Filtre Formateur
                     _buildElegantFilter(
                       value: _selectedFormateur,
                       items: _formateurs,
@@ -428,7 +425,7 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
           ],
 
           if (_isLoading)
@@ -497,37 +494,33 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
               ),
             )
           else
-            _buildTrainingGrid(isMobile, isTablet, screenWidth, screenHeight),
+            _buildTrainingRow(isMobile, isTablet),
         ],
       ),
     );
   }
 
-  Widget _buildTrainingGrid(
-    bool isMobile,
-    bool isTablet,
-    double screenWidth,
-    double screenHeight,
-  ) {
-    final crossAxisCount = isMobile ? 1 : (isTablet ? 2 : 3);
+  // ✅ AFFICHAGE EN UNE SEULE LIGNE (Liste horizontale)
+  Widget _buildTrainingRow(bool isMobile, bool isTablet) {
+    final trainings = isMobile ? _displayedTrainings : _filteredTrainings;
 
+    // Dimensions réduites
     double cardWidth;
     double cardHeight;
 
-    final trainings = isMobile ? _displayedTrainings : _filteredTrainings;
-
     if (isMobile) {
-      cardWidth = screenWidth;
-      cardHeight = 310.0;
+      cardWidth = 220.0;
+      cardHeight = 240.0;
     } else if (isTablet) {
-      cardWidth = (screenWidth - 80) / 2 - 20;
-      cardHeight = screenHeight * 0.45 > 400 ? 400 : screenHeight * 0.45;
+      cardWidth = 280.0;
+      cardHeight = 300.0;
     } else {
-      cardWidth = (screenWidth - 140) / 3 - 20;
-      cardHeight = screenHeight * 0.45 > 420 ? 420 : screenHeight * 0.45;
+      cardWidth = 300.0;
+      cardHeight = 320.0;
     }
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: EdgeInsets.symmetric(horizontal: isMobile ? 16.0 : 0.0),
@@ -543,7 +536,6 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
                   fontSize: 14,
                 ),
               ),
-              // 🔥 Bouton "Découvrir plus" pour la version web
               if (!isMobile && _allTrainings.length > 6)
                 TextButton(
                   onPressed: () {
@@ -572,9 +564,7 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
                       ),
                       const SizedBox(width: 4),
                       Icon(
-                        widget.isArabic
-                            ? Icons.arrow_forward_rounded
-                            : Icons.arrow_forward_rounded,
+                        Icons.arrow_forward_rounded,
                         color: AppColors.primary,
                         size: 18,
                       ),
@@ -585,93 +575,54 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
           ),
         ),
         const SizedBox(height: 10),
-        Container(
-          constraints: BoxConstraints(
-            minHeight: cardHeight,
-            maxHeight: isMobile ? double.infinity : cardHeight * 2 + 20,
+
+        // ✅ Liste horizontale des cartes
+        SizedBox(
+          height: cardHeight,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: trainings.length,
+            itemBuilder: (context, index) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 12, left: 4),
+                child: SizedBox(
+                  width: cardWidth,
+                  height: cardHeight,
+                  child: TrainingCard(
+                    training: trainings[index],
+                    isArabic: widget.isArabic,
+                    onRefresh: refreshTrainings,
+                    isMobile: isMobile,
+                  ),
+                ),
+              );
+            },
           ),
-          child:
-              isMobile
-                  ? ListView.builder(
-                    physics: const NeverScrollableScrollPhysics(),
-                    shrinkWrap: true,
-                    padding: EdgeInsets.zero,
-                    itemCount: trainings.length,
-                    itemBuilder: (context, index) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 20),
-                        child: SizedBox(
-                          width: cardWidth,
-                          height: cardHeight,
-                          child: TrainingCard(
-                            training: trainings[index],
-                            isArabic: widget.isArabic,
-                            onRefresh: refreshTrainings,
-                            isMobile: true,
-                          ),
-                        ),
-                      );
-                    },
-                  )
-                  : GridView.builder(
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      childAspectRatio: cardWidth / cardHeight,
-                      crossAxisSpacing: 20.0,
-                      mainAxisSpacing: 20.0,
-                    ),
-                    itemCount: trainings.length,
-                    itemBuilder: (context, index) {
-                      return TrainingCard(
-                        training: trainings[index],
-                        isArabic: widget.isArabic,
-                        onRefresh: refreshTrainings,
-                        isMobile: false,
-                      );
-                    },
-                  ),
         ),
-        // 🔥 Bouton "Voir toutes les formations" en bas de la grille (web uniquement)
-        if (!isMobile && _allTrainings.length > 6)
+
+        // ✅ Bouton "Voir tout" en dessous (mobile)
+        if (isMobile && _allTrainings.length > 3)
           Padding(
-            padding: const EdgeInsets.only(top: 24),
-            child: Center(
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AllTrainingsPage(),
-                    ),
-                  );
-                },
-                icon: Icon(
-                  widget.isArabic
-                      ? Icons.arrow_forward_rounded
-                      : Icons.arrow_forward_rounded,
-                  size: 20,
-                ),
-                label: Text(
-                  widget.isArabic
-                      ? 'اكتشف جميع الدورات التدريبية'
-                      : 'Découvrir toutes les formations',
-                  style: GoogleFonts.cairo(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+            padding: const EdgeInsets.only(top: 8),
+            child: TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AllTrainingsPage(),
                   ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 14,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 2,
+                );
+              },
+              style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+              child: Text(
+                widget.isArabic
+                    ? 'اكتشف المزيد من الدورات >>>'
+                    : 'Découvrir plus de formations >>>',
+                style: GoogleFonts.cairo(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
                 ),
               ),
             ),
@@ -680,6 +631,7 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
     );
   }
 
+  // ✅ FILTRE ÉLÉGANT AVEC NOMS RÉELS (FR/AR)
   Widget _buildElegantFilter({
     required String value,
     required List<String> items,
@@ -717,9 +669,21 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
         ),
         items:
             uniqueItems.map((item) {
+              // ✅ Affichage du nom réel (FR si disponible, AR sinon)
               String displayText = item;
               if (item == 'Tous' || item == 'Toutes') {
                 displayText = isArabic ? 'الكل' : 'Tous';
+              } else {
+                // Si on est en arabe et que la valeur existe en arabe, on l'utilise
+                if (isArabic) {
+                  // Cherche la version arabe si elle existe dans la liste
+                  for (var t in _allTrainings) {
+                    if (t.categorieFr == item && t.categorieAr.isNotEmpty) {
+                      displayText = t.categorieAr;
+                      break;
+                    }
+                  }
+                }
               }
               return DropdownMenuItem<String>(
                 value: item,
@@ -799,7 +763,151 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
   }
 }
 
-// --- PAGE "TOUTES LES FORMATIONS" ---
+// ============================================================
+// SECTION FORMATEURS (UNE SEULE LIGNE)
+// ============================================================
+class _FormateurSection extends StatefulWidget {
+  final bool isArabic;
+
+  const _FormateurSection({required this.isArabic});
+
+  @override
+  State<_FormateurSection> createState() => _FormateurSectionState();
+}
+
+class _FormateurSectionState extends State<_FormateurSection> {
+  List<Map<String, dynamic>> _formateurs = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFormateurs();
+  }
+
+  Future<void> _loadFormateurs() async {
+    try {
+      final formateurs = await TrainingService.getFormateurs();
+      setState(() {
+        _formateurs = formateurs;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _formateurs = [];
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isArabic = widget.isArabic;
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 16 : 50,
+        vertical: 20,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ✅ Titre
+          Text(
+            isArabic ? 'مكونونا' : 'Nos Formateurs',
+            style: GoogleFonts.cairo(
+              fontSize: isMobile ? 22 : 28,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primaryDark,
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // ✅ Sous-titre
+          Text(
+            isArabic
+                ? 'خبراء في مجالاتهم لمرافقتك في رحلتك التعليمية'
+                : 'Des experts dans leurs domaines pour vous accompagner',
+            style: GoogleFonts.cairo(
+              fontSize: isMobile ? 14 : 16,
+              color: AppColors.textMuted,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // ✅ Liste des formateurs
+          if (_isLoading)
+            const Center(child: CircularProgressIndicator())
+          else if (_formateurs.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 40),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.person_outline,
+                      size: 48,
+                      color: AppColors.textMuted.withOpacity(0.3),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      isArabic
+                          ? 'لا يوجد مكونين حالياً'
+                          : 'Aucun formateur disponible',
+                      style: GoogleFonts.cairo(
+                        color: AppColors.textMuted,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            _buildFormateurRow(isMobile),
+        ],
+      ),
+    );
+  }
+
+  // ✅ AFFICHAGE EN UNE SEULE LIGNE (Liste horizontale)
+  Widget _buildFormateurRow(bool isMobile) {
+    final displayedFormateurs =
+        _formateurs.length > 8 ? _formateurs.sublist(0, 8) : _formateurs;
+
+    // ✅ Dimensions des cartes formateur réduites
+    double cardWidth = isMobile ? 180.0 : 220.0;
+    double cardHeight = isMobile ? 220.0 : 260.0;
+
+    return SizedBox(
+      height: cardHeight + 20,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal, // ✅ Défilement horizontal
+        physics: const BouncingScrollPhysics(),
+        itemCount: displayedFormateurs.length,
+        itemBuilder: (context, index) {
+          final formateur = displayedFormateurs[index];
+          return Padding(
+            padding: const EdgeInsets.only(right: 12, left: 4),
+            child: SizedBox(
+              width: cardWidth,
+              height: cardHeight,
+              child: FormateurDetailPage(
+                formateur: formateur,
+                isArabic: widget.isArabic,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ============================================================
+// PAGE "TOUTES LES FORMATIONS"
+// ============================================================
 class AllTrainingsPage extends StatefulWidget {
   const AllTrainingsPage({super.key});
 
