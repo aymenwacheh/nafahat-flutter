@@ -1,10 +1,11 @@
-// lib/views/administration/etat_paiement.dart
+// lib/pages/adminisration/etat_paiement.dart
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:nafahat/pages/adminisration/admin_page_wrapper.dart';
 import '../../services/paiement_validation_service.dart';
 import '../../models/paiement_validation.dart';
 
@@ -749,37 +750,18 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
     _isMobile = screenWidth < 600;
     _isTablet = screenWidth >= 600 && screenWidth < 1200;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            Icon(
-              Icons.verified,
-              color: Colors.white,
-              size: _isMobile ? 20 : 24,
-            ),
-            const SizedBox(width: 10),
-            Text(
-              'Gestion des paiements',
-              style: TextStyle(
-                fontSize: _isMobile ? 16 : 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
+    return AdminPageWrapper(
+      title: 'Gestion des paiements',
+      titleAr: 'إدارة المدفوعات',
+      backgroundColor: const Color(0xFFFAFAFA),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.refresh),
+          onPressed: _loadData,
+          tooltip: 'Rafraîchir',
         ),
-        backgroundColor: const Color(0xFF0D443E),
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadData,
-            tooltip: 'Rafraîchir',
-          ),
-        ],
-      ),
-      body: Column(
+      ],
+      child: Column(
         children: [
           _buildFilters(),
           _buildStats(),

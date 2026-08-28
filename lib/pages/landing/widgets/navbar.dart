@@ -40,6 +40,48 @@ class Navbar extends StatelessWidget {
   const Navbar({super.key, required this.isMobile, this.scaffoldKey});
 
   // ============================================================
+  // MÉTHODE DE DÉCONNEXION UNIFIÉE
+  // ============================================================
+  void _performLogout(BuildContext context) async {
+    final isArabic =
+        Provider.of<LanguageProvider>(context, listen: false).isArabic;
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+
+    // 1. Effacer la session dans UserProvider
+    await userProvider.logout();
+
+    // 2. Effacer la session dans AuthService
+    AuthService.logout();
+
+    // 3. Afficher un message de confirmation
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isArabic ? "🔓 تم تسجيل الخروج بنجاح" : "🔓 Déconnexion réussie",
+            style: GoogleFonts.cairo(),
+          ),
+          backgroundColor: nafahatGreen,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+
+    // 4. Revenir à la page d'accueil en supprimant toutes les routes
+    if (context.mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const LandingPage()),
+        (route) => false,
+      );
+    }
+  }
+
+  // ============================================================
   // MÉTHODES DE PERMISSION
   // ============================================================
   bool _canViewAdmin(BuildContext context) {
@@ -193,7 +235,22 @@ class Navbar extends StatelessWidget {
   }
 
   // ============================================================
-  // BUILD PRINCIPAL - NOUVEAU DESIGN
+  // FERMER LE DRAWER
+  // ============================================================
+  void _closeDrawer(BuildContext context) {
+    Navigator.of(context).pop();
+  }
+
+  // ============================================================
+  // NAVIGATION AVEC FERMETURE DU DRAWER
+  // ============================================================
+  void _closeDrawerAndNavigate(BuildContext context, Widget page) {
+    Navigator.of(context).pop();
+    Navigator.push(context, MaterialPageRoute(builder: (context) => page));
+  }
+
+  // ============================================================
+  // BUILD PRINCIPAL
   // ============================================================
   @override
   Widget build(BuildContext context) {
@@ -456,7 +513,7 @@ class Navbar extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                   color: nafahatGreen,
                 ),
-                maxLines: 80,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(width: 4),
@@ -942,17 +999,7 @@ class Navbar extends StatelessWidget {
         );
         break;
       case 'logout':
-        final userProvider = Provider.of<UserProvider>(context, listen: false);
-        userProvider.logout();
-        AuthService.logout();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              isArabic ? "🔓 تم تسجيل الخروج بنجاح" : "🔓 Déconnexion réussie",
-            ),
-            backgroundColor: nafahatGreen,
-          ),
-        );
+        _performLogout(context);
         break;
     }
   }
@@ -994,6 +1041,9 @@ class Navbar extends StatelessWidget {
                   vertical: 10,
                 ),
                 children: [
+                  // ==========================================================
+                  // MENU PRINCIPAL
+                  // ==========================================================
                   _drawerTile(
                     icon: Icons.home_outlined,
                     title: isArabic ? "الرئيسية" : "Accueil",
@@ -1028,52 +1078,26 @@ class Navbar extends StatelessWidget {
                         () =>
                             _closeDrawerAndNavigate(context, const AboutPage()),
                   ),
+
                   const Divider(
                     height: 30,
                     thickness: 1.5,
                     color: nafahatGreen,
                   ),
+
+                  // ==========================================================
+                  // SECTION ADMIN
+                  // ==========================================================
                   if (canViewAdmin) _buildDrawerAdminSection(context, isArabic),
+
+                  // ==========================================================
+                  // SECTION COMPTE
+                  // ==========================================================
                   _buildDrawerAccountSection(context, isArabic, userProvider),
-                  if (isLoggedIn && isAdherentOrFormateur)
-                    _drawerTile(
-                      icon: Icons.settings_outlined,
-                      title: isArabic ? "إدارة الحساب" : "Gestion de compte",
-                      onTap: () {
-                        _closeDrawer(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              isArabic
-                                  ? '🔧 إدارة الحساب - قريباً'
-                                  : '🔧 Gestion de compte - Bientôt disponible',
-                            ),
-                            backgroundColor: nafahatGreen,
-                          ),
-                        );
-                      },
-                    ),
-                  if (isLoggedIn)
-                    _drawerTile(
-                      icon: Icons.logout_rounded,
-                      title: isArabic ? "تسجيل الخروج" : "Déconnexion",
-                      color: Colors.red,
-                      onTap: () {
-                        _closeDrawer(context);
-                        userProvider.logout();
-                        AuthService.logout();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              isArabic
-                                  ? "🔓 تم تسجيل الخروج بنجاح"
-                                  : "🔓 Déconnexion réussie",
-                            ),
-                            backgroundColor: nafahatGreen,
-                          ),
-                        );
-                      },
-                    ),
+
+                  // ==========================================================
+                  // BOUTON LANGUE
+                  // ==========================================================
                   const SizedBox(height: 10),
                   ListTile(
                     leading: const Icon(Icons.language, color: nafahatGreen),
@@ -1350,15 +1374,6 @@ class Navbar extends StatelessWidget {
       visualDensity: const VisualDensity(horizontal: 0, vertical: -2),
       dense: true,
     );
-  }
-
-  void _closeDrawer(BuildContext context) {
-    Navigator.of(context).pop();
-  }
-
-  void _closeDrawerAndNavigate(BuildContext context, Widget page) {
-    Navigator.of(context).pop();
-    Navigator.push(context, MaterialPageRoute(builder: (context) => page));
   }
 
   // ============================================================

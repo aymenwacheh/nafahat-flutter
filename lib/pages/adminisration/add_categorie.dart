@@ -4,8 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:nafahat/services/training_service.dart';
 import 'package:google_fonts/google_fonts.dart';
-
-import 'package:nafahat/pages/landing/widgets/back_to_admin_button.dart';
+import 'package:nafahat/pages/adminisration/admin_page_wrapper.dart';
 
 class AddCategoriePage extends StatefulWidget {
   const AddCategoriePage({super.key});
@@ -95,8 +94,7 @@ class _AddCategoriePageState extends State<AddCategoriePage> {
           body = {
             'categorie_fr': _nomFrController.text,
             'categorie_ar': _nomArController.text,
-            'parent_id':
-                null, // On ne gère pas le parent pour les catégories ici
+            'parent_id': null,
             'ch1': _ch1Controller.text.isNotEmpty ? _ch1Controller.text : null,
             'ch2': _ch2Controller.text.isNotEmpty ? _ch2Controller.text : null,
             'ch3': _ch3Controller.text.isNotEmpty ? _ch3Controller.text : null,
@@ -180,22 +178,18 @@ class _AddCategoriePageState extends State<AddCategoriePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(_isArabic ? 'إضافة تصنيف' : 'Ajouter une catégorie'),
-        backgroundColor: nafahatGreen,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.language),
-            onPressed: () => setState(() => _isArabic = !_isArabic),
-            tooltip: _isArabic ? 'Français' : 'العربية',
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
+    return AdminPageWrapper(
+      title: 'Ajouter une catégorie',
+      titleAr: 'إضافة تصنيف',
+      backgroundColor: const Color(0xFFF5F5F5),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.language),
+          onPressed: () => setState(() => _isArabic = !_isArabic),
+          tooltip: _isArabic ? 'Français' : 'العربية',
+        ),
+      ],
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
@@ -203,7 +197,6 @@ class _AddCategoriePageState extends State<AddCategoriePage> {
             children: [
               _buildHeader(),
               const SizedBox(height: 24),
-              // ✅ Sélecteur : Catégorie ou Sous-catégorie
               _buildTypeSelector(),
               const SizedBox(height: 24),
               Card(
@@ -215,7 +208,6 @@ class _AddCategoriePageState extends State<AddCategoriePage> {
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     children: [
-                      // Nom (commun)
                       _buildField(
                         label:
                             _isArabic
@@ -237,12 +229,8 @@ class _AddCategoriePageState extends State<AddCategoriePage> {
                         textDirection: TextDirection.rtl,
                       ),
                       const SizedBox(height: 16),
-
-                      // Si sous-catégorie, afficher la sélection de catégorie parente
                       if (_selectedType == 'sous_categorie')
                         _buildCategorieParentDropdown(),
-
-                      // Champs supplémentaires ch1 à ch5 (optionnels)
                       const SizedBox(height: 16),
                       _buildOptionalFields(),
                     ],

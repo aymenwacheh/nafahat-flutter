@@ -1,4 +1,4 @@
-// apparence_hero.dart
+// lib/pages/adminisration/apparence_hero.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:nafahat/pages/adminisration/admin_page_wrapper.dart';
 import '../landing/widgets/hero_section.dart';
 import '../landing/widgets/slide_item.dart';
 
@@ -25,11 +26,6 @@ const bool kIsWeb = identical(0, 0.0);
 
 // ============================================================================
 // PAGE PRINCIPALE
-// ============================================================================
-// NOTE : le modèle SlideItem n'est plus défini ici. Il vit maintenant dans
-// slide_item.dart et est partagé avec hero_section.dart, pour que les deux
-// widgets restent toujours synchronisés (même structure de données, même
-// logique de décodage des images web en base64).
 // ============================================================================
 class ApparenceHero extends StatefulWidget {
   final bool isArabic;
@@ -88,12 +84,6 @@ class _ApparenceHeroState extends State<ApparenceHero> {
     }
   }
 
-  // ==========================================================================
-  // CHARGEMENT DES SLIDES
-  //
-  // La logique de décodage base64 (upload web) est maintenant centralisée
-  // dans SlideItem.resolveImageBytes, partagée avec hero_section.dart.
-  // ==========================================================================
   Future<void> _loadSlides() async {
     try {
       print('=== CHARGEMENT DES SLIDES ===');
@@ -172,23 +162,17 @@ class _ApparenceHeroState extends State<ApparenceHero> {
     }
   }
 
-  // ==========================================================================
-  // SAUVEGARDE DES SLIDES
-  // ==========================================================================
   Future<void> _saveSlides() async {
     try {
       print('=== SAUVEGARDE DES SLIDES ===');
       final prefs = await SharedPreferences.getInstance();
 
-      // Sauvegarder les métadonnées des slides
       final List<Map<String, dynamic>> jsonList =
           _slides.map((slide) => slide.toJson()).toList();
-
       final String jsonString = json.encode(jsonList);
       await prefs.setString('hero_slides', jsonString);
       print('Métadonnées sauvegardées: ${_slides.length} slides');
 
-      // Sauvegarder les images en base64 pour le web
       int imagesSauvegardees = 0;
       for (var slide in _slides) {
         if (!slide.isAsset &&
@@ -211,9 +195,6 @@ class _ApparenceHeroState extends State<ApparenceHero> {
     }
   }
 
-  // ==========================================================================
-  // UPLOAD D'IMAGE DEPUIS PC
-  // ==========================================================================
   Future<void> _uploadImage() async {
     try {
       print('=== UPLOAD IMAGE DEPUIS PC ===');
@@ -229,7 +210,6 @@ class _ApparenceHeroState extends State<ApparenceHero> {
         print('Plateforme: ${kIsWeb ? "Web" : "Mobile/Desktop"}');
 
         if (kIsWeb) {
-          // === MODE WEB ===
           if (file.bytes == null) {
             throw Exception('Impossible de récupérer les données de l\'image');
           }
@@ -258,7 +238,6 @@ class _ApparenceHeroState extends State<ApparenceHero> {
             );
           });
         } else {
-          // === MODE MOBILE/DESKTOP ===
           String? filePath = file.path;
           if (filePath == null) {
             throw Exception('Impossible de récupérer le chemin du fichier');
@@ -315,9 +294,6 @@ class _ApparenceHeroState extends State<ApparenceHero> {
     }
   }
 
-  // ==========================================================================
-  // UPLOAD DEPUIS LA GALERIE
-  // ==========================================================================
   Future<void> _pickImageFromGallery() async {
     try {
       print('=== UPLOAD IMAGE DEPUIS GALERIE ===');
@@ -330,7 +306,6 @@ class _ApparenceHeroState extends State<ApparenceHero> {
         print('Plateforme: ${kIsWeb ? "Web" : "Mobile/Desktop"}');
 
         if (kIsWeb) {
-          // === MODE WEB ===
           final bytes = await image.readAsBytes();
           final String base64Image = base64Encode(bytes);
           final String imageKey =
@@ -354,7 +329,6 @@ class _ApparenceHeroState extends State<ApparenceHero> {
             );
           });
         } else {
-          // === MODE MOBILE/DESKTOP ===
           File file = File(image.path);
           String fileName = image.name;
           final appDir = await getApplicationDocumentsDirectory();
@@ -662,25 +636,23 @@ class _ApparenceHeroState extends State<ApparenceHero> {
     print('=== BUILD ===');
     print('Nombre de slides dans le build: ${_slides.length}');
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.isArabic ? 'مظهر الهيرو' : 'Apparence Hero'),
-        backgroundColor: kHeroPrimary,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: _saveConfig,
-            tooltip: widget.isArabic ? 'حفظ' : 'Sauvegarder',
-          ),
-          IconButton(
-            icon: const Icon(Icons.restore),
-            onPressed: _resetToDefault,
-            tooltip: widget.isArabic ? 'إعادة تعيين' : 'Réinitialiser',
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
+    return AdminPageWrapper(
+      title: 'Apparence Hero',
+      titleAr: 'مظهر الهيرو',
+      backgroundColor: Colors.grey[50]!,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.save),
+          onPressed: _saveConfig,
+          tooltip: widget.isArabic ? 'حفظ' : 'Sauvegarder',
+        ),
+        IconButton(
+          icon: const Icon(Icons.restore),
+          onPressed: _resetToDefault,
+          tooltip: widget.isArabic ? 'إعادة تعيين' : 'Réinitialiser',
+        ),
+      ],
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
@@ -1003,13 +975,6 @@ class _ApparenceHeroState extends State<ApparenceHero> {
     );
   }
 
-  // ==========================================================================
-  // AFFICHAGE DES SLIDES DANS LA LISTE D'ADMIN
-  //
-  // Même ordre de résolution que HeroSection._buildBackgroundImage :
-  // asset -> imageBytes en mémoire -> data URL -> fichier local (mobile
-  // uniquement, jamais sur le web).
-  // ==========================================================================
   Widget _buildSlideItem(int index, SlideItem slide) {
     Widget imageWidget;
 

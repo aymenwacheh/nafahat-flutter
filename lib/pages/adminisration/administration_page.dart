@@ -7,6 +7,7 @@ import 'package:nafahat/pages/adminisration/edit_categorie.dart';
 import 'package:nafahat/pages/adminisration/add_formateur.dart';
 import 'package:nafahat/pages/adminisration/add_video_fav_page.dart';
 import 'package:nafahat/pages/adminisration/edit_formation.dart';
+import 'package:nafahat/pages/adminisration/users_list_page.dart';
 import 'package:nafahat/pages/landing/widgets/BackToLandingButton.dart';
 import 'package:nafahat/pages/users/edit_profile_page.dart';
 import 'package:nafahat/pages/adminisration/add_duree.dart';
@@ -33,6 +34,7 @@ import 'package:nafahat/pages/adminisration/creerUserPage.dart';
 import 'package:nafahat/pages/users/inscription_adherent.dart';
 import '../../services/navigation_service.dart';
 import 'etat_paiement.dart';
+import 'adherents_list_page.dart';
 
 class AdministrationPage extends StatefulWidget {
   const AdministrationPage({super.key});
@@ -59,11 +61,12 @@ class _AdministrationPageState extends State<AdministrationPage> {
     const ApparenceHeroPageWrapper(),
     const ApparenceCardPage(),
     const AddAboutPage(),
-    const AdherentsManagementPage(),
-    const AdherentsManagementPage(),
+    const AdherentsListPage(),
     const CreerUserPage(),
+    const InscriptionAdherentPage(),
     const VideosManagementPage(),
     const EtatPaiementPage(),
+    const UsersListPage(),
   ];
 
   // Titres pour l'AppBar
@@ -83,6 +86,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     'Inscription adhérent',
     'Vidéos',
     'paiement',
+    'Liste des utilisateurs',
   ];
 
   final List<String> _titlesAr = [
@@ -100,7 +104,8 @@ class _AdministrationPageState extends State<AdministrationPage> {
     'إنشاء مستخدم',
     'تسجيل منخرط',
     'الفيديوهات',
-    'منتمنة ',
+    'حالة المدفوعات',
+    'قائمة المستعملين ',
   ];
 
   // Structure des menus avec groupes
@@ -189,6 +194,12 @@ class _AdministrationPageState extends State<AdministrationPage> {
           'title': 'Adhérents',
           'titleAr': 'المنخرطين',
           'page': 10,
+        },
+        {
+          'icon': Icons.list_alt,
+          'title': 'Liste des utilisateurs',
+          'titleAr': 'قائمة المستعملين',
+          'page': 15, // Nouvel index
         },
         {
           'icon': Icons.admin_panel_settings,

@@ -1,11 +1,11 @@
 // lib/pages/adminisration/add_about.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:nafahat/pages/landing/widgets/back_to_admin_button.dart';
 import 'package:provider/provider.dart';
 import 'package:nafahat/providers/language_provider.dart';
 import 'package:nafahat/providers/about_provider.dart';
 import 'package:nafahat/models/about_model.dart';
+import 'package:nafahat/pages/adminisration/admin_page_wrapper.dart';
 
 class AddAboutPage extends StatefulWidget {
   const AddAboutPage({super.key});
@@ -329,662 +329,632 @@ class _AddAboutPageState extends State<AddAboutPage> {
     final isArabic = Provider.of<LanguageProvider>(context).isArabic;
     final isMobile = MediaQuery.of(context).size.width < 600;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          isArabic ? 'إدارة صفحة "عن المنصة"' : 'Gestion de la page "À propos"',
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.bold,
-            fontSize: isMobile ? 16 : 20,
-          ),
-        ),
-        backgroundColor: const Color(0xff0D443E),
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          const BackToAdminButton(),
-          if (_isSaving)
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
+    return AdminPageWrapper(
+      title: 'Gestion de la page "À propos"',
+      titleAr: 'إدارة صفحة "عن المنصة"',
+      backgroundColor: Colors.grey.shade50,
+      actions: [
+        if (_isSaving)
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
               ),
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.save_rounded),
-              onPressed: _saveData,
-              tooltip: isArabic ? 'حفظ' : 'Sauvegarder',
             ),
-        ],
-      ),
-      body:
+          )
+        else
+          IconButton(
+            icon: const Icon(Icons.save_rounded),
+            onPressed: _saveData,
+            tooltip: isArabic ? 'حفظ' : 'Sauvegarder',
+          ),
+      ],
+      child:
           _isLoading
               ? const Center(child: CircularProgressIndicator())
-              : Container(
-                color: Colors.grey.shade50,
-                child: SafeArea(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.all(isMobile ? 12.0 : 24.0),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (_aboutId != null)
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              margin: const EdgeInsets.only(bottom: 16),
-                              decoration: BoxDecoration(
-                                color: const Color(
-                                  0xff0D443E,
-                                ).withOpacity(0.05),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: const Color(
-                                    0xff0D443E,
-                                  ).withOpacity(0.1),
-                                ),
+              : SafeArea(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(isMobile ? 12.0 : 24.0),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (_aboutId != null)
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            margin: const EdgeInsets.only(bottom: 16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xff0D443E).withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: const Color(0xff0D443E).withOpacity(0.1),
                               ),
-                              child: Row(
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.info_outline,
+                                  color: Color(0xff0D443E),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  isArabic
+                                      ? 'ID: $_aboutId (en cours de modification)'
+                                      : 'ID: $_aboutId (en cours de modification)',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    color: const Color(0xff0D443E),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        _buildSection(
+                          title:
+                              isArabic
+                                  ? '🏷️ العنوان الرئيسي'
+                                  : '🏷️ Titre principal',
+                          child: Column(
+                            children: [
+                              _buildTextField(
+                                label:
+                                    isArabic
+                                        ? 'Titre (Français)'
+                                        : 'Titre (Français)',
+                                controller: _titleFrController,
+                                isArabic: false,
+                              ),
+                              const SizedBox(height: 12),
+                              _buildTextField(
+                                label:
+                                    isArabic
+                                        ? 'Titre (Arabe)'
+                                        : 'Titre (Arabe)',
+                                controller: _titleArController,
+                                isArabic: true,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildSection(
+                          title: isArabic ? '✨ الشعار' : '✨ Slogan',
+                          child: Column(
+                            children: [
+                              _buildTextField(
+                                label:
+                                    isArabic
+                                        ? 'Slogan (Français)'
+                                        : 'Slogan (Français)',
+                                controller: _sloganFrController,
+                                isArabic: false,
+                              ),
+                              const SizedBox(height: 12),
+                              _buildTextField(
+                                label:
+                                    isArabic
+                                        ? 'Slogan (Arabe)'
+                                        : 'Slogan (Arabe)',
+                                controller: _sloganArController,
+                                isArabic: true,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildSection(
+                          title: isArabic ? '📖 Sous-titre' : '📖 Sous-titre',
+                          child: Column(
+                            children: [
+                              _buildTextField(
+                                label:
+                                    isArabic
+                                        ? 'Sous-titre (Français)'
+                                        : 'Sous-titre (Français)',
+                                controller: _subtitleFrController,
+                                isArabic: false,
+                              ),
+                              const SizedBox(height: 12),
+                              _buildTextField(
+                                label:
+                                    isArabic
+                                        ? 'Sous-titre (Arabe)'
+                                        : 'Sous-titre (Arabe)',
+                                controller: _subtitleArController,
+                                isArabic: true,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildSection(
+                          title: isArabic ? '📝 Description' : '📝 Description',
+                          child: Column(
+                            children: [
+                              _buildTextField(
+                                label:
+                                    isArabic
+                                        ? 'Description (Français)'
+                                        : 'Description (Français)',
+                                controller: _descriptionFrController,
+                                isArabic: false,
+                                maxLines: 5,
+                              ),
+                              const SizedBox(height: 12),
+                              _buildTextField(
+                                label:
+                                    isArabic
+                                        ? 'Description (Arabe)'
+                                        : 'Description (Arabe)',
+                                controller: _descriptionArController,
+                                isArabic: true,
+                                maxLines: 5,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildSection(
+                          title:
+                              isArabic
+                                  ? '💚 Appel à l\'action'
+                                  : '💚 Appel à l\'action',
+                          child: Column(
+                            children: [
+                              _buildTextField(
+                                label:
+                                    isArabic
+                                        ? 'CTA (Français)'
+                                        : 'CTA (Français)',
+                                controller: _callToActionFrController,
+                                isArabic: false,
+                              ),
+                              const SizedBox(height: 12),
+                              _buildTextField(
+                                label: isArabic ? 'CTA (Arabe)' : 'CTA (Arabe)',
+                                controller: _callToActionArController,
+                                isArabic: true,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildSection(
+                          title: isArabic ? '👁️ Vision' : '👁️ Vision',
+                          child: Column(
+                            children: [
+                              _buildTextField(
+                                label:
+                                    isArabic
+                                        ? 'Vision (Français)'
+                                        : 'Vision (Français)',
+                                controller: _visionFrController,
+                                isArabic: false,
+                                maxLines: 3,
+                                required: false,
+                              ),
+                              const SizedBox(height: 12),
+                              _buildTextField(
+                                label:
+                                    isArabic
+                                        ? 'Vision (Arabe)'
+                                        : 'Vision (Arabe)',
+                                controller: _visionArController,
+                                isArabic: true,
+                                maxLines: 3,
+                                required: false,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildSection(
+                          title: isArabic ? '🎯 Mission' : '🎯 Mission',
+                          child: Column(
+                            children: [
+                              _buildTextField(
+                                label:
+                                    isArabic
+                                        ? 'Mission (Français)'
+                                        : 'Mission (Français)',
+                                controller: _missionFrController,
+                                isArabic: false,
+                                maxLines: 3,
+                                required: false,
+                              ),
+                              const SizedBox(height: 12),
+                              _buildTextField(
+                                label:
+                                    isArabic
+                                        ? 'Mission (Arabe)'
+                                        : 'Mission (Arabe)',
+                                controller: _missionArController,
+                                isArabic: true,
+                                maxLines: 3,
+                                required: false,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildSection(
+                          title:
+                              isArabic
+                                  ? '🏷️ Valeurs / Thèmes'
+                                  : '🏷️ Valeurs / Thèmes',
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children:
+                                    _values.asMap().entries.map((entry) {
+                                      final index = entry.key;
+                                      final value = entry.value;
+                                      return Chip(
+                                        label: Text(value),
+                                        onDeleted: () => _removeValue(index),
+                                        deleteIcon: const Icon(
+                                          Icons.close,
+                                          size: 16,
+                                        ),
+                                        backgroundColor: const Color(
+                                          0xff0D443E,
+                                        ).withOpacity(0.08),
+                                        labelStyle: GoogleFonts.poppins(
+                                          fontSize: 13,
+                                        ),
+                                      );
+                                    }).toList(),
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
                                 children: [
-                                  const Icon(
-                                    Icons.info_outline,
-                                    color: Color(0xff0D443E),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _valueController,
+                                      decoration: InputDecoration(
+                                        hintText:
+                                            isArabic
+                                                ? 'Ajouter une valeur...'
+                                                : 'Ajouter une valeur...',
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 8,
+                                            ),
+                                      ),
+                                      onSubmitted: (_) => _addValue(),
+                                    ),
                                   ),
                                   const SizedBox(width: 8),
-                                  Text(
-                                    isArabic
-                                        ? 'ID: $_aboutId (en cours de modification)'
-                                        : 'ID: $_aboutId (en cours de modification)',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 14,
-                                      color: const Color(0xff0D443E),
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.add_circle,
+                                      color: Color(0xff0D443E),
                                     ),
+                                    onPressed: _addValue,
                                   ),
                                 ],
                               ),
-                            ),
-                          _buildSection(
-                            title:
-                                isArabic
-                                    ? '🏷️ العنوان الرئيسي'
-                                    : '🏷️ Titre principal',
-                            child: Column(
-                              children: [
-                                _buildTextField(
-                                  label:
-                                      isArabic
-                                          ? 'Titre (Français)'
-                                          : 'Titre (Français)',
-                                  controller: _titleFrController,
-                                  isArabic: false,
-                                ),
-                                const SizedBox(height: 12),
-                                _buildTextField(
-                                  label:
-                                      isArabic
-                                          ? 'Titre (Arabe)'
-                                          : 'Titre (Arabe)',
-                                  controller: _titleArController,
-                                  isArabic: true,
-                                ),
-                              ],
-                            ),
+                            ],
                           ),
-                          const SizedBox(height: 16),
-                          _buildSection(
-                            title: isArabic ? '✨ الشعار' : '✨ Slogan',
-                            child: Column(
-                              children: [
-                                _buildTextField(
-                                  label:
-                                      isArabic
-                                          ? 'Slogan (Français)'
-                                          : 'Slogan (Français)',
-                                  controller: _sloganFrController,
-                                  isArabic: false,
-                                ),
-                                const SizedBox(height: 12),
-                                _buildTextField(
-                                  label:
-                                      isArabic
-                                          ? 'Slogan (Arabe)'
-                                          : 'Slogan (Arabe)',
-                                  controller: _sloganArController,
-                                  isArabic: true,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          _buildSection(
-                            title: isArabic ? '📖 Sous-titre' : '📖 Sous-titre',
-                            child: Column(
-                              children: [
-                                _buildTextField(
-                                  label:
-                                      isArabic
-                                          ? 'Sous-titre (Français)'
-                                          : 'Sous-titre (Français)',
-                                  controller: _subtitleFrController,
-                                  isArabic: false,
-                                ),
-                                const SizedBox(height: 12),
-                                _buildTextField(
-                                  label:
-                                      isArabic
-                                          ? 'Sous-titre (Arabe)'
-                                          : 'Sous-titre (Arabe)',
-                                  controller: _subtitleArController,
-                                  isArabic: true,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          _buildSection(
-                            title:
-                                isArabic ? '📝 Description' : '📝 Description',
-                            child: Column(
-                              children: [
-                                _buildTextField(
-                                  label:
-                                      isArabic
-                                          ? 'Description (Français)'
-                                          : 'Description (Français)',
-                                  controller: _descriptionFrController,
-                                  isArabic: false,
-                                  maxLines: 5,
-                                ),
-                                const SizedBox(height: 12),
-                                _buildTextField(
-                                  label:
-                                      isArabic
-                                          ? 'Description (Arabe)'
-                                          : 'Description (Arabe)',
-                                  controller: _descriptionArController,
-                                  isArabic: true,
-                                  maxLines: 5,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          _buildSection(
-                            title:
-                                isArabic
-                                    ? '💚 Appel à l\'action'
-                                    : '💚 Appel à l\'action',
-                            child: Column(
-                              children: [
-                                _buildTextField(
-                                  label:
-                                      isArabic
-                                          ? 'CTA (Français)'
-                                          : 'CTA (Français)',
-                                  controller: _callToActionFrController,
-                                  isArabic: false,
-                                ),
-                                const SizedBox(height: 12),
-                                _buildTextField(
-                                  label:
-                                      isArabic ? 'CTA (Arabe)' : 'CTA (Arabe)',
-                                  controller: _callToActionArController,
-                                  isArabic: true,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          _buildSection(
-                            title: isArabic ? '👁️ Vision' : '👁️ Vision',
-                            child: Column(
-                              children: [
-                                _buildTextField(
-                                  label:
-                                      isArabic
-                                          ? 'Vision (Français)'
-                                          : 'Vision (Français)',
-                                  controller: _visionFrController,
-                                  isArabic: false,
-                                  maxLines: 3,
-                                  required: false,
-                                ),
-                                const SizedBox(height: 12),
-                                _buildTextField(
-                                  label:
-                                      isArabic
-                                          ? 'Vision (Arabe)'
-                                          : 'Vision (Arabe)',
-                                  controller: _visionArController,
-                                  isArabic: true,
-                                  maxLines: 3,
-                                  required: false,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          _buildSection(
-                            title: isArabic ? '🎯 Mission' : '🎯 Mission',
-                            child: Column(
-                              children: [
-                                _buildTextField(
-                                  label:
-                                      isArabic
-                                          ? 'Mission (Français)'
-                                          : 'Mission (Français)',
-                                  controller: _missionFrController,
-                                  isArabic: false,
-                                  maxLines: 3,
-                                  required: false,
-                                ),
-                                const SizedBox(height: 12),
-                                _buildTextField(
-                                  label:
-                                      isArabic
-                                          ? 'Mission (Arabe)'
-                                          : 'Mission (Arabe)',
-                                  controller: _missionArController,
-                                  isArabic: true,
-                                  maxLines: 3,
-                                  required: false,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          _buildSection(
-                            title:
-                                isArabic
-                                    ? '🏷️ Valeurs / Thèmes'
-                                    : '🏷️ Valeurs / Thèmes',
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(height: 8),
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children:
-                                      _values.asMap().entries.map((entry) {
-                                        final index = entry.key;
-                                        final value = entry.value;
-                                        return Chip(
-                                          label: Text(value),
-                                          onDeleted: () => _removeValue(index),
-                                          deleteIcon: const Icon(
-                                            Icons.close,
-                                            size: 16,
-                                          ),
-                                          backgroundColor: const Color(
-                                            0xff0D443E,
-                                          ).withOpacity(0.08),
-                                          labelStyle: GoogleFonts.poppins(
-                                            fontSize: 13,
-                                          ),
-                                        );
-                                      }).toList(),
-                                ),
-                                const SizedBox(height: 12),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: TextField(
-                                        controller: _valueController,
-                                        decoration: InputDecoration(
-                                          hintText:
-                                              isArabic
-                                                  ? 'Ajouter une valeur...'
-                                                  : 'Ajouter une valeur...',
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                          ),
-                                          contentPadding:
-                                              const EdgeInsets.symmetric(
-                                                horizontal: 12,
-                                                vertical: 8,
-                                              ),
-                                        ),
-                                        onSubmitted: (_) => _addValue(),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.add_circle,
-                                        color: Color(0xff0D443E),
-                                      ),
-                                      onPressed: _addValue,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          _buildSection(
-                            title:
-                                isArabic
-                                    ? '📊 Statistiques'
-                                    : '📊 Statistiques',
-                            child: Column(
-                              children: [
-                                _buildStatRow(
-                                  statLabel:
-                                      isArabic
-                                          ? 'Statistique 1'
-                                          : 'Statistique 1',
-                                  valueController: _stat1ValueController,
-                                  labelFrController: _stat1LabelFrController,
-                                  labelArController: _stat1LabelArController,
-                                  isArabic: isArabic,
-                                ),
-                                const SizedBox(height: 12),
-                                _buildStatRow(
-                                  statLabel:
-                                      isArabic
-                                          ? 'Statistique 2'
-                                          : 'Statistique 2',
-                                  valueController: _stat2ValueController,
-                                  labelFrController: _stat2LabelFrController,
-                                  labelArController: _stat2LabelArController,
-                                  isArabic: isArabic,
-                                ),
-                                const SizedBox(height: 12),
-                                _buildStatRow(
-                                  statLabel:
-                                      isArabic
-                                          ? 'Statistique 3'
-                                          : 'Statistique 3',
-                                  valueController: _stat3ValueController,
-                                  labelFrController: _stat3LabelFrController,
-                                  labelArController: _stat3LabelArController,
-                                  isArabic: isArabic,
-                                ),
-                                const SizedBox(height: 12),
-                                _buildStatRow(
-                                  statLabel:
-                                      isArabic
-                                          ? 'Statistique 4'
-                                          : 'Statistique 4',
-                                  valueController: _stat4ValueController,
-                                  labelFrController: _stat4LabelFrController,
-                                  labelArController: _stat4LabelArController,
-                                  isArabic: isArabic,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          _buildSection(
-                            title: isArabic ? '📬 Contact' : '📬 Contact',
-                            child: Column(
-                              children: [
-                                _buildTextField(
-                                  label: isArabic ? 'Email' : 'Email',
-                                  controller: _emailController,
-                                  isArabic: false,
-                                ),
-                                const SizedBox(height: 12),
-                                _buildTextField(
-                                  label: isArabic ? 'Téléphone' : 'Téléphone',
-                                  controller: _phoneController,
-                                  isArabic: false,
-                                ),
-                                const SizedBox(height: 12),
-                                _buildTextField(
-                                  label:
-                                      isArabic
-                                          ? 'Adresse (Français)'
-                                          : 'Adresse (Français)',
-                                  controller: _addressFrController,
-                                  isArabic: false,
-                                ),
-                                const SizedBox(height: 12),
-                                _buildTextField(
-                                  label:
-                                      isArabic
-                                          ? 'Adresse (Arabe)'
-                                          : 'Adresse (Arabe)',
-                                  controller: _addressArController,
-                                  isArabic: true,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          _buildSection(
-                            title:
-                                isArabic
-                                    ? '🌐 Réseaux sociaux'
-                                    : '🌐 Réseaux sociaux',
-                            child: Column(
-                              children: [
-                                _buildTextField(
-                                  label:
-                                      isArabic
-                                          ? 'Facebook URL'
-                                          : 'Facebook URL',
-                                  controller: _facebookUrlController,
-                                  isArabic: false,
-                                  required: false,
-                                ),
-                                const SizedBox(height: 12),
-                                _buildTextField(
-                                  label:
-                                      isArabic ? 'YouTube URL' : 'YouTube URL',
-                                  controller: _youtubeUrlController,
-                                  isArabic: false,
-                                  required: false,
-                                ),
-                                const SizedBox(height: 12),
-                                _buildTextField(
-                                  label:
-                                      isArabic
-                                          ? 'Telegram URL'
-                                          : 'Telegram URL',
-                                  controller: _telegramUrlController,
-                                  isArabic: false,
-                                  required: false,
-                                ),
-                                const SizedBox(height: 12),
-                                _buildTextField(
-                                  label:
-                                      isArabic
-                                          ? 'Instagram URL'
-                                          : 'Instagram URL',
-                                  controller: _instagramUrlController,
-                                  isArabic: false,
-                                  required: false,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          _buildSection(
-                            title: isArabic ? '👥 Équipe' : '👥 Équipe',
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                ..._teamMembers.asMap().entries.map((entry) {
-                                  final index = entry.key;
-                                  final member = entry.value;
-                                  return Container(
-                                    margin: const EdgeInsets.only(bottom: 8),
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade100,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                member.name,
-                                                style: GoogleFonts.poppins(
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                              Text(
-                                                '${member.roleFr} / ${member.roleAr}',
-                                                style: GoogleFonts.poppins(
-                                                  fontSize: 12,
-                                                  color: Colors.grey.shade600,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        IconButton(
-                                          icon: const Icon(
-                                            Icons.close,
-                                            color: Colors.red,
-                                            size: 20,
-                                          ),
-                                          onPressed:
-                                              () => _removeTeamMember(index),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }).toList(),
-                                const SizedBox(height: 12),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      flex: 2,
-                                      child: TextField(
-                                        controller: _teamNameController,
-                                        decoration: InputDecoration(
-                                          hintText: isArabic ? 'Nom' : 'Nom',
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                          ),
-                                          contentPadding:
-                                              const EdgeInsets.symmetric(
-                                                horizontal: 12,
-                                                vertical: 8,
-                                              ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: TextField(
-                                        controller: _teamRoleFrController,
-                                        decoration: InputDecoration(
-                                          hintText:
-                                              isArabic
-                                                  ? 'Rôle (FR)'
-                                                  : 'Rôle (FR)',
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                          ),
-                                          contentPadding:
-                                              const EdgeInsets.symmetric(
-                                                horizontal: 12,
-                                                vertical: 8,
-                                              ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: TextField(
-                                        controller: _teamRoleArController,
-                                        textDirection: TextDirection.rtl,
-                                        decoration: InputDecoration(
-                                          hintText:
-                                              isArabic
-                                                  ? 'Rôle (AR)'
-                                                  : 'Rôle (AR)',
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                          ),
-                                          contentPadding:
-                                              const EdgeInsets.symmetric(
-                                                horizontal: 12,
-                                                vertical: 8,
-                                              ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.add_circle,
-                                        color: Color(0xff0D443E),
-                                      ),
-                                      onPressed: _addTeamMember,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 30),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 56,
-                            child: ElevatedButton(
-                              onPressed: _isSaving ? null : _saveData,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xff0D443E),
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildSection(
+                          title:
+                              isArabic ? '📊 Statistiques' : '📊 Statistiques',
+                          child: Column(
+                            children: [
+                              _buildStatRow(
+                                statLabel:
+                                    isArabic
+                                        ? 'Statistique 1'
+                                        : 'Statistique 1',
+                                valueController: _stat1ValueController,
+                                labelFrController: _stat1LabelFrController,
+                                labelArController: _stat1LabelArController,
+                                isArabic: isArabic,
                               ),
-                              child:
-                                  _isSaving
-                                      ? const SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor:
-                                              AlwaysStoppedAnimation<Color>(
-                                                Colors.white,
+                              const SizedBox(height: 12),
+                              _buildStatRow(
+                                statLabel:
+                                    isArabic
+                                        ? 'Statistique 2'
+                                        : 'Statistique 2',
+                                valueController: _stat2ValueController,
+                                labelFrController: _stat2LabelFrController,
+                                labelArController: _stat2LabelArController,
+                                isArabic: isArabic,
+                              ),
+                              const SizedBox(height: 12),
+                              _buildStatRow(
+                                statLabel:
+                                    isArabic
+                                        ? 'Statistique 3'
+                                        : 'Statistique 3',
+                                valueController: _stat3ValueController,
+                                labelFrController: _stat3LabelFrController,
+                                labelArController: _stat3LabelArController,
+                                isArabic: isArabic,
+                              ),
+                              const SizedBox(height: 12),
+                              _buildStatRow(
+                                statLabel:
+                                    isArabic
+                                        ? 'Statistique 4'
+                                        : 'Statistique 4',
+                                valueController: _stat4ValueController,
+                                labelFrController: _stat4LabelFrController,
+                                labelArController: _stat4LabelArController,
+                                isArabic: isArabic,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildSection(
+                          title: isArabic ? '📬 Contact' : '📬 Contact',
+                          child: Column(
+                            children: [
+                              _buildTextField(
+                                label: isArabic ? 'Email' : 'Email',
+                                controller: _emailController,
+                                isArabic: false,
+                              ),
+                              const SizedBox(height: 12),
+                              _buildTextField(
+                                label: isArabic ? 'Téléphone' : 'Téléphone',
+                                controller: _phoneController,
+                                isArabic: false,
+                              ),
+                              const SizedBox(height: 12),
+                              _buildTextField(
+                                label:
+                                    isArabic
+                                        ? 'Adresse (Français)'
+                                        : 'Adresse (Français)',
+                                controller: _addressFrController,
+                                isArabic: false,
+                              ),
+                              const SizedBox(height: 12),
+                              _buildTextField(
+                                label:
+                                    isArabic
+                                        ? 'Adresse (Arabe)'
+                                        : 'Adresse (Arabe)',
+                                controller: _addressArController,
+                                isArabic: true,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildSection(
+                          title:
+                              isArabic
+                                  ? '🌐 Réseaux sociaux'
+                                  : '🌐 Réseaux sociaux',
+                          child: Column(
+                            children: [
+                              _buildTextField(
+                                label:
+                                    isArabic ? 'Facebook URL' : 'Facebook URL',
+                                controller: _facebookUrlController,
+                                isArabic: false,
+                                required: false,
+                              ),
+                              const SizedBox(height: 12),
+                              _buildTextField(
+                                label: isArabic ? 'YouTube URL' : 'YouTube URL',
+                                controller: _youtubeUrlController,
+                                isArabic: false,
+                                required: false,
+                              ),
+                              const SizedBox(height: 12),
+                              _buildTextField(
+                                label:
+                                    isArabic ? 'Telegram URL' : 'Telegram URL',
+                                controller: _telegramUrlController,
+                                isArabic: false,
+                                required: false,
+                              ),
+                              const SizedBox(height: 12),
+                              _buildTextField(
+                                label:
+                                    isArabic
+                                        ? 'Instagram URL'
+                                        : 'Instagram URL',
+                                controller: _instagramUrlController,
+                                isArabic: false,
+                                required: false,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildSection(
+                          title: isArabic ? '👥 Équipe' : '👥 Équipe',
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ..._teamMembers.asMap().entries.map((entry) {
+                                final index = entry.key;
+                                final member = entry.value;
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              member.name,
+                                              style: GoogleFonts.poppins(
+                                                fontWeight: FontWeight.w600,
                                               ),
-                                        ),
-                                      )
-                                      : Text(
-                                        isArabic
-                                            ? '💾 حفظ جميع التغييرات'
-                                            : '💾 Sauvegarder toutes les modifications',
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
+                                            ),
+                                            Text(
+                                              '${member.roleFr} / ${member.roleAr}',
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 12,
+                                                color: Colors.grey.shade600,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                            ),
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.close,
+                                          color: Colors.red,
+                                          size: 20,
+                                        ),
+                                        onPressed:
+                                            () => _removeTeamMember(index),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    flex: 2,
+                                    child: TextField(
+                                      controller: _teamNameController,
+                                      decoration: InputDecoration(
+                                        hintText: isArabic ? 'Nom' : 'Nom',
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 8,
+                                            ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _teamRoleFrController,
+                                      decoration: InputDecoration(
+                                        hintText:
+                                            isArabic
+                                                ? 'Rôle (FR)'
+                                                : 'Rôle (FR)',
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 8,
+                                            ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _teamRoleArController,
+                                      textDirection: TextDirection.rtl,
+                                      decoration: InputDecoration(
+                                        hintText:
+                                            isArabic
+                                                ? 'Rôle (AR)'
+                                                : 'Rôle (AR)',
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 8,
+                                            ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.add_circle,
+                                      color: Color(0xff0D443E),
+                                    ),
+                                    onPressed: _addTeamMember,
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 30),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(height: 30),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: ElevatedButton(
+                            onPressed: _isSaving ? null : _saveData,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xff0D443E),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child:
+                                _isSaving
+                                    ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Colors.white,
+                                            ),
+                                      ),
+                                    )
+                                    : Text(
+                                      isArabic
+                                          ? '💾 حفظ جميع التغييرات'
+                                          : '💾 Sauvegarder toutes les modifications',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                          ),
+                        ),
+                        const SizedBox(height: 30),
+                      ],
                     ),
                   ),
                 ),

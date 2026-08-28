@@ -6,6 +6,7 @@ import 'package:nafahat/services/training_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nafahat/services/card_config_manager.dart';
 import 'package:nafahat/models/card_config_model.dart';
+import 'package:nafahat/pages/adminisration/admin_page_wrapper.dart';
 import 'dart:convert';
 
 class ApparenceCardPage extends StatefulWidget {
@@ -101,9 +102,9 @@ class _ApparenceCardPageState extends State<ApparenceCardPage> {
     descriptionFr: 'Maîtrisez Flutter avec des projets concrets',
     descriptionAr: 'إتقان فلاتر من خلال مشاريع عملية',
     price: 15000,
-    priceDt: 15000, // ✅ AJOUTÉ
-    priceEur: 450, // ✅ AJOUTÉ
-    priceUsd: 550, // ✅ AJOUTÉ
+    priceDt: 15000,
+    priceEur: 450,
+    priceUsd: 550,
     discountValue: 3000,
     hasDiscount: true,
     isPercentageDiscount: true,
@@ -129,7 +130,6 @@ class _ApparenceCardPageState extends State<ApparenceCardPage> {
   Future<void> _loadTrainings() async {
     setState(() => _isLoadingTrainings = true);
     try {
-      // Import du service
       final trainings = await TrainingService.getTrainings();
       setState(() {
         _availableTrainings = trainings.reversed.toList();
@@ -207,32 +207,25 @@ class _ApparenceCardPageState extends State<ApparenceCardPage> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
 
-    return Scaffold(
+    return AdminPageWrapper(
+      title: 'Apparence des cartes',
+      titleAr: 'إعدادات مظهر البطاقة',
       backgroundColor: const Color(0xFFFAFAFA),
-      appBar: AppBar(
-        title: Text(
-          _isArabic ? 'إعدادات مظهر البطاقة' : 'Apparence des cartes',
-          style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.language),
+          onPressed: () => setState(() => _isArabic = !_isArabic),
+          tooltip: _isArabic ? 'Français' : 'العربية',
         ),
-        backgroundColor: const Color(0xff0D443E),
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.language),
-            onPressed: () => setState(() => _isArabic = !_isArabic),
-            tooltip: _isArabic ? 'Français' : 'العربية',
+        TextButton(
+          onPressed: _resetToDefault,
+          child: Text(
+            _isArabic ? 'إعادة تعيين' : 'Réinitialiser',
+            style: GoogleFonts.cairo(color: Colors.white70),
           ),
-          TextButton(
-            onPressed: _resetToDefault,
-            child: Text(
-              _isArabic ? 'إعادة تعيين' : 'Réinitialiser',
-              style: GoogleFonts.cairo(color: Colors.white70),
-            ),
-          ),
-        ],
-      ),
-      body:
+        ),
+      ],
+      child:
           _isLoading
               ? const Center(child: CircularProgressIndicator())
               : SingleChildScrollView(
@@ -682,7 +675,6 @@ class _ApparenceCardPageState extends State<ApparenceCardPage> {
                             onChanged: (value) {
                               setState(() {
                                 _config.mobileDisplayCount = value!;
-                                // Réinitialiser la sélection si nécessaire
                                 if (_config.mobileSelectedTrainings.length >
                                     value) {
                                   _config.mobileSelectedTrainings = _config
@@ -1039,7 +1031,6 @@ class _ApparenceCardPageState extends State<ApparenceCardPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Titre avec style titre
                           if (_config.visibleFields.contains('title'))
                             Text(
                               _isArabic
@@ -1055,8 +1046,6 @@ class _ApparenceCardPageState extends State<ApparenceCardPage> {
                               overflow: TextOverflow.ellipsis,
                             ),
                           const SizedBox(height: 6),
-
-                          // Champs avec style libellé/valeur
                           if (_config.visibleFields.contains('trainer'))
                             _buildPreviewInfoRow(
                               Icons.person,
@@ -1095,8 +1084,6 @@ class _ApparenceCardPageState extends State<ApparenceCardPage> {
                                   ? _previewTraining.categorieAr
                                   : _previewTraining.categorieFr,
                             ),
-
-                          // Prix et réduction
                           if (_config.visibleFields.contains('price') ||
                               _config.visibleFields.contains('discount'))
                             Row(
@@ -1203,7 +1190,6 @@ class _ApparenceCardPageState extends State<ApparenceCardPage> {
     );
   }
 
-  // ✅ Fonction utilitaire pour extraire le nom de la famille
   String _extractFontFamily(String fontWithVariant) {
     if (fontWithVariant.contains('-')) {
       return fontWithVariant.split('-').first;
@@ -1211,7 +1197,6 @@ class _ApparenceCardPageState extends State<ApparenceCardPage> {
     return fontWithVariant;
   }
 
-  // ✅ Fonction utilitaire pour obtenir le style avec GoogleFonts
   TextStyle _getFontWithFamily(
     String fontWithVariant,
     double fontSize,
@@ -1327,7 +1312,6 @@ class _ApparenceCardPageState extends State<ApparenceCardPage> {
     required bool isArabic,
   }) {
     final colors = [
-      // Couleurs neutres
       Colors.black,
       Colors.grey[900]!,
       Colors.grey[800]!,
@@ -1336,53 +1320,35 @@ class _ApparenceCardPageState extends State<ApparenceCardPage> {
       Colors.grey[500]!,
       Colors.grey[400]!,
       Colors.white,
-
-      // Couleurs primaires
-      const Color(0xff0D443E), // Vert foncé Nafahat
-      const Color(0xff1A6B63), // Vert moyen
-      const Color(0xff2E9E94), // Vert clair
-      // Couleurs chaudes
-      const Color(0xffd57653), // Orange Nafahat
-      const Color(0xffE8926E), // Orange clair
-      const Color(0xffC45A35), // Orange foncé
-      const Color(0xffC4A46C), // Or Nafahat
-      // Bleus
+      const Color(0xff0D443E),
+      const Color(0xff1A6B63),
+      const Color(0xff2E9E94),
+      const Color(0xffd57653),
+      const Color(0xffE8926E),
+      const Color(0xffC45A35),
+      const Color(0xffC4A46C),
       Colors.blue[900]!,
       Colors.blue[700]!,
       Colors.blue[500]!,
       Colors.blue[300]!,
-
-      // Rouges
       Colors.red[900]!,
       Colors.red[700]!,
       Colors.red[500]!,
-
-      // Verts
       Colors.green[900]!,
       Colors.green[700]!,
       Colors.green[500]!,
-
-      // Violets
       Colors.purple[900]!,
       Colors.purple[700]!,
       Colors.purple[500]!,
-
-      // Roses
       Colors.pink[900]!,
       Colors.pink[700]!,
       Colors.pink[500]!,
-
-      // Oranges
       Colors.orange[900]!,
       Colors.orange[700]!,
       Colors.orange[500]!,
-
-      // Teals
       Colors.teal[900]!,
       Colors.teal[700]!,
       Colors.teal[500]!,
-
-      // Indigos
       Colors.indigo[900]!,
       Colors.indigo[700]!,
       Colors.indigo[500]!,
