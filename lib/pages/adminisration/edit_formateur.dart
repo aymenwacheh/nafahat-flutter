@@ -2,8 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
+import 'package:http_parser/http_parser.dart' show MediaType;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/formateur.dart';
 import '../../services/training_service.dart';
@@ -31,7 +32,9 @@ class _EditFormateurScreenState extends State<EditFormateurScreen> {
   List<dynamic> _categories = [];
   bool _isLoading = false;
   bool _isSaving = false;
-  File? _selectedImage;
+  bool _isUploadingPhoto = false;
+  // ✅ Compatible Web : bytes en mémoire au lieu de dart:io File
+  Uint8List? _selectedImageBytes;
 
   @override
   void initState() {
@@ -113,49 +116,65 @@ class _EditFormateurScreenState extends State<EditFormateurScreen> {
     );
 
     if (pickedFile != null) {
+      // ✅ readAsBytes() fonctionne sur Web et Mobile (contrairement à dart:io File)
+      final bytes = await pickedFile.readAsBytes();
       setState(() {
-        _selectedImage = File(pickedFile.path);
+        _selectedImageBytes = bytes;
       });
-      await _uploadImage();
+      await _uploadPhoto(bytes, pickedFile.name);
     }
   }
 
-  Future<void> _uploadImage() async {
-    if (_selectedImage == null) return;
-
-    setState(() => _isSaving = true);
+  Future<void> _uploadPhoto(Uint8List bytes, String fileName) async {
+    setState(() => _isUploadingPhoto = true);
 
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
 
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('${TrainingService.apiBaseUrl}/upload'),
-      );
-
+      // ✅ Même endpoint que add_formateur.dart : /formateurs/upload
+      final uri = Uri.parse('${TrainingService.apiBaseUrl}/formateurs/upload');
+      final request = http.MultipartRequest('POST', uri);
       request.headers['Authorization'] = 'Bearer $token';
+
+      // ✅ Déterminer le Content-Type réel à partir de l'extension,
+      // sinon express-fileupload reçoit "application/octet-stream" et rejette le fichier.
+      final ext = fileName.split('.').last.toLowerCase();
+      const mimeMap = {
+        'jpg': 'jpeg',
+        'jpeg': 'jpeg',
+        'png': 'png',
+        'webp': 'webp',
+        'gif': 'gif',
+      };
+      final subtype = mimeMap[ext] ?? 'jpeg';
+
       request.files.add(
-        await http.MultipartFile.fromPath('image', _selectedImage!.path),
+        http.MultipartFile.fromBytes(
+          'photo',
+          bytes,
+          filename: fileName,
+          contentType: MediaType('image', subtype),
+        ),
       );
 
-      var response = await request.send();
-      var responseData = await response.stream.toBytes();
-      var responseString = String.fromCharCodes(responseData);
+      final response = await request.send();
+      final responseData = await response.stream.bytesToString();
+      final data = json.decode(responseData);
 
-      if (response.statusCode == 200) {
-        final data = json.decode(responseString);
+      if (response.statusCode == 200 && data['success'] == true) {
         setState(() {
-          _photoController.text = data['data']['url'];
+          // ✅ Le backend renvoie juste le nom de fichier (fileName), pas une URL
+          _photoController.text = data['fileName'];
         });
-        _showSuccessSnackBar('Image téléchargée avec succès');
+        _showSuccessSnackBar('Photo téléchargée avec succès');
       } else {
-        _showErrorSnackBar('Erreur lors du téléchargement de l\'image');
+        _showErrorSnackBar(data['message'] ?? 'Erreur lors du téléchargement');
       }
     } catch (e) {
-      _showErrorSnackBar('Erreur de téléchargement');
+      _showErrorSnackBar('Erreur de téléchargement: $e');
     } finally {
-      setState(() => _isSaving = false);
+      if (mounted) setState(() => _isUploadingPhoto = false);
     }
   }
 
@@ -273,36 +292,43 @@ class _EditFormateurScreenState extends State<EditFormateurScreen> {
                                   color: const Color(0xff0D443E),
                                   width: 3,
                                 ),
+                                color: Colors.grey[200],
                                 image:
-                                    _selectedImage != null
+                                    _selectedImageBytes != null
                                         ? DecorationImage(
-                                          image: FileImage(_selectedImage!),
+                                          image: MemoryImage(
+                                            _selectedImageBytes!,
+                                          ),
                                           fit: BoxFit.cover,
                                         )
                                         : (_photoController.text.isNotEmpty
                                             ? DecorationImage(
                                               image: NetworkImage(
-                                                '${TrainingService.apiBaseUrl}/${_photoController.text}',
+                                                // ✅ Reconstruit l'URL complète à partir
+                                                // du nom de fichier stocké côté backend
+                                                '${TrainingService.apiBaseUrl.replaceAll('/api', '')}/uploads/formateurs/${_photoController.text}',
                                               ),
                                               fit: BoxFit.cover,
-                                              onError:
-                                                  (_, __) => const Icon(
-                                                    Icons.person,
-                                                    size: 60,
-                                                    color: Colors.grey,
-                                                  ),
+                                              onError: (_, __) {},
                                             )
                                             : null),
                               ),
                               child:
-                                  _selectedImage == null &&
-                                          _photoController.text.isEmpty
-                                      ? const Icon(
-                                        Icons.person,
-                                        size: 60,
-                                        color: Colors.grey,
+                                  _isUploadingPhoto
+                                      ? const Center(
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Color(0xff0D443E),
+                                        ),
                                       )
-                                      : null,
+                                      : (_selectedImageBytes == null &&
+                                              _photoController.text.isEmpty
+                                          ? const Icon(
+                                            Icons.person,
+                                            size: 60,
+                                            color: Colors.grey,
+                                          )
+                                          : null),
                             ),
                             Positioned(
                               bottom: 0,
@@ -318,7 +344,8 @@ class _EditFormateurScreenState extends State<EditFormateurScreen> {
                                     color: Colors.white,
                                     size: 20,
                                   ),
-                                  onPressed: _pickImage,
+                                  onPressed:
+                                      _isUploadingPhoto ? null : _pickImage,
                                   padding: const EdgeInsets.all(8),
                                   constraints: const BoxConstraints(),
                                 ),
@@ -333,7 +360,7 @@ class _EditFormateurScreenState extends State<EditFormateurScreen> {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
-                            'URL: ${_photoController.text}',
+                            'Photo: ${_photoController.text}',
                             style: const TextStyle(
                               fontSize: 12,
                               color: Colors.grey,
@@ -484,7 +511,7 @@ class _EditFormateurScreenState extends State<EditFormateurScreen> {
                           Expanded(
                             child: OutlinedButton(
                               onPressed:
-                                  _isSaving
+                                  (_isSaving || _isUploadingPhoto)
                                       ? null
                                       : () => Navigator.pop(context),
                               style: OutlinedButton.styleFrom(
@@ -501,7 +528,10 @@ class _EditFormateurScreenState extends State<EditFormateurScreen> {
                           const SizedBox(width: 16),
                           Expanded(
                             child: ElevatedButton(
-                              onPressed: _isSaving ? null : _updateFormateur,
+                              onPressed:
+                                  (_isSaving || _isUploadingPhoto)
+                                      ? null
+                                      : _updateFormateur,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xff0D443E),
                                 foregroundColor: Colors.white,

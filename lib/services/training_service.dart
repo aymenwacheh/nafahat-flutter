@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart' show MediaType;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/training_model.dart';
 import '../config/api_config.dart';
@@ -510,16 +511,32 @@ class TrainingService {
       debugPrint('📤 [Upload] Début de l\'upload...');
 
       final bytes = await imageFile.readAsBytes();
+      final fileName = imageFile.path.split('/').last;
 
       var request = http.MultipartRequest(
         'POST',
         Uri.parse('$apiBaseUrl/upload/image'),
       );
 
+      // ✅ Déterminer le Content-Type réel à partir de l'extension.
+      // Sans ça, http.MultipartFile.fromBytes envoie
+      // "application/octet-stream" par défaut et le serveur (mobile
+      // uniquement, le web passe par un autre chemin) rejette le fichier.
+      final ext = fileName.split('.').last.toLowerCase();
+      const mimeMap = {
+        'jpg': 'jpeg',
+        'jpeg': 'jpeg',
+        'png': 'png',
+        'webp': 'webp',
+        'gif': 'gif',
+      };
+      final subtype = mimeMap[ext] ?? 'jpeg';
+
       var multipartFile = http.MultipartFile.fromBytes(
         'image',
         bytes,
-        filename: imageFile.path.split('/').last,
+        filename: fileName,
+        contentType: MediaType('image', subtype),
       );
 
       request.files.add(multipartFile);
@@ -554,10 +571,21 @@ class TrainingService {
         Uri.parse('$apiBaseUrl/upload/image'),
       );
 
+      final ext = fileName.split('.').last.toLowerCase();
+      const mimeMap = {
+        'jpg': 'jpeg',
+        'jpeg': 'jpeg',
+        'png': 'png',
+        'webp': 'webp',
+        'gif': 'gif',
+      };
+      final subtype = mimeMap[ext] ?? 'jpeg';
+
       var multipartFile = http.MultipartFile.fromBytes(
         'image',
         bytes,
         filename: fileName,
+        contentType: MediaType('image', subtype),
       );
 
       request.files.add(multipartFile);

@@ -15,7 +15,8 @@ import 'widgets/training_card.dart';
 import 'package:nafahat/services/card_config_service.dart';
 import 'widgets/about.dart';
 import 'widgets/all_video_page.dart';
-import 'widgets/formateur_section.dart';
+import 'widgets/formateur_section.dart'; // ✅ Gardé le même nom mais contenu modifié
+import 'package:nafahat/services/formateur_card_config_manager.dart';
 
 // --- PALETTE DE COULEURS ---
 class AppColors {
@@ -876,14 +877,14 @@ class _FormateurSectionState extends State<_FormateurSection> {
     final displayedFormateurs =
         _formateurs.length > 8 ? _formateurs.sublist(0, 8) : _formateurs;
 
-    // ✅ Dimensions des cartes formateur réduites
+    // ✅ Dimensions des cartes formateur
     double cardWidth = isMobile ? 180.0 : 220.0;
-    double cardHeight = isMobile ? 220.0 : 260.0;
+    double cardHeight = isMobile ? 195.0 : 225.0;
 
     return SizedBox(
       height: cardHeight + 20,
       child: ListView.builder(
-        scrollDirection: Axis.horizontal, // ✅ Défilement horizontal
+        scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         itemCount: displayedFormateurs.length,
         itemBuilder: (context, index) {
@@ -893,7 +894,8 @@ class _FormateurSectionState extends State<_FormateurSection> {
             child: SizedBox(
               width: cardWidth,
               height: cardHeight,
-              child: FormateurDetailPage(
+              child: FormateurCard(
+                // ✅ Utilisation de FormateurCard au lieu de FormateurDetailPage
                 formateur: formateur,
                 isArabic: widget.isArabic,
               ),

@@ -31,6 +31,7 @@ import 'package:http/http.dart' as http;
 import 'package:nafahat/pages/adminisration/add_typeFormation.dart';
 import 'add_about.dart';
 import 'package:nafahat/pages/adminisration/creerUserPage.dart';
+import 'apparence_card_formateur.dart';
 import 'package:nafahat/pages/users/inscription_adherent.dart';
 import '../../services/navigation_service.dart';
 import 'etat_paiement.dart';
@@ -67,6 +68,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     const VideosManagementPage(),
     const EtatPaiementPage(),
     const UsersListPage(),
+    const ApparenceCardFormateurPage(),
   ];
 
   // Titres pour l'AppBar
@@ -87,6 +89,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     'Vidéos',
     'paiement',
     'Liste des utilisateurs',
+    'Apparence des formateur',
   ];
 
   final List<String> _titlesAr = [
@@ -106,6 +109,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     'الفيديوهات',
     'حالة المدفوعات',
     'قائمة المستعملين ',
+    'مظهر المكونين ',
   ];
 
   // Structure des menus avec groupes
@@ -175,6 +179,12 @@ class _AdministrationPageState extends State<AdministrationPage> {
           'title': 'Apparence Cartes',
           'titleAr': 'مظهر البطاقات',
           'page': 8,
+        },
+        {
+          'icon': Icons.palette_outlined,
+          'title': 'Apparence Formateur',
+          'titleAr': 'مظهر المكونين',
+          'page': 16,
         },
         {
           'icon': Icons.info_outline,
