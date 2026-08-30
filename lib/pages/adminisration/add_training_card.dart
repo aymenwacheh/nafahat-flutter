@@ -5,12 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'dart:io' show File;
-import 'dart:html' as html; // Pour le web
 import 'package:nafahat/services/training_service.dart';
-import 'package:nafahat/services/upload_service.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:nafahat/models/cible_model.dart';
 import 'package:nafahat/services/cible_service.dart';
 
@@ -53,11 +49,11 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
   bool _isArabic = false;
   bool _isRepetitive = false;
 
-  // Nouveaux états pour l'image
-  dynamic _selectedImageFile; // File ou html.File
+  // Nouveaux états pour l'image — ✅ unifié Web + Mobile (plus de
+  // branchement dart:io File / dart:html)
   bool _isUploadingImage = false;
   String? _uploadedImageUrl;
-  Uint8List? _imageBytes; // Pour l'aperçu Web
+  Uint8List? _imageBytes; // Aperçu local, Web ET Mobile
   String? _imageName;
 
   // Sélections
@@ -208,77 +204,31 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
     super.dispose();
   }
 
-  // ==================== MÉTHODE DE SÉLECTION D'IMAGE POUR WEB ====================
-  Future<void> _pickImageWeb() async {
+  // ==================== SÉLECTION + UPLOAD DE L'IMAGE (Web + Mobile) ====================
+  // ✅ image_picker fonctionne nativement sur Flutter Web (via
+  // image_picker_for_web) et sur Mobile : plus besoin de dupliquer la
+  // logique avec dart:html / dart:io. Ce code est identique partout.
+  Future<void> _pickImage() async {
     try {
-      setState(() => _isUploadingImage = true);
-
-      // Utiliser l'API File Input pour le web
-      final input = html.FileUploadInputElement();
-      input.accept = 'image/*';
-      input.multiple = false;
-
-      input.click();
-
-      // Attendre la sélection du fichier
-      await input.onChange.first;
-
-      if (input.files != null && input.files!.isNotEmpty) {
-        final file = input.files!.first;
-
-        // Lire le fichier pour l'aperçu
-        final reader = html.FileReader();
-        reader.readAsDataUrl(file);
-        await reader.onLoad.first;
-
-        setState(() {
-          _imageName = file.name;
-          // Pour l'aperçu Web
-          _imageBytes = null; // On utilisera directement l'URL de données
-        });
-
-        // Uploader l'image
-        await _uploadImageWeb(file);
-      } else {
-        setState(() => _isUploadingImage = false);
-      }
-    } catch (e) {
-      setState(() => _isUploadingImage = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _isArabic
-                ? '❌ Erreur lors de la sélection de l\'image'
-                : '❌ Erreur lors de la sélection de l\'image',
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
-      print('❌ Erreur sélection image: $e');
-    }
-  }
-
-  // ==================== MÉTHODE DE SÉLECTION D'IMAGE POUR MOBILE ====================
-  Future<void> _pickImageMobile() async {
-    try {
-      setState(() => _isUploadingImage = true);
-
       final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
+      final XFile? pickedFile = await picker.pickImage(
         source: ImageSource.gallery,
         maxWidth: 1024,
         maxHeight: 1024,
         imageQuality: 85,
       );
 
-      if (image != null) {
-        final File imageFile = File(image.path);
-        await _uploadImageMobile(imageFile);
-      } else {
-        setState(() => _isUploadingImage = false);
-      }
+      if (pickedFile == null) return;
+
+      final bytes = await pickedFile.readAsBytes();
+
+      setState(() {
+        _imageBytes = bytes;
+        _imageName = pickedFile.name;
+      });
+
+      await _uploadImage(bytes, pickedFile.name);
     } catch (e) {
-      setState(() => _isUploadingImage = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -293,25 +243,22 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
     }
   }
 
-  // ==================== MÉTHODE PRINCIPALE DE SÉLECTION ====================
-  Future<void> _pickImage() async {
-    if (kIsWeb) {
-      await _pickImageWeb();
-    } else {
-      await _pickImageMobile();
-    }
-  }
+  // lib/pages/adminisration/add_training_card.dart
 
-  // ==================== UPLOAD IMAGE POUR WEB ====================
-  Future<void> _uploadImageWeb(html.File file) async {
+  Future<void> _uploadImage(Uint8List bytes, String fileName) async {
+    setState(() => _isUploadingImage = true);
+
     try {
-      setState(() {
-        _selectedImageFile = file;
-        _isUploadingImage = true;
-      });
+      Map<String, dynamic> result;
 
-      // ✅ Utiliser la méthode smart qui essaye plusieurs endpoints
-      final result = await UploadService.uploadImageSmart(file);
+      try {
+        // Essayer d'abord avec la route /upload/image
+        result = await TrainingService.uploadImageBytes(bytes, fileName);
+      } catch (e) {
+        debugPrint('⚠️ Échec avec /upload/image, tentative avec /upload');
+        // Fallback avec la route /upload
+        result = await TrainingService.uploadImageBytesAlt(bytes, fileName);
+      }
 
       if (result['success'] == true) {
         setState(() {
@@ -336,11 +283,11 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
       }
     } catch (e) {
       setState(() {
-        _selectedImageFile = null;
+        _imageBytes = null;
+        _imageName = null;
         _isUploadingImage = false;
       });
 
-      // ✅ Message d'erreur plus détaillé
       String errorMessage = e.toString();
       if (errorMessage.contains('500')) {
         errorMessage =
@@ -365,61 +312,9 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
     }
   }
 
-  // ==================== UPLOAD IMAGE POUR MOBILE ====================
-  Future<void> _uploadImageMobile(File imageFile) async {
-    try {
-      setState(() {
-        _selectedImageFile = imageFile;
-        _isUploadingImage = true;
-      });
-
-      // Utiliser le service existant avec File
-      final result = await TrainingService.uploadImage(imageFile);
-
-      if (result['success'] == true) {
-        setState(() {
-          _uploadedImageUrl = result['image_url'];
-          _imageUrlController.text = result['image_url'];
-          _isUploadingImage = false;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _isArabic
-                  ? '✅ Image téléchargée avec succès'
-                  : '✅ Image téléchargée avec succès',
-            ),
-            backgroundColor: nafahatGreen,
-          ),
-        );
-      } else {
-        setState(() => _isUploadingImage = false);
-        throw Exception(result['message'] ?? 'Upload failed');
-      }
-    } catch (e) {
-      setState(() {
-        _selectedImageFile = null;
-        _isUploadingImage = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _isArabic
-                ? '❌ Erreur lors de l\'upload de l\'image'
-                : '❌ Erreur lors de l\'upload de l\'image',
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
-      print('❌ Erreur upload image: $e');
-    }
-  }
-
   // ==================== SUPPRIMER L'IMAGE ====================
   void _removeImage() {
     setState(() {
-      _selectedImageFile = null;
       _uploadedImageUrl = null;
       _imageUrlController.clear();
       _imageBytes = null;
@@ -583,7 +478,6 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
       _discountValueController.clear();
 
       // Réinitialiser l'image
-      _selectedImageFile = null;
       _uploadedImageUrl = null;
       _imageUrlController.clear();
       _isUploadingImage = false;
@@ -1127,7 +1021,7 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
   // ==================== SECTION IMAGE ====================
   Widget _buildImageSection() {
     final bool hasImage =
-        _selectedImageFile != null ||
+        _imageBytes != null ||
         (_imageUrlController.text.isNotEmpty && _uploadedImageUrl != null);
 
     return _buildSection(
@@ -1239,42 +1133,14 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
 
   // ==================== APERÇU DE L'IMAGE ====================
   Widget _getImagePreview() {
-    // Pour Mobile (File)
-    if (_selectedImageFile is File && _selectedImageFile != null) {
-      return Image.file(
-        _selectedImageFile as File,
+    // ✅ Image.memory fonctionne identiquement sur Web et Mobile,
+    // plus besoin de distinguer File (dart:io) / html.File (dart:html)
+    if (_imageBytes != null) {
+      return Image.memory(
+        _imageBytes!,
         height: 180,
         width: double.infinity,
         fit: BoxFit.cover,
-      );
-    }
-
-    // Pour Web (html.File avec URL)
-    if (_selectedImageFile is html.File && _selectedImageFile != null) {
-      final file = _selectedImageFile as html.File;
-      final url = html.Url.createObjectUrl(file);
-      return Image.network(
-        url,
-        height: 180,
-        width: double.infinity,
-        fit: BoxFit.cover,
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Container(
-            height: 180,
-            color: grey100,
-            child: Center(
-              child: CircularProgressIndicator(
-                value:
-                    loadingProgress.expectedTotalBytes != null
-                        ? loadingProgress.cumulativeBytesLoaded /
-                            loadingProgress.expectedTotalBytes!
-                        : null,
-                color: nafahatGreen,
-              ),
-            ),
-          );
-        },
         errorBuilder: (context, error, stackTrace) {
           return Container(
             height: 180,

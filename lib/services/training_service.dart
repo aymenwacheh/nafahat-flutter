@@ -1,6 +1,7 @@
 // lib/services/training_service.dart
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart' show MediaType;
@@ -505,6 +506,115 @@ class TrainingService {
   // =============================================
   // MÉTHODES D'UPLOAD D'IMAGES
   // =============================================
+
+  // ✅ Méthode unique Web + Mobile : à partir de bytes bruts (via
+  // image_picker + XFile.readAsBytes(), qui fonctionne sur les deux
+  // plateformes). Plus besoin de dart:io File ni de dart:html.
+  static Future<Map<String, dynamic>> uploadImageBytes(
+    Uint8List bytes,
+    String fileName,
+  ) async {
+    try {
+      debugPrint('📤 [Upload] Début de l\'upload (bytes)...');
+
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$apiBaseUrl/upload/image'),
+      );
+
+      final ext = fileName.split('.').last.toLowerCase();
+      const mimeMap = {
+        'jpg': 'jpeg',
+        'jpeg': 'jpeg',
+        'png': 'png',
+        'webp': 'webp',
+        'gif': 'gif',
+      };
+      final subtype = mimeMap[ext] ?? 'jpeg';
+
+      var multipartFile = http.MultipartFile.fromBytes(
+        'image',
+        bytes,
+        filename: fileName,
+        contentType: MediaType('image', subtype),
+      );
+
+      request.files.add(multipartFile);
+      request.headers['Accept'] = 'application/json';
+
+      var response = await request.send();
+      var responseBody = await response.stream.bytesToString();
+
+      debugPrint('📤 [Upload] Status: ${response.statusCode}');
+      debugPrint('📤 [Upload] Response: $responseBody');
+
+      if (response.statusCode == 200) {
+        return json.decode(responseBody);
+      } else {
+        throw Exception('Upload failed: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('❌ [Upload] Erreur: $e');
+      rethrow;
+    }
+  }
+  // lib/services/training_service.dart
+
+  // Ajoutez cette méthode après uploadImageBytes
+  static Future<Map<String, dynamic>> uploadImageBytesAlt(
+    Uint8List bytes,
+    String fileName,
+  ) async {
+    try {
+      debugPrint('📤 [Upload Alt] Début de l\'upload...');
+
+      // Utiliser la route /upload au lieu de /upload/image
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$apiBaseUrl/upload'), // ← Changement ici
+      );
+
+      final ext = fileName.split('.').last.toLowerCase();
+      const mimeMap = {
+        'jpg': 'jpeg',
+        'jpeg': 'jpeg',
+        'png': 'png',
+        'webp': 'webp',
+        'gif': 'gif',
+      };
+      final subtype = mimeMap[ext] ?? 'jpeg';
+
+      var multipartFile = http.MultipartFile.fromBytes(
+        'image', // ← Vérifiez le nom du champ attendu par le serveur
+        bytes,
+        filename: fileName,
+        contentType: MediaType('image', subtype),
+      );
+
+      request.files.add(multipartFile);
+      request.headers['Accept'] = 'application/json';
+
+      var response = await request.send();
+      var responseBody = await response.stream.bytesToString();
+
+      debugPrint('📤 [Upload Alt] Status: ${response.statusCode}');
+      debugPrint('📤 [Upload Alt] Response: $responseBody');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = json.decode(responseBody);
+        // Le format de réponse peut être différent
+        return {
+          'success': true,
+          'image_url': data['imageUrl'] ?? data['data']?['url'] ?? data['url'],
+        };
+      } else {
+        throw Exception('Upload failed: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('❌ [Upload Alt] Erreur: $e');
+      rethrow;
+    }
+  }
 
   static Future<Map<String, dynamic>> uploadImage(File imageFile) async {
     try {
