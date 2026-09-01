@@ -8,7 +8,7 @@ import 'package:nafahat/pages/adminisration/add_formateur.dart';
 import 'package:nafahat/pages/adminisration/add_video_fav_page.dart';
 import 'package:nafahat/pages/adminisration/edit_formation.dart';
 import 'package:nafahat/pages/adminisration/users_list_page.dart';
-import 'package:nafahat/pages/landing/widgets/BackToLandingButton.dart';
+import 'package:nafahat/pages/widgets/BackToLandingButton.dart';
 import 'package:nafahat/pages/users/edit_profile_page.dart';
 import 'package:nafahat/pages/adminisration/add_duree.dart';
 import 'package:nafahat/pages/adminisration/apparence_card.dart';

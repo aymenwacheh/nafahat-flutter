@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../landing/widgets/navbar.dart';
+import '../widgets/navbar.dart';
 import 'profile_dashboard_page.dart';
 import 'inscription_adherent.dart';
 import '../../providers/language_provider.dart';
@@ -10,7 +10,7 @@ import '../../providers/user_provider.dart';
 import '../../services/adherent_service.dart';
 import '../../services/auth_service.dart';
 import '../../models/role.dart';
-import '../landing/widgets/chatbot/chatbot_wrapper.dart';
+import '../widgets/chatbot/chatbot_wrapper.dart';
 import '../../config/api_config.dart';
 
 class AuthPage extends StatefulWidget {

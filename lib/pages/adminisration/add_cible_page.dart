@@ -1,6 +1,6 @@
 // lib/pages/adminisration/add_cible_page.dart
 import 'package:flutter/material.dart';
-import 'package:nafahat/pages/landing/widgets/back_to_admin_button.dart';
+import 'package:nafahat/pages/widgets/back_to_admin_button.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/models/cible_model.dart';

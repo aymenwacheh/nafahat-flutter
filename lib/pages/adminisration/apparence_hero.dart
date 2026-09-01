@@ -7,8 +7,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:nafahat/pages/adminisration/admin_page_wrapper.dart';
-import '../landing/widgets/hero_section.dart';
-import '../landing/widgets/slide_item.dart';
+import '../widgets/hero_section.dart';
+import '../widgets/slide_item.dart';
 
 // ============================================================================
 // CONSTANTES GLOBALES

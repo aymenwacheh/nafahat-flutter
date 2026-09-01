@@ -2,20 +2,20 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/models/card_config_model.dart';
-import 'package:nafahat/pages/landing/widgets/inscription_section.dart';
+import 'package:nafahat/pages/widgets/inscription_section.dart';
 import 'package:provider/provider.dart';
 import 'package:nafahat/providers/language_provider.dart';
-import 'widgets/video_fav_section.dart';
-import 'widgets/hero_section.dart';
-import 'widgets/navbar.dart';
+import '../widgets/video_fav_section.dart';
+import '../widgets/hero_section.dart';
+import '../widgets/navbar.dart';
 import 'package:nafahat/models/training_model.dart';
 import 'package:nafahat/services/training_service.dart';
 import 'package:nafahat/pages/adminisration/add_training_card.dart';
-import 'widgets/training_card.dart';
+import '../widgets/training_card.dart';
 import 'package:nafahat/services/card_config_service.dart';
-import 'widgets/about.dart';
-import 'widgets/all_video_page.dart';
-import 'widgets/formateur_section.dart'; // ✅ Gardé le même nom mais contenu modifié
+import '../widgets/about.dart';
+import '../widgets/all_video_page.dart';
+import '../widgets/formateur_section.dart'; // ✅ Gardé le même nom mais contenu modifié
 import 'package:nafahat/services/formateur_card_config_manager.dart';
 
 // --- PALETTE DE COULEURS ---

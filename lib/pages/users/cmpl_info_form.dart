@@ -7,8 +7,8 @@ import '../../providers/language_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../models/cmpl_user_model.dart';
 import '../../services/cmpl_user_service.dart';
-import '../landing/widgets/navbar.dart';
-import '../landing/widgets/chatbot/chatbot_wrapper.dart';
+import '../widgets/navbar.dart';
+import '../widgets/chatbot/chatbot_wrapper.dart';
 import '../../models/training_model.dart';
 
 class CmplInfoForm extends StatefulWidget {

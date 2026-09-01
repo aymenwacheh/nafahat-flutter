@@ -8,10 +8,10 @@ import '../../services/verification_service.dart';
 import '../../services/auth_service.dart';
 import '../../providers/user_provider.dart';
 import '../../models/role.dart';
-import '../landing/widgets/navbar.dart';
+import '../widgets/navbar.dart';
 import '../../models/adherent.dart';
 import '../../models/enfant.dart';
-import '../landing/widgets/chatbot/chatbot_wrapper.dart';
+import '../widgets/chatbot/chatbot_wrapper.dart';
 
 class VerifCodePage extends StatefulWidget {
   final String email;

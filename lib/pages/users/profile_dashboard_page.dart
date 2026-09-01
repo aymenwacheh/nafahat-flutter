@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/pages/users/edit_profile_page.dart';
-import 'package:nafahat/pages/landing/widgets/navbar.dart' show Navbar;
+import 'package:nafahat/pages/widgets/navbar.dart' show Navbar;
 import 'package:nafahat/providers/language_provider.dart';
 import 'package:nafahat/providers/user_provider.dart';
-import 'package:nafahat/pages/landing/widgets/chatbot/chatbot_wrapper.dart';
+import 'package:nafahat/pages/widgets/chatbot/chatbot_wrapper.dart';
 import 'package:nafahat/models/training_model.dart';
-import 'package:nafahat/pages/landing/widgets/training_card.dart';
+import 'package:nafahat/pages/widgets/training_card.dart';
 import 'package:nafahat/services/payment_service.dart';
 import 'package:nafahat/services/training_service.dart';
 

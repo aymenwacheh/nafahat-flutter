@@ -8,7 +8,7 @@ import 'package:nafahat/models/adherent.dart';
 import 'package:nafahat/services/adherent_service.dart';
 import 'package:nafahat/providers/language_provider.dart';
 import 'package:nafahat/providers/user_provider.dart';
-import '../landing/widgets/navbar.dart';
+import '../widgets/navbar.dart';
 
 class EditProfilePage extends StatefulWidget {
   final String? adherentId;

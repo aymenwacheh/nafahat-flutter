@@ -1,7 +1,7 @@
 // lib/pages/adminisration/add_duree.dart
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:nafahat/pages/landing/widgets/back_to_admin_button.dart';
+import 'package:nafahat/pages/widgets/back_to_admin_button.dart';
 import 'dart:convert';
 import 'package:nafahat/services/training_service.dart';
 
