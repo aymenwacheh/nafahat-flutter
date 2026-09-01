@@ -7,6 +7,7 @@ import 'package:nafahat/services/auth_service.dart';
 import 'package:nafahat/services/geo_service.dart';
 import 'package:nafahat/services/payment_service.dart';
 import 'package:nafahat/services/cmpl_user_service.dart';
+import 'package:nafahat/services/cart_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../landing/widgets/chatbot/chatbot_wrapper.dart';
 import '../users/auth_page.dart';
@@ -40,6 +41,7 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
   bool _isCheckingAuth = true;
 
   bool _isProcessingPayment = false;
+  bool _isAddingToCart = false;
   String? _currentPaymentId;
 
   // ============================================================
@@ -263,7 +265,172 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
   }
 
   // ============================================================
-  // GESTION DE L'INSCRIPTION / PAIEMENT - NOUVELLE LOGIQUE
+  // GESTION DU PANIER
+  // ============================================================
+
+  Future<void> _handleAddToCart() async {
+    print('═══════════════════════════════════════════════════════════');
+    print('🟢 [PANIER] AJOUT AU PANIER');
+    print('═══════════════════════════════════════════════════════════');
+
+    if (_training == null) {
+      print('❌ [PANIER] Formation null');
+      return;
+    }
+
+    // Vérifier si l'utilisateur est connecté
+    if (!_isAuthenticated) {
+      print('🟡 [PANIER] Utilisateur non connecté - Redirection vers login');
+      setState(() => _isAddingToCart = false);
+
+      final result = await Navigator.pushNamed(
+        context,
+        '/login',
+        arguments: {'returnToPrevious': true},
+      );
+
+      if (!mounted) return;
+      await _refreshAuthStatus();
+
+      if (_isAuthenticated) {
+        print('🟢 [PANIER] Utilisateur connecté après login');
+        _addToCart();
+      } else {
+        print('🟡 [PANIER] Annulation de l\'ajout au panier');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                _isArabic
+                    ? '❌ Veuillez vous connecter pour ajouter au panier'
+                    : '❌ Veuillez vous connecter pour ajouter au panier',
+                style: GoogleFonts.cairo(),
+              ),
+              backgroundColor: Colors.orange,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+      return;
+    }
+
+    // Utilisateur connecté - Ajouter au panier
+    _addToCart();
+  }
+
+  void _addToCart() {
+    if (_training == null) return;
+
+    print('🟢 [PANIER] Ajout de: ${_training!.titleFr}');
+
+    // Vérifier si la formation est religieuse et si les infos CMPL sont remplies
+    if (_isFormationReligieuse()) {
+      final userId = _userData?['id']?.toString();
+      if (userId != null) {
+        final adherentId = int.tryParse(userId);
+        if (adherentId != null) {
+          // Vérifier async et rediriger si nécessaire
+          _checkCmplExists(adherentId).then((cmplExists) {
+            if (!cmplExists) {
+              // Rediriger vers le formulaire CMPL
+              _navigateToCmplInfoForm(adherentId, onComplete: () {
+                // Une fois le formulaire rempli, ajouter au panier
+                _addToCartDirect();
+              });
+              return;
+            }
+            _addToCartDirect();
+          });
+          return;
+        }
+      }
+    }
+
+    _addToCartDirect();
+  }
+
+  void _addToCartDirect() {
+    if (_training == null) return;
+
+    setState(() => _isAddingToCart = true);
+
+    // Récupérer le prix final
+    final price = _training!.getFinalPriceForCurrency(_countryCode);
+    final symbol = TrainingModel.getCurrencySymbol(_countryCode);
+
+    // Créer l'article du panier
+    final cartItem = {
+      'formationId': _training!.id,
+      'titleFr': _training!.titleFr,
+      'titleAr': _training!.titleAr,
+      'imageUrl': _training!.imageUrl,
+      'price': price,
+      'currency': _countryCode,
+      'currencySymbol': symbol,
+      'quantity': 1,
+      'categorieId': _training!.categorieId,
+      'trainer': _training!.trainer,
+    };
+
+    // Ajouter au panier via CartService
+    CartService.addItem(cartItem).then((_) {
+      setState(() => _isAddingToCart = false);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _isArabic
+                        ? '✅ تم إضافة "${_training!.titleAr}" إلى السلة'
+                        : '✅ "${_training!.titleFr}" ajouté au panier',
+                    style: GoogleFonts.cairo(),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 3),
+            action: SnackBarAction(
+              label: _isArabic ? 'عرض' : 'Voir',
+              textColor: Colors.white,
+              onPressed: () {
+                Navigator.pushNamed(context, '/cart');
+              },
+            ),
+          ),
+        );
+
+        // Mettre à jour le badge du panier (via un stream ou notification)
+        // Notifier le changement pour rafraîchir l'icône du panier
+        CartService.notifyCartUpdate();
+      }
+    }).catchError((error) {
+      setState(() => _isAddingToCart = false);
+      print('❌ [PANIER] Erreur: $error');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _isArabic ? '❌ Erreur lors de l\'ajout' : '❌ Erreur lors de l\'ajout',
+              style: GoogleFonts.cairo(),
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    });
+  }
+
+  // ============================================================
+  // GESTION DE L'INSCRIPTION / PAIEMENT
   // ============================================================
 
   Future<void> _handleInscription() async {
@@ -332,16 +499,12 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
       // ==========================================================
       print('🟡 [INSCRIPTION] SCÉNARIO 2: Utilisateur non connecté');
 
-      // ✅ REDIRECTION VERS AUTH_PAGE AVEC PARAMÈTRE
-      print('🟡 [INSCRIPTION] SCÉNARIO 2: Utilisateur non connecté');
-
       setState(() => _isProcessingPayment = false);
 
-      // ✅ REDIRECTION VERS AUTH_PAGE AVEC PARAMÈTRE
       final result = await Navigator.pushNamed(
         context,
         '/login',
-        arguments: {'returnToPrevious': true}, // 👈 PASSER LE PARAMÈTRE
+        arguments: {'returnToPrevious': true},
       );
 
       print('═══════════════════════════════════════════════════════════');
@@ -351,7 +514,6 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
 
       if (!mounted) return;
 
-      // ✅ Après le retour d'AuthPage, vérifier si l'utilisateur est maintenant connecté
       await _refreshAuthStatus();
 
       if (_isAuthenticated) {
@@ -369,7 +531,6 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
         }
       } else {
         print('🟡 [INSCRIPTION] Utilisateur non connecté après AuthPage');
-        // L'utilisateur a annulé ou n'a pas réussi à se connecter
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -511,7 +672,7 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
             else
               _buildDetailContent(isMobile),
 
-            if (_isProcessingPayment)
+            if (_isProcessingPayment || _isAddingToCart)
               Container(
                 color: Colors.black.withOpacity(0.5),
                 child: Center(
@@ -529,9 +690,13 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          _isArabic
-                              ? '⏳ جاري تحضير الدفع...'
-                              : '⏳ Préparation du paiement...',
+                          _isAddingToCart
+                              ? (_isArabic
+                                  ? '⏳ جاري الإضافة إلى السلة...'
+                                  : '⏳ Ajout au panier...')
+                              : (_isArabic
+                                  ? '⏳ جاري تحضير الدفع...'
+                                  : '⏳ Préparation du paiement...'),
                           style: GoogleFonts.cairo(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
@@ -965,6 +1130,10 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
     );
   }
 
+  // ============================================================
+  // SECTION PAIEMENT AVEC DEUX BOUTONS SUR LA MÊME LIGNE
+  // ============================================================
+
   Widget _buildPaymentSection(
     TrainingModel training,
     bool isMobile,
@@ -1079,46 +1248,101 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
               ),
             ),
           const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _isProcessingPayment ? null : _handleInscription,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xffd57653),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 4,
-              ),
-              child:
-                  _isProcessingPayment
-                      ? const SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                      : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.payment_rounded, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            _isArabic ? '💳 الدفع الآن' : '💳 Payer maintenant',
-                            style: GoogleFonts.poppins(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ],
+
+          // ✅ DEUX BOUTONS SUR LA MÊME LIGNE
+          Row(
+            children: [
+              // Bouton "Ajouter au panier"
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: (_isProcessingPayment || _isAddingToCart)
+                      ? null
+                      : _handleAddToCart,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xffd57653),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(
+                        color: const Color(0xffd57653),
+                        width: 2,
                       ),
-            ),
+                    ),
+                    elevation: 0,
+                  ),
+                  child:
+                      _isAddingToCart
+                          ? const SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Color(0xffd57653),
+                            ),
+                          )
+                          : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.shopping_cart_outlined, size: 18),
+                              const SizedBox(width: 6),
+                              Text(
+                                _isArabic
+                                    ? '🛒 أضف للسلة'
+                                    : '🛒 Ajouter au panier',
+                                style: GoogleFonts.poppins(
+                                  fontSize: isMobile ? 12 : 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              // Bouton "Payer"
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _isProcessingPayment ? null : _handleInscription,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xffd57653),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 4,
+                  ),
+                  child:
+                      _isProcessingPayment
+                          ? const SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                          : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.payment_rounded, size: 18),
+                              const SizedBox(width: 6),
+                              Text(
+                                _isArabic ? '💳 الدفع' : '💳 Payer',
+                                style: GoogleFonts.poppins(
+                                  fontSize: isMobile ? 12 : 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                ),
+              ),
+            ],
           ),
+
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,

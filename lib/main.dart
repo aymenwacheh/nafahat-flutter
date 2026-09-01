@@ -19,11 +19,17 @@ import 'pages/landing/widgets/chatbot/chatbot_widget.dart';
 import 'package:nafahat/config/api_config.dart';
 import 'pages/landing/landing_page.dart';
 import 'package:nafahat/models/card_config_model.dart';
-import 'package:nafahat/pages/users/profile_dashboard_page.dart'; // 👈 AJOUTER CET IMPORT
+import 'package:nafahat/pages/users/profile_dashboard_page.dart';
 import 'package:nafahat/pages/adminisration/administration_page.dart';
+import 'package:nafahat/pages/cart/cart_page.dart'; // 👈 AJOUTER L'IMPORT DU PANIER
 import 'services/navigation_service.dart';
+import 'services/cart_service.dart';
 
 void main() {
+  // ✅ Initialiser le service du panier au démarrage
+  WidgetsFlutterBinding.ensureInitialized();
+  CartService.init();
+  
   runApp(const MyApp());
 }
 
@@ -61,7 +67,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ChatbotProvider()),
         ChangeNotifierProvider(
           create: (_) => UserProvider(),
-        ), // 👈 Le constructeur charge la session
+        ),
         ChangeNotifierProvider(create: (_) => AboutProvider()),
         // Ajouter d'autres providers si nécessaire
       ],
@@ -127,6 +133,12 @@ class MyApp extends StatelessWidget {
                     hideOnRoute: false,
                     child: AdministrationPage(),
                   ),
+              // ✅ AJOUT DE LA ROUTE DU PANIER
+              '/cart':
+                  (context) => const ChatbotGlobalWrapper(
+                    hideOnRoute: false,
+                    child: CartPage(),
+                  ),
             },
             // ✅ ROUTES DYNAMIQUES : lisent les `arguments` passés par
             // Navigator.pushNamed(..., arguments: {...}) au lieu de valeurs figées.
@@ -157,6 +169,18 @@ class MyApp extends StatelessWidget {
                         child: InscriptionAdherentPage(
                           fromFormationDetail: fromFormationDetail,
                         ),
+                      ),
+                );
+              }
+
+              // ✅ AJOUT DE LA ROUTE PANIER DYNAMIQUE (si besoin avec paramètres)
+              if (settings.name == '/cart') {
+                return MaterialPageRoute(
+                  settings: settings,
+                  builder:
+                      (context) => const ChatbotGlobalWrapper(
+                        hideOnRoute: false,
+                        child: CartPage(),
                       ),
                 );
               }

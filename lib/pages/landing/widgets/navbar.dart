@@ -25,6 +25,8 @@ import 'package:nafahat/pages/users/edit_profile_page.dart';
 import 'package:nafahat/providers/language_provider.dart';
 import 'package:nafahat/providers/user_provider.dart';
 import 'package:nafahat/services/auth_service.dart';
+import 'package:nafahat/services/cart_service.dart';
+import 'package:nafahat/pages/cart/cart_page.dart';
 import 'package:provider/provider.dart';
 import '../landing_page.dart';
 import 'package:nafahat/services/training_service.dart';
@@ -47,13 +49,9 @@ class Navbar extends StatelessWidget {
         Provider.of<LanguageProvider>(context, listen: false).isArabic;
     final userProvider = Provider.of<UserProvider>(context, listen: false);
 
-    // 1. Effacer la session dans UserProvider
     await userProvider.logout();
-
-    // 2. Effacer la session dans AuthService
     AuthService.logout();
 
-    // 3. Afficher un message de confirmation
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -71,7 +69,6 @@ class Navbar extends StatelessWidget {
       );
     }
 
-    // 4. Revenir à la page d'accueil en supprimant toutes les routes
     if (context.mounted) {
       Navigator.pushAndRemoveUntil(
         context,
@@ -413,57 +410,56 @@ class Navbar extends StatelessWidget {
   }
 
   // ============================================================
-  // ICONE PANIER
+  // ICONE PANIER AVEC BADGE (StreamBuilder)
   // ============================================================
   Widget _buildCartIcon(BuildContext context, bool isArabic) {
-    return Stack(
-      children: [
-        IconButton(
-          icon: Icon(
-            Icons.shopping_cart_outlined,
-            color: nafahatGreen,
-            size: 24,
-          ),
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  isArabic ? '🛒 قريباً...' : '🛒 Bientôt disponible...',
-                  style: GoogleFonts.cairo(),
-                ),
-                backgroundColor: nafahatGreen,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+    return StreamBuilder<int>(
+      stream: CartService.cartCountStream,
+      initialData: 0,
+      builder: (context, snapshot) {
+        final count = snapshot.data ?? 0;
+        return Stack(
+          children: [
+            IconButton(
+              icon: Icon(
+                Icons.shopping_cart_outlined,
+                color: nafahatGreen,
+                size: 24,
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const CartPage()),
+                );
+              },
+              tooltip: isArabic ? 'السلة' : 'Panier',
+            ),
+            if (count > 0)
+              Positioned(
+                right: 4,
+                top: 4,
+                child: Container(
+                  width: 18,
+                  height: 18,
+                  decoration: const BoxDecoration(
+                    color: nafahatGold,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      count > 99 ? '99+' : count.toString(),
+                      style: GoogleFonts.cairo(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            );
-          },
-          tooltip: isArabic ? 'السلة' : 'Panier',
-        ),
-        Positioned(
-          right: 4,
-          top: 4,
-          child: Container(
-            width: 18,
-            height: 18,
-            decoration: const BoxDecoration(
-              color: nafahatGold,
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                '0',
-                style: GoogleFonts.cairo(
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 
@@ -1077,6 +1073,23 @@ class Navbar extends StatelessWidget {
                     onTap:
                         () =>
                             _closeDrawerAndNavigate(context, const AboutPage()),
+                  ),
+
+                  // ==========================================================
+                  // PANIER DANS LE DRAWER MOBILE
+                  // ==========================================================
+                  _drawerTile(
+                    icon: Icons.shopping_cart_outlined,
+                    title: isArabic ? "🛒 السلة" : "🛒 Panier",
+                    onTap: () {
+                      _closeDrawer(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const CartPage(),
+                        ),
+                      );
+                    },
                   ),
 
                   const Divider(
