@@ -17,9 +17,7 @@ class VideoFavSection extends StatefulWidget {
 class _VideoFavSectionState extends State<VideoFavSection> {
   List<VideoModel> _videos = [];
   bool _isLoading = true;
-  final PageController _pageController = PageController();
-  int _currentPage = 0;
-  int _itemsPerPage = 3;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -29,7 +27,7 @@ class _VideoFavSectionState extends State<VideoFavSection> {
 
   @override
   void dispose() {
-    _pageController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -44,7 +42,6 @@ class _VideoFavSectionState extends State<VideoFavSection> {
       setState(() {
         _videos = videos.where((v) => v.isActive).toList();
         _isLoading = false;
-        _currentPage = 0;
       });
     } catch (e) {
       setState(() {
@@ -54,38 +51,11 @@ class _VideoFavSectionState extends State<VideoFavSection> {
     }
   }
 
-  int get _totalPages =>
-      _videos.isEmpty ? 0 : (_videos.length / _itemsPerPage).ceil();
-
-  void _nextPage() {
-    if (_currentPage < _totalPages - 1) {
-      setState(() => _currentPage++);
-      _pageController.animateToPage(
-        _currentPage,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
-      );
-    }
-  }
-
-  void _prevPage() {
-    if (_currentPage > 0) {
-      setState(() => _currentPage--);
-      _pageController.animateToPage(
-        _currentPage,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
     final isTablet = screenWidth >= 600 && screenWidth < 900;
-
-    _itemsPerPage = isMobile ? 1 : (isTablet ? 2 : 3);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
@@ -161,130 +131,50 @@ class _VideoFavSectionState extends State<VideoFavSection> {
               ),
             )
           else
-            _buildVideoCarousel(isMobile, screenWidth),
+            _buildVideoCarousel(isMobile, isTablet),
         ],
       ),
     );
   }
 
-  Widget _buildVideoCarousel(bool isMobile, double screenWidth) {
-    return Column(
-      children: [
-        // Carrousel
-        SizedBox(
-          height: isMobile ? 310 : 380, // ✅ Hauteur adaptée pour Reel
-          child:
-              _totalPages > 1
-                  ? PageView(
-                    controller: _pageController,
-                    onPageChanged: (index) {
-                      setState(() => _currentPage = index);
-                    },
-                    children: List.generate(_totalPages, (pageIndex) {
-                      final start = pageIndex * _itemsPerPage;
-                      final end = start + _itemsPerPage;
-                      final pageItems = _videos.sublist(
-                        start,
-                        end > _videos.length ? _videos.length : end,
-                      );
+  Widget _buildVideoCarousel(bool isMobile, bool isTablet) {
+    // ✅ RATIO REEL FACEBOOK / INSTAGRAM = 9:16 (largeur:hauteur)
+    const double reelAspectRatio = 9 / 16;
 
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Row(
-                          children:
-                              pageItems.map((video) {
-                                return Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                    ),
-                                    child: _VideoCard(
-                                      video: video,
-                                      isArabic: widget.isArabic,
-                                      isMobile: isMobile,
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                        ),
-                      );
-                    }),
-                  )
-                  : Row(
-                    children:
-                        _videos.map((video) {
-                          return Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                              ),
-                              child: _VideoCard(
-                                video: video,
-                                isArabic: widget.isArabic,
-                                isMobile: isMobile,
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                  ),
-        ),
+    // Dimensionnement identique à TrainingCard
+    final double cardWidth = isMobile ? 150.0 : (isTablet ? 180.0 : 210.0);
+    final double cardHeight = cardWidth / reelAspectRatio;
 
-        // ✅ PAGINATION (Uniquement les 2 flèches)
-        if (_totalPages > 1)
-          Padding(
-            padding: const EdgeInsets.only(top: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                GestureDetector(
-                  onTap: _prevPage,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color:
-                          _currentPage > 0
-                              ? const Color(0xffd57653)
-                              : Colors.grey[300],
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      widget.isArabic ? Icons.arrow_forward : Icons.arrow_back,
-                      color: _currentPage > 0 ? Colors.white : Colors.grey[600],
-                      size: 20,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 40),
-                GestureDetector(
-                  onTap: _nextPage,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color:
-                          _currentPage < _totalPages - 1
-                              ? const Color(0xffd57653)
-                              : Colors.grey[300],
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      widget.isArabic ? Icons.arrow_back : Icons.arrow_forward,
-                      color:
-                          _currentPage < _totalPages - 1
-                              ? Colors.white
-                              : Colors.grey[600],
-                      size: 20,
-                    ),
-                  ),
-                ),
-              ],
+    return SizedBox(
+      height: cardHeight,
+      child: ListView.builder(
+        controller: _scrollController,
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: _videos.length,
+        itemExtent: isMobile ? cardWidth : (isTablet ? 180.0 : 210.0),
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        itemBuilder: (context, index) {
+          final video = _videos[index];
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: SizedBox(
+              width: cardWidth,
+              height: cardHeight,
+              child: _VideoCard(
+                video: video,
+                isArabic: widget.isArabic,
+                isMobile: isMobile,
+              ),
             ),
-          ),
-      ],
+          );
+        },
+      ),
     );
   }
 }
 
-// --- CARTE VIDÉO STYLE REEL ---
+// --- CARTE VIDÉO DIMENSIONNÉE SUR TRAINING_CARD ---
 class _VideoCard extends StatefulWidget {
   final VideoModel video;
   final bool isArabic;
@@ -305,13 +195,13 @@ class _VideoCardState extends State<_VideoCard> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = widget.isMobile || screenWidth < 600;
+    final isMobileDevice = widget.isMobile || MediaQuery.of(context).size.width < 600;
 
-    // ✅ Dimensions exactes pour mobile (style Reel)
-    final cardWidth = isMobile ? 110.0 : 110.0;
-    final cardHeight = isMobile ? 310.0 : 320.0;
+    // ✅ RATIO REEL FACEBOOK / INSTAGRAM = 9:16 (largeur:hauteur)
+    const double reelAspectRatio = 9 / 16;
 
+    // ✅ Utilisation des dimensions exactes données par le parent
+    // Ne pas forcer double.infinity, prendre exactement ce que le parent fournit
     return MouseRegion(
       onEnter: (_) => setState(() => isHovered = true),
       onExit: (_) => setState(() => isHovered = false),
@@ -319,22 +209,21 @@ class _VideoCardState extends State<_VideoCard> {
         onTap: () => _showVideoDialog(),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
-          width: double.infinity,
-          height: cardHeight,
-          transform:
-              isHovered && !isMobile
-                  ? Matrix4.translationValues(0.0, -8.0, 0.0)
-                  : Matrix4.identity(),
+          width: double.infinity, // Remplit exactement le parent
+          height: double.infinity, // Remplit exactement le parent
+          transform: isHovered && !isMobileDevice
+              ? Matrix4.translationValues(0.0, -8.0, 0.0)
+              : Matrix4.identity(),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: isMobile
+            border: isMobileDevice
                 ? null
                 : Border.all(
                     color: isHovered ? const Color(0xffd57653) : Colors.grey[200]!,
                     width: 2,
                   ),
-            boxShadow: isMobile
+            boxShadow: isMobileDevice
                 ? null
                 : [
                     BoxShadow(
@@ -346,7 +235,7 @@ class _VideoCardState extends State<_VideoCard> {
                     ),
                   ],
           ),
-          child: isMobile
+          child: isMobileDevice
               ? _buildMobileReel()
               : _buildDesktopCard(),
         ),
@@ -355,7 +244,7 @@ class _VideoCardState extends State<_VideoCard> {
   }
 
   // ============================================================
-  // 🎯 MOBILE : Style Reel (210x310)
+  // 🎯 MOBILE : Style Reel (Aligné avec TrainingCard)
   // ============================================================
   Widget _buildMobileReel() {
     return ClipRRect(
@@ -363,7 +252,7 @@ class _VideoCardState extends State<_VideoCard> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // ✅ Image en plein écran
+          // Image en plein écran
           Image.network(
             widget.video.youtubeThumbnail,
             fit: BoxFit.cover,
@@ -390,7 +279,7 @@ class _VideoCardState extends State<_VideoCard> {
             },
           ),
 
-          // ✅ Gradient noir pour lisibilité
+          // Gradient noir pour lisibilité (identique à TrainingCard)
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -398,18 +287,18 @@ class _VideoCardState extends State<_VideoCard> {
                 end: Alignment.bottomCenter,
                 colors: [
                   Colors.transparent,
-                  Colors.black.withOpacity(0.1),
-                  Colors.black.withOpacity(0.3),
+                  Colors.black.withOpacity(0.2),
+                  Colors.black.withOpacity(0.8),
                 ],
-                stops: const [0.0, 0.5, 1.0],
+                stops: const [0.0, 0.4, 1.0],
               ),
             ),
           ),
 
-          // ✅ Bouton play géant au centre (comme un Reel)
+          // Bouton play
           Center(
             child: Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.9),
                 shape: BoxShape.circle,
@@ -421,20 +310,20 @@ class _VideoCardState extends State<_VideoCard> {
                   ),
                 ],
               ),
-              child: Icon(
+              child: const Icon(
                 Icons.play_arrow_rounded,
-                color: const Color(0xffd57653),
-                size: 50,
+                color: Color(0xffd57653),
+                size: 40,
               ),
             ),
           ),
 
-          // ✅ Flèche blanche en bas (comme les Reels)
+          // Flèche en bas (identique à TrainingCard)
           Positioned(
-            bottom: 16,
-            right: 16,
+            bottom: 12,
+            right: 12,
             child: Container(
-              padding: const EdgeInsets.all(6),
+              padding: const EdgeInsets.all(5),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.2),
                 shape: BoxShape.circle,
@@ -444,19 +333,37 @@ class _VideoCardState extends State<_VideoCard> {
                     ? Icons.arrow_back_rounded
                     : Icons.arrow_forward_rounded,
                 color: Colors.white,
-                size: 20,
+                size: 18,
               ),
             ),
           ),
 
-          // ✅ Nombre de vues en bas à gauche
+          // Titre en bas (comme TrainingCard)
           Positioned(
-            bottom: 16,
-            left: 16,
+            bottom: 48,
+            left: 12,
+            right: 12,
+            child: Text(
+              widget.video.getTitle(widget.isArabic),
+              style: GoogleFonts.cairo(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                height: 1.2,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+
+          // Nombre de vues en bas à gauche
+          Positioned(
+            bottom: 12,
+            left: 12,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.5),
+                color: Colors.black.withOpacity(0.6),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -464,14 +371,14 @@ class _VideoCardState extends State<_VideoCard> {
                   const Icon(
                     Icons.visibility,
                     color: Colors.white,
-                    size: 12,
+                    size: 10,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     '${widget.video.views}',
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 10,
+                      fontSize: 9,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -485,58 +392,51 @@ class _VideoCardState extends State<_VideoCard> {
   }
 
   // ============================================================
-  // 💻 DESKTOP : Style classique (280x320)
+  // 💻 DESKTOP : Style classique (identique à TrainingCard)
   // ============================================================
   Widget _buildDesktopCard() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Miniature
-        ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-          child: Stack(
-            children: [
-              Image.network(
-                widget.video.youtubeThumbnail,
-                height: 180,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Container(
-                    height: 180,
-                    width: double.infinity,
-                    color: Colors.grey[200],
-                    child: const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xffd57653),
+        // Image occupant 48% de la hauteur totale (comme TrainingCard)
+        SizedBox(
+          height: double.infinity * 0.48,
+          width: double.infinity,
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.network(
+                  widget.video.youtubeThumbnail,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      color: Colors.grey[200],
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xffd57653),
+                        ),
                       ),
-                    ),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: 180,
-                    width: double.infinity,
-                    color: Colors.grey[200],
-                    child: const Icon(
-                      Icons.video_library_outlined,
-                      size: 50,
-                      color: Colors.grey,
-                    ),
-                  );
-                },
-              ),
-              // Bouton play
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: Center(
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: Colors.grey[200],
+                      child: const Icon(
+                        Icons.video_library_outlined,
+                        size: 50,
+                        color: Colors.grey,
+                      ),
+                    );
+                  },
+                ),
+                // Bouton play
+                Center(
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: isHovered
                           ? const Color(0xffd57653).withOpacity(0.9)
@@ -553,75 +453,77 @@ class _VideoCardState extends State<_VideoCard> {
                     child: Icon(
                       Icons.play_arrow_rounded,
                       color: isHovered ? Colors.white : const Color(0xffd57653),
-                      size: 40,
+                      size: 32,
                     ),
                   ),
                 ),
-              ),
-              // Nombre de vues
-              Positioned(
-                bottom: 8,
-                right: 8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.7),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.visibility,
-                        color: Colors.white,
-                        size: 12,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${widget.video.views}',
-                        style: const TextStyle(
+                // Nombre de vues
+                Positioned(
+                  bottom: 8,
+                  right: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.7),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.visibility,
                           color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
+                          size: 12,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 4),
+                        Text(
+                          '${widget.video.views}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
 
-        // Contenu en dessous
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                widget.video.getTitle(widget.isArabic),
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xff2c221e),
-                  height: 1.2,
+        // Contenu en dessous (identique à TrainingCard)
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.video.getTitle(widget.isArabic),
+                  style: GoogleFonts.cairo(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xff2c221e),
+                    height: 1.2,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                widget.video.getDescription(widget.isArabic),
-                style: GoogleFonts.poppins(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.grey[600],
-                  height: 1.3,
+                const SizedBox(height: 2),
+                Text(
+                  widget.video.getDescription(widget.isArabic),
+                  style: GoogleFonts.cairo(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.grey[600],
+                    height: 1.3,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ],

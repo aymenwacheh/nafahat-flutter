@@ -1259,6 +1259,9 @@ class Navbar extends StatelessWidget {
   Widget _buildDrawerAdminSection(BuildContext context, bool isArabic) {
     final canCreateUser = _canCreateUser(context);
 
+    // ✅ Utiliser la liste complète comme dans le web
+    final adminItems = _getAdminMenuItemsFull(context, isArabic);
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
@@ -1285,25 +1288,24 @@ class Navbar extends StatelessWidget {
         tilePadding: const EdgeInsets.symmetric(horizontal: 8),
         childrenPadding: const EdgeInsets.only(left: 16, bottom: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        children:
-            _getAdminMenuItemsFull(context, isArabic)
-                .where(
-                  (item) =>
-                      !item.containsKey('isDivider') &&
-                      (item['isAdminOnly'] != true || canCreateUser),
-                )
-                .map((item) {
-                  return _drawerTile(
-                    icon: item['icon'],
-                    title: item['title'],
-                    padding: const EdgeInsets.only(left: 32, right: 8),
-                    onTap: () {
-                      _closeDrawer(context);
-                      _handleAdminAction(context, item['value'], isArabic);
-                    },
-                  );
-                })
-                .toList(),
+        children: adminItems
+            .where(
+              (item) =>
+                  !item.containsKey('isDivider') &&
+                  (item['isAdminOnly'] != true || canCreateUser),
+            )
+            .map((item) {
+              return _drawerTile(
+                icon: item['icon'],
+                title: item['title'],
+                padding: const EdgeInsets.only(left: 32, right: 8),
+                onTap: () {
+                  _closeDrawer(context);
+                  _handleAdminAction(context, item['value'], isArabic);
+                },
+              );
+            })
+            .toList(),
       ),
     );
   }
