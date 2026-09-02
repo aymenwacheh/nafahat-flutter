@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:nafahat/providers/language_provider.dart';
 import 'package:nafahat/pages/widgets/video_fav_section.dart';
 
+
 class AllVideoPage extends StatefulWidget {
   const AllVideoPage({super.key});
 

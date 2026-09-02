@@ -25,6 +25,7 @@ dependencies:
   mime: ^1.0.4
   url_launcher: ^6.2.5
   rxdart: ^0.27.7 
+  reorderable_grid_view: ^2.2.8
   
 
 dev_dependencies:
@@ -55,5 +56,10 @@ flutter:
     - assets/images/card5.jpg  
     - assets/images/card6.jpg 
     - assets/images/card7.jfif
-    - assets/images/slide10.jpg   
+    - assets/images/slide10.jpg
+    - assets/splash/1.png
+    - assets/splash/2.png   
+    - assets/splash/3.png
+    - assets/splash/4.png
+
      

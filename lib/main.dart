@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:nafahat/pages/formation/formations_page.dart';
 import 'package:nafahat/pages/widgets/chatbot/chatbot_widget.dart';
 import 'package:nafahat/pages/users/inscription_adherent.dart';
 import 'package:provider/provider.dart';
@@ -21,9 +22,12 @@ import 'pages/landing/landing_page.dart';
 import 'package:nafahat/models/card_config_model.dart';
 import 'package:nafahat/pages/users/profile_dashboard_page.dart';
 import 'package:nafahat/pages/adminisration/administration_page.dart';
-import 'package:nafahat/pages/cart/cart_page.dart'; // 👈 AJOUTER L'IMPORT DU PANIER
+import 'package:nafahat/pages/cart/cart_page.dart';
 import 'services/navigation_service.dart';
 import 'services/cart_service.dart';
+import 'package:nafahat/pages/widgets/all_video_page.dart';
+
+
 
 void main() {
   // ✅ Initialiser le service du panier au démarrage
@@ -133,15 +137,13 @@ class MyApp extends StatelessWidget {
                     hideOnRoute: false,
                     child: AdministrationPage(),
                   ),
-              // ✅ AJOUT DE LA ROUTE DU PANIER
               '/cart':
                   (context) => const ChatbotGlobalWrapper(
                     hideOnRoute: false,
                     child: CartPage(),
                   ),
             },
-            // ✅ ROUTES DYNAMIQUES : lisent les `arguments` passés par
-            // Navigator.pushNamed(..., arguments: {...}) au lieu de valeurs figées.
+            // ✅ ROUTES DYNAMIQUES
             onGenerateRoute: (settings) {
               if (settings.name == '/login') {
                 final args = settings.arguments as Map<String, dynamic>?;
@@ -173,7 +175,33 @@ class MyApp extends StatelessWidget {
                 );
               }
 
-              // ✅ AJOUT DE LA ROUTE PANIER DYNAMIQUE (si besoin avec paramètres)
+              // ✅ ROUTE /formations AVEC ARGUMENTS (catégorie ou formateur)
+              if (settings.name == '/formations') {
+                final args = settings.arguments as Map<String, String>?;
+                return MaterialPageRoute(
+                  settings: settings,
+                  builder: (context) => ChatbotGlobalWrapper(
+                    hideOnRoute: false,
+                    child: FormationsPage(
+                      categorieId: args?['categorieId'],
+                      formateurId: args?['formateurId'],
+                    ),
+                  ),
+                );
+              }
+
+              // ✅ ROUTE /video/:id POUR LES VIDÉOS
+              if (settings.name != null && settings.name!.startsWith('/video/')) {
+                final videoId = settings.name!.replaceAll('/video/', '');
+                return MaterialPageRoute(
+                  settings: settings,
+                  builder: (context) => ChatbotGlobalWrapper(
+                    hideOnRoute: false,
+                    child: AllVideoPage(),
+                  ),
+                );
+              }
+
               if (settings.name == '/cart') {
                 return MaterialPageRoute(
                   settings: settings,
@@ -185,7 +213,7 @@ class MyApp extends StatelessWidget {
                 );
               }
 
-              return null; // Laisse `onUnknownRoute` gérer le reste
+              return null;
             },
             onUnknownRoute: (settings) {
               print('⚠️ [ROUTE] Route inconnue: ${settings.name}');

@@ -11,7 +11,9 @@ import '../config/api_config.dart';
 
 class TrainingService {
   static const String _storageKey = 'trainings';
-  static String get apiBaseUrl => ApiConfig.baseUrl;
+  
+  // ✅ CORRIGÉ : Utiliser ApiConfig.apiUrl au lieu de baseUrl
+  static String get apiBaseUrl => ApiConfig.apiUrl;
 
   // =============================================
   // MÉTHODES LOCALES (offline)
@@ -425,23 +427,51 @@ class TrainingService {
 
   // =============================================
   // MÉTHODES API - DONNÉES DE RÉFÉRENCE
+  // ✅ CORRIGÉ : getCategories avec logs et meilleur parsing
   // =============================================
 
   static Future<List<Map<String, dynamic>>> getCategories() async {
     try {
+      final url = '$apiBaseUrl/categories';
+      debugPrint('📥 [Categories] Appel API: $url');
+      
       final response = await http.get(
-        Uri.parse('$apiBaseUrl/categories'),
+        Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
       );
+
+      debugPrint('📥 [Categories] Status: ${response.statusCode}');
+      debugPrint('📥 [Categories] Response: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}...');
+
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
+        debugPrint('📥 [Categories] Data keys: ${data.keys}');
+        debugPrint('📥 [Categories] Success: ${data['success']}');
+        
         if (data['success'] == true) {
-          return List<Map<String, dynamic>>.from(data['data']);
+          final List<dynamic> categoriesData = data['data'] ?? [];
+          debugPrint('✅ [Categories] ${categoriesData.length} catégories reçues');
+          
+          // Convertir en Map<String, dynamic>
+          final List<Map<String, dynamic>> categories = 
+              categoriesData.map((item) => Map<String, dynamic>.from(item)).toList();
+          
+          // Log pour debug
+          for (var cat in categories) {
+            debugPrint('   📌 ${cat['categorie_fr'] ?? cat['categorieFr']} (ID: ${cat['id']})');
+          }
+          
+          return categories;
+        } else {
+          debugPrint('❌ [Categories] API retourne success=false');
+          return [];
         }
+      } else {
+        debugPrint('❌ [Categories] Erreur HTTP: ${response.statusCode}');
+        return [];
       }
-      return [];
     } catch (e) {
-      debugPrint('Erreur chargement catégories: $e');
+      debugPrint('❌ [Categories] Erreur: $e');
       return [];
     }
   }
@@ -507,9 +537,6 @@ class TrainingService {
   // MÉTHODES D'UPLOAD D'IMAGES
   // =============================================
 
-  // ✅ Méthode unique Web + Mobile : à partir de bytes bruts (via
-  // image_picker + XFile.readAsBytes(), qui fonctionne sur les deux
-  // plateformes). Plus besoin de dart:io File ni de dart:html.
   static Future<Map<String, dynamic>> uploadImageBytes(
     Uint8List bytes,
     String fileName,
@@ -558,9 +585,7 @@ class TrainingService {
       rethrow;
     }
   }
-  // lib/services/training_service.dart
 
-  // Ajoutez cette méthode après uploadImageBytes
   static Future<Map<String, dynamic>> uploadImageBytesAlt(
     Uint8List bytes,
     String fileName,
@@ -568,10 +593,9 @@ class TrainingService {
     try {
       debugPrint('📤 [Upload Alt] Début de l\'upload...');
 
-      // Utiliser la route /upload au lieu de /upload/image
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('$apiBaseUrl/upload'), // ← Changement ici
+        Uri.parse('$apiBaseUrl/upload'),
       );
 
       final ext = fileName.split('.').last.toLowerCase();
@@ -585,7 +609,7 @@ class TrainingService {
       final subtype = mimeMap[ext] ?? 'jpeg';
 
       var multipartFile = http.MultipartFile.fromBytes(
-        'image', // ← Vérifiez le nom du champ attendu par le serveur
+        'image',
         bytes,
         filename: fileName,
         contentType: MediaType('image', subtype),
@@ -602,7 +626,6 @@ class TrainingService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = json.decode(responseBody);
-        // Le format de réponse peut être différent
         return {
           'success': true,
           'image_url': data['imageUrl'] ?? data['data']?['url'] ?? data['url'],
@@ -628,10 +651,6 @@ class TrainingService {
         Uri.parse('$apiBaseUrl/upload/image'),
       );
 
-      // ✅ Déterminer le Content-Type réel à partir de l'extension.
-      // Sans ça, http.MultipartFile.fromBytes envoie
-      // "application/octet-stream" par défaut et le serveur (mobile
-      // uniquement, le web passe par un autre chemin) rejette le fichier.
       final ext = fileName.split('.').last.toLowerCase();
       const mimeMap = {
         'jpg': 'jpeg',
@@ -735,9 +754,6 @@ class TrainingService {
     }
   }
 
-  // =============================================
-  // ANCIENNE MÉTHODE (conservée pour compatibilité)
-  // =============================================
   static Future<String?> uploadImageOld(String imagePath) async {
     try {
       var request = http.MultipartRequest(
@@ -757,7 +773,6 @@ class TrainingService {
       return null;
     }
   }
-  // lib/services/training_service.dart
 
   static Future<TrainingModel?> getTraining(String id) async {
     try {

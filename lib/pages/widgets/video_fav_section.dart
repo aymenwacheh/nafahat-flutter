@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/models/video_model.dart';
 import 'package:nafahat/services/video_service.dart';
 import 'youtube_player.dart';
-// ✅ Import du lecteur YouTube
 
 class VideoFavSection extends StatefulWidget {
   final bool isArabic;
@@ -42,17 +41,12 @@ class _VideoFavSectionState extends State<VideoFavSection> {
     setState(() => _isLoading = true);
     try {
       final videos = await VideoService.getVideos();
-      print('📹 Vidéos reçues: ${videos.length}');
-
       setState(() {
         _videos = videos.where((v) => v.isActive).toList();
         _isLoading = false;
         _currentPage = 0;
       });
-
-      print('📹 Vidéos actives: ${_videos.length}');
     } catch (e) {
-      print('❌ Erreur _loadVideos: $e');
       setState(() {
         _videos = [];
         _isLoading = false;
@@ -178,7 +172,7 @@ class _VideoFavSectionState extends State<VideoFavSection> {
       children: [
         // Carrousel
         SizedBox(
-          height: isMobile ? 320 : 380,
+          height: isMobile ? 310 : 380, // ✅ Hauteur adaptée pour Reel
           child:
               _totalPages > 1
                   ? PageView(
@@ -235,14 +229,13 @@ class _VideoFavSectionState extends State<VideoFavSection> {
                   ),
         ),
 
-        // ✅ PAGINATION (Uniquement les 2 flèches, plus de points)
+        // ✅ PAGINATION (Uniquement les 2 flèches)
         if (_totalPages > 1)
           Padding(
             padding: const EdgeInsets.only(top: 16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Flèche Précédente
                 GestureDetector(
                   onTap: _prevPage,
                   child: Container(
@@ -261,11 +254,7 @@ class _VideoFavSectionState extends State<VideoFavSection> {
                     ),
                   ),
                 ),
-
-                // Espace entre les deux flèches
                 const SizedBox(width: 40),
-
-                // Flèche Suivante
                 GestureDetector(
                   onTap: _nextPage,
                   child: Container(
@@ -295,7 +284,7 @@ class _VideoFavSectionState extends State<VideoFavSection> {
   }
 }
 
-// --- CARTE VIDÉO ---
+// --- CARTE VIDÉO STYLE REEL ---
 class _VideoCard extends StatefulWidget {
   final VideoModel video;
   final bool isArabic;
@@ -316,6 +305,13 @@ class _VideoCardState extends State<_VideoCard> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = widget.isMobile || screenWidth < 600;
+
+    // ✅ Dimensions exactes pour mobile (style Reel)
+    final cardWidth = isMobile ? 110.0 : 110.0;
+    final cardHeight = isMobile ? 310.0 : 320.0;
+
     return MouseRegion(
       onEnter: (_) => setState(() => isHovered = true),
       onExit: (_) => setState(() => isHovered = false),
@@ -323,183 +319,316 @@ class _VideoCardState extends State<_VideoCard> {
         onTap: () => _showVideoDialog(),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
+          width: double.infinity,
+          height: cardHeight,
           transform:
-              isHovered && !widget.isMobile
+              isHovered && !isMobile
                   ? Matrix4.translationValues(0.0, -8.0, 0.0)
                   : Matrix4.identity(),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isHovered ? const Color(0xffd57653) : Colors.grey[200]!,
-              width: 2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color:
-                    isHovered
-                        ? const Color(0xffd57653).withOpacity(0.15)
-                        : Colors.black.withOpacity(0.05),
-                blurRadius: isHovered ? 20 : 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Miniature
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(16),
-                ),
-                child: Stack(
-                  children: [
-                    Image.network(
-                      widget.video.youtubeThumbnail,
-                      height: widget.isMobile ? 180 : 220,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          height: widget.isMobile ? 180 : 220,
-                          width: double.infinity,
-                          color: Colors.grey[200],
-                          child: const Center(
-                            child: CircularProgressIndicator(
-                              color: Color(0xffd57653),
-                            ),
-                          ),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          height: widget.isMobile ? 180 : 220,
-                          width: double.infinity,
-                          color: Colors.grey[200],
-                          child: const Icon(
-                            Icons.video_library_outlined,
-                            size: 50,
-                            color: Colors.grey,
-                          ),
-                        );
-                      },
-                    ),
-                    // ✅ Bouton play avec animation améliorée
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: Center(
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color:
-                                isHovered
-                                    ? const Color(0xffd57653).withOpacity(0.9)
-                                    : Colors.white.withOpacity(0.9),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            Icons.play_arrow_rounded,
-                            color:
-                                isHovered
-                                    ? Colors.white
-                                    : const Color(0xffd57653),
-                            size: 40,
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Nombre de vues
-                    Positioned(
-                      bottom: 8,
-                      right: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.7),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.visibility,
-                              color: Colors.white,
-                              size: 12,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${widget.video.views}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+            border: isMobile
+                ? null
+                : Border.all(
+                    color: isHovered ? const Color(0xffd57653) : Colors.grey[200]!,
+                    width: 2,
+                  ),
+            boxShadow: isMobile
+                ? null
+                : [
+                    BoxShadow(
+                      color: isHovered
+                          ? const Color(0xffd57653).withOpacity(0.15)
+                          : Colors.black.withOpacity(0.05),
+                      blurRadius: isHovered ? 20 : 8,
+                      offset: const Offset(0, 4),
                     ),
                   ],
-                ),
-              ),
-
-              // Contenu
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.video.getTitle(widget.isArabic),
-                      style: GoogleFonts.poppins(
-                        fontSize: widget.isMobile ? 13 : 14,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xff2c221e),
-                        height: 1.2,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      widget.video.getDescription(widget.isArabic),
-                      style: GoogleFonts.poppins(
-                        fontSize: widget.isMobile ? 10 : 11,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.grey[600],
-                        height: 1.3,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ),
+          child: isMobile
+              ? _buildMobileReel()
+              : _buildDesktopCard(),
         ),
       ),
     );
   }
 
-  // ✅ Nouvelle méthode avec lecteur YouTube intégré
+  // ============================================================
+  // 🎯 MOBILE : Style Reel (210x310)
+  // ============================================================
+  Widget _buildMobileReel() {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // ✅ Image en plein écran
+          Image.network(
+            widget.video.youtubeThumbnail,
+            fit: BoxFit.cover,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Container(
+                color: Colors.grey[200],
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xffd57653),
+                  ),
+                ),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                color: Colors.grey[200],
+                child: const Icon(
+                  Icons.video_library_outlined,
+                  size: 50,
+                  color: Colors.grey,
+                ),
+              );
+            },
+          ),
+
+          // ✅ Gradient noir pour lisibilité
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  Colors.black.withOpacity(0.1),
+                  Colors.black.withOpacity(0.3),
+                ],
+                stops: const [0.0, 0.5, 1.0],
+              ),
+            ),
+          ),
+
+          // ✅ Bouton play géant au centre (comme un Reel)
+          Center(
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.9),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Icon(
+                Icons.play_arrow_rounded,
+                color: const Color(0xffd57653),
+                size: 50,
+              ),
+            ),
+          ),
+
+          // ✅ Flèche blanche en bas (comme les Reels)
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                widget.isArabic
+                    ? Icons.arrow_back_rounded
+                    : Icons.arrow_forward_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ),
+
+          // ✅ Nombre de vues en bas à gauche
+          Positioned(
+            bottom: 16,
+            left: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.visibility,
+                    color: Colors.white,
+                    size: 12,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${widget.video.views}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // 💻 DESKTOP : Style classique (280x320)
+  // ============================================================
+  Widget _buildDesktopCard() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Miniature
+        ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+          child: Stack(
+            children: [
+              Image.network(
+                widget.video.youtubeThumbnail,
+                height: 180,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
+                    height: 180,
+                    width: double.infinity,
+                    color: Colors.grey[200],
+                    child: const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xffd57653),
+                      ),
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 180,
+                    width: double.infinity,
+                    color: Colors.grey[200],
+                    child: const Icon(
+                      Icons.video_library_outlined,
+                      size: 50,
+                      color: Colors.grey,
+                    ),
+                  );
+                },
+              ),
+              // Bouton play
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Center(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isHovered
+                          ? const Color(0xffd57653).withOpacity(0.9)
+                          : Colors.white.withOpacity(0.9),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.play_arrow_rounded,
+                      color: isHovered ? Colors.white : const Color(0xffd57653),
+                      size: 40,
+                    ),
+                  ),
+                ),
+              ),
+              // Nombre de vues
+              Positioned(
+                bottom: 8,
+                right: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.visibility,
+                        color: Colors.white,
+                        size: 12,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${widget.video.views}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Contenu en dessous
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.video.getTitle(widget.isArabic),
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xff2c221e),
+                  height: 1.2,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                widget.video.getDescription(widget.isArabic),
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.grey[600],
+                  height: 1.3,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   void _showVideoDialog() {
-    // ✅ Incrémenter les vues
     VideoService.incrementViews(widget.video.id);
 
     showDialog(
@@ -520,7 +649,7 @@ class _VideoCardState extends State<_VideoCard> {
               ),
               child: Column(
                 children: [
-                  // ✅ Barre de contrôle personnalisée
+                  // Barre de contrôle
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -557,24 +686,20 @@ class _VideoCardState extends State<_VideoCard> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        // ✅ Bouton ouvrir sur YouTube
                         IconButton(
                           icon: const Icon(
                             Icons.open_in_new,
                             color: Colors.white70,
                             size: 20,
                           ),
-                          onPressed: () {
-                            // TODO: Ouvrir sur YouTube avec url_launcher
-                            // launchUrl(Uri.parse(widget.video.youtubeUrl));
-                          },
+                          onPressed: () {},
                           tooltip: 'Ouvrir sur YouTube',
                         ),
                       ],
                     ),
                   ),
 
-                  // ✅ Lecteur YouTube intégré
+                  // Lecteur YouTube
                   Expanded(
                     child: YouTubePlayer(
                       videoId: widget.video.videoId,

@@ -1,22 +1,38 @@
 // lib/pages/landing/landing_page.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:nafahat/models/card_config_model.dart';
-import 'package:nafahat/pages/widgets/inscription_section.dart';
+import 'package:nafahat/models/bull_model.dart';
+
 import 'package:provider/provider.dart';
-import 'package:nafahat/providers/language_provider.dart';
-import '../widgets/video_fav_section.dart';
-import '../widgets/hero_section.dart';
-import '../widgets/navbar.dart';
+
+// Models
+import 'package:nafahat/models/card_config_model.dart';
 import 'package:nafahat/models/training_model.dart';
+import 'package:nafahat/models/SectionOrderModel.dart';
+
+// Services
 import 'package:nafahat/services/training_service.dart';
-import 'package:nafahat/pages/adminisration/add_training_card.dart';
-import '../widgets/training_card.dart';
+import 'package:nafahat/services/bull_service.dart';
 import 'package:nafahat/services/card_config_service.dart';
-import '../widgets/about.dart';
-import '../widgets/all_video_page.dart';
-import '../widgets/formateur_section.dart'; // ✅ Gardé le même nom mais contenu modifié
-import 'package:nafahat/services/formateur_card_config_manager.dart';
+import 'package:nafahat/services/SectionOrderService.dart';
+
+// Providers
+import 'package:nafahat/providers/language_provider.dart';
+
+// Widgets
+import 'package:nafahat/pages/widgets/inscription_section.dart';
+import 'package:nafahat/pages/widgets/video_fav_section.dart';
+import 'package:nafahat/pages/widgets/hero_section.dart';
+import 'package:nafahat/pages/widgets/navbar.dart';
+import 'package:nafahat/pages/widgets/training_card_section.dart';
+import 'package:nafahat/pages/widgets/formateur_section.dart';
+
+import 'package:nafahat/pages/widgets/all_video_page.dart';
+import 'package:nafahat/pages/widgets/bull_lien_section.dart';
+
+
+// Admin pages
+import 'package:nafahat/pages/adminisration/add_training_card.dart';
 
 // --- PALETTE DE COULEURS ---
 class AppColors {
@@ -28,6 +44,9 @@ class AppColors {
   static const Color textMuted = Color(0xff7c6e68);
 }
 
+// ============================================================
+// LANDING PAGE PRINCIPALE
+// ============================================================
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
 
@@ -39,24 +58,240 @@ class _LandingPageState extends State<LandingPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final _trainingSectionKey = GlobalKey<_TrainingCyclesSectionState>();
 
+  // États pour les sections dynamiques
+  List<SectionOrderModel> _sections = [];
+  bool _sectionsLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSections();
+  }
+
+  // ============================================================
+  // CHARGEMENT DES SECTIONS
+  // ============================================================
+  Future<void> _loadSections() async {
+    final sections = await SectionOrderService.loadSections();
+    setState(() {
+      _sections = sections.where((s) => s.isActive).toList();
+      _sectionsLoaded = true;
+    });
+  }
+
+  // ============================================================
+  // GESTIONNAIRE DE CLIC SUR BULL - NAVIGATION INTELLIGENTE
+  // ============================================================
+  void _handleBullTap(BuildContext context, BullModel bull) {
+    print('🔗 [BULL] Clic sur: ${bull.title}');
+    print('   📍 Lien: ${bull.link}');
+    
+    final link = bull.link;
+    
+    // ✅ Si c'est un lien vers une catégorie
+    if (link.startsWith('/categorie/')) {
+      final categorieId = link.replaceAll('/categorie/', '');
+      print('   🏷️ Navigation vers catégorie: $categorieId');
+      
+      Navigator.pushNamed(
+        context,
+        '/formations',
+        arguments: {'categorieId': categorieId},
+      );
+      return;
+    }
+    
+    // ✅ Si c'est un lien vers un formateur
+    if (link.startsWith('/formateur/')) {
+      final formateurId = link.replaceAll('/formateur/', '');
+      print('   👤 Navigation vers formateur: $formateurId');
+      
+      Navigator.pushNamed(
+        context,
+        '/formations',
+        arguments: {'formateurId': formateurId},
+      );
+      return;
+    }
+    
+    // ✅ Si c'est un lien vers une vidéo
+    if (link.startsWith('/video/')) {
+      final videoId = link.replaceAll('/video/', '');
+      print('   🎬 Navigation vers vidéo: $videoId');
+      
+      Navigator.pushNamed(
+        context,
+        '/video/$videoId',
+      );
+      return;
+    }
+    
+    // ✅ Si c'est un lien vers une section (scroll)
+    if (link.startsWith('/section/')) {
+      final sectionKey = link.replaceAll('/section/', '');
+      print('   📑 Navigation vers section: $sectionKey');
+      
+      _scrollToSection(sectionKey);
+      return;
+    }
+    
+    // ✅ Navigation normale (page)
+    print('   🔗 Navigation normale vers: $link');
+    Navigator.pushNamed(context, link);
+  }
+
+  // ============================================================
+  // SCROLL VERS UNE SECTION
+  // ============================================================
+  void _scrollToSection(String sectionKey) {
+    final sectionIndex = _sections.indexWhere((s) => s.sectionKey == sectionKey);
+    if (sectionIndex != -1) {
+      print('   📍 Section trouvée à l\'index: $sectionIndex');
+      
+      final scrollable = Scrollable.of(context);
+      if (scrollable != null) {
+        final double position = sectionIndex * 400.0;
+        scrollable.position.animateTo(
+          position,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOut,
+        );
+      }
+    } else {
+      print('   ⚠️ Section non trouvée: $sectionKey');
+    }
+  }
+
+  // ============================================================
+  // SECTION BULLS LIENS
+  // ============================================================
+  Widget _buildBullsSection(bool isArabic, bool isMobile) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 8 : 50,
+        vertical: 8,
+      ),
+      child: FutureBuilder<List<BullModel>>(
+        future: BullService.getBulls(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const SizedBox(
+              height: 50,
+              child: Center(
+                child: SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            );
+          }
+
+          if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+            return _buildDefaultBulls(isArabic);
+          }
+
+          final bulls = snapshot.data!;
+          final activeBulls = bulls.where((b) => b.isActive).toList();
+
+          if (activeBulls.isEmpty) {
+            return _buildDefaultBulls(isArabic);
+          }
+
+          return BullsList(
+            bulls: activeBulls,
+            onBullTap: (bull) {
+              _handleBullTap(context, bull);
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildDefaultBulls(bool isArabic) {
+    final bulls = BullService.getDefaultBulls();
+    return BullsList(
+      bulls: bulls,
+      onBullTap: (bull) {
+        _handleBullTap(context, bull);
+      },
+    );
+  }
+
+  // ============================================================
+  // RENDU DES SECTIONS DYNAMIQUES
+  // ============================================================
+  Widget _buildSection(SectionOrderModel section, bool isMobile, bool isArabic) {
+    switch (section.sectionKey) {
+      case PredefinedSections.hero:
+        return HeroSection(isArabic: isArabic);
+
+      case PredefinedSections.bulls:
+        return _buildBullsSection(isArabic, isMobile);
+
+      case PredefinedSections.trainings:
+        return _TrainingCyclesSection(
+          key: _trainingSectionKey,
+          isArabic: isArabic,
+        );
+
+      case PredefinedSections.inscription:
+        return Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 0 : 20,
+            vertical: 10,
+          ),
+          child: InscriptionSection(
+            isArabic: isArabic,
+            fullWidth: true,
+            showIcon: true,
+            showSubtitle: true,
+          ),
+        );
+
+      case PredefinedSections.videos:
+        return VideoFavSection(isArabic: isArabic);
+
+      case PredefinedSections.formateurs:
+        return _FormateurSection(isArabic: isArabic);
+
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  // ============================================================
+  // BUILD PRINCIPAL
+  // ============================================================
   @override
   Widget build(BuildContext context) {
     final languageProvider = Provider.of<LanguageProvider>(context);
     final isArabic = languageProvider.isArabic;
-    bool isMobile = MediaQuery.of(context).size.width < 850;
+    final bool isMobile = MediaQuery.of(context).size.width < 850;
+
+    if (!_sectionsLoaded) {
+      return Scaffold(
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
 
     return Directionality(
       textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         key: _scaffoldKey,
         backgroundColor: AppColors.surface,
-        drawer:
-            isMobile
-                ? Navbar(
-                  isMobile: true,
-                  scaffoldKey: _scaffoldKey,
-                ).buildDrawer(context)
-                : null,
+        drawer: isMobile
+            ? Navbar(
+                isMobile: true,
+                scaffoldKey: _scaffoldKey,
+              ).buildDrawer(context)
+            : null,
         body: SafeArea(
           top: false,
           child: Stack(
@@ -67,52 +302,10 @@ class _LandingPageState extends State<LandingPage> {
                   children: [
                     const SizedBox(height: 90),
 
-                    // ✅ 1. HERO SECTION
-                    HeroSection(isArabic: isArabic),
-
-                    // ✅ 2. FORMATIONS (Cycles de formation) - Une seule ligne
-                    _TrainingCyclesSection(
-                      key: _trainingSectionKey,
-                      isArabic: isArabic,
-                    ),
-
-                    // ✅ 3. INSCRIPTION SECTION (après les formations)
-                    Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isMobile ? 0 : 20,
-                        vertical: 10,
-                      ),
-                      child: InscriptionSection(
-                        isArabic: isArabic,
-                        fullWidth: true,
-                        showIcon: true,
-                        showSubtitle: true,
-                      ),
-                    ),
-
-                    // ✅ 4. VIDÉOS FAVORIS
-                    VideoFavSection(isArabic: isArabic),
-
-                    // ✅ 5. FORMATEURS - Une seule ligne
-                    _FormateurSection(isArabic: isArabic),
-
-                    // ✅ 6. INSCRIPTION SECTION (finale)
-                    Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isMobile ? 0 : 20,
-                        vertical: 10,
-                      ),
-                      child: InscriptionSection(
-                        isArabic: isArabic,
-                        fullWidth: true,
-                        showIcon: true,
-                        showSubtitle: true,
-                        customText:
-                            isArabic
-                                ? 'ابدأ رحلتك الآن'
-                                : 'Commencez votre parcours',
-                      ),
-                    ),
+                    // ✅ SECTIONS DYNAMIQUES (selon l'ordre défini dans l'admin)
+                    ..._sections.map((section) {
+                      return _buildSection(section, isMobile, isArabic);
+                    }).toList(),
 
                     const SizedBox(height: 40),
                   ],
@@ -244,7 +437,6 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
     }
   }
 
-  // ✅ Récupération des vrais noms de catégories (FR et AR)
   void _extractFilters() {
     final cats = <String>{'Toutes'};
     final types = <String>{'Tous'};
@@ -274,21 +466,17 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
     });
   }
 
-  // ✅ Filtrage avec les noms FR et AR
   void _applyFilters() {
-    _filteredTrainings =
-        _allTrainings.where((t) {
-          bool matchCategorie =
-              _selectedCategorie == 'Toutes' ||
-              t.categorieFr == _selectedCategorie ||
-              t.categorieAr == _selectedCategorie;
-          bool matchType =
-              _selectedTypeFormation == 'Tous' ||
-              t.typeFormation == _selectedTypeFormation;
-          bool matchFormateur =
-              _selectedFormateur == 'Tous' || t.trainer == _selectedFormateur;
-          return matchCategorie && matchType && matchFormateur;
-        }).toList();
+    _filteredTrainings = _allTrainings.where((t) {
+      bool matchCategorie = _selectedCategorie == 'Toutes' ||
+          t.categorieFr == _selectedCategorie ||
+          t.categorieAr == _selectedCategorie;
+      bool matchType = _selectedTypeFormation == 'Tous' ||
+          t.typeFormation == _selectedTypeFormation;
+      bool matchFormateur = _selectedFormateur == 'Tous' ||
+          t.trainer == _selectedFormateur;
+      return matchCategorie && matchType && matchFormateur;
+    }).toList();
 
     _updateDisplayedTrainings();
   }
@@ -368,67 +556,7 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
           ),
           const SizedBox(height: 12),
 
-          // ✅ FILTRES AFFICHÉS SUR MOBILE ET WEB
-          if (!_isLoading && _allTrainings.isNotEmpty) ...[
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: isMobile ? 16.0 : 0.0),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    // ✅ Filtre Catégorie
-                    _buildElegantFilter(
-                      value: _selectedCategorie,
-                      items: _categories,
-                      label: widget.isArabic ? 'التصنيف' : 'Catégorie',
-                      icon: Icons.category_outlined,
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedCategorie = value!;
-                          _applyFilters();
-                        });
-                      },
-                      isArabic: widget.isArabic,
-                    ),
-                    const SizedBox(width: 8),
-
-                    // ✅ Filtre Type
-                    _buildElegantFilter(
-                      value: _selectedTypeFormation,
-                      items: _typesFormation,
-                      label: widget.isArabic ? 'النوع' : 'Type',
-                      icon: Icons.school_outlined,
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedTypeFormation = value!;
-                          _applyFilters();
-                        });
-                      },
-                      isArabic: widget.isArabic,
-                    ),
-                    const SizedBox(width: 8),
-
-                    // ✅ Filtre Formateur
-                    _buildElegantFilter(
-                      value: _selectedFormateur,
-                      items: _formateurs,
-                      label: widget.isArabic ? 'المكون' : 'Formateur',
-                      icon: Icons.person_outline,
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedFormateur = value!;
-                          _applyFilters();
-                        });
-                      },
-                      isArabic: widget.isArabic,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
-
+         
           if (_isLoading)
             const Center(child: CircularProgressIndicator())
           else if (_allTrainings.isEmpty)
@@ -501,11 +629,9 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
     );
   }
 
-  // ✅ AFFICHAGE EN UNE SEULE LIGNE (Liste horizontale)
   Widget _buildTrainingRow(bool isMobile, bool isTablet) {
     final trainings = isMobile ? _displayedTrainings : _filteredTrainings;
 
-    // Dimensions réduites
     double cardWidth;
     double cardHeight;
 
@@ -576,8 +702,6 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
           ),
         ),
         const SizedBox(height: 10),
-
-        // ✅ Liste horizontale des cartes
         SizedBox(
           height: cardHeight,
           child: ListView.builder(
@@ -601,8 +725,6 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
             },
           ),
         ),
-
-        // ✅ Bouton "Voir tout" en dessous (mobile)
         if (isMobile && _allTrainings.length > 3)
           Padding(
             padding: const EdgeInsets.only(top: 8),
@@ -632,7 +754,6 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
     );
   }
 
-  // ✅ FILTRE ÉLÉGANT AVEC NOMS RÉELS (FR/AR)
   Widget _buildElegantFilter({
     required String value,
     required List<String> items,
@@ -642,8 +763,7 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
     required bool isArabic,
   }) {
     final uniqueItems = items.toSet().toList();
-    final selectedValue =
-        uniqueItems.contains(value) ? value : uniqueItems.first;
+    final selectedValue = uniqueItems.contains(value) ? value : uniqueItems.first;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -668,35 +788,31 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
             ),
           ],
         ),
-        items:
-            uniqueItems.map((item) {
-              // ✅ Affichage du nom réel (FR si disponible, AR sinon)
-              String displayText = item;
-              if (item == 'Tous' || item == 'Toutes') {
-                displayText = isArabic ? 'الكل' : 'Tous';
-              } else {
-                // Si on est en arabe et que la valeur existe en arabe, on l'utilise
-                if (isArabic) {
-                  // Cherche la version arabe si elle existe dans la liste
-                  for (var t in _allTrainings) {
-                    if (t.categorieFr == item && t.categorieAr.isNotEmpty) {
-                      displayText = t.categorieAr;
-                      break;
-                    }
-                  }
+        items: uniqueItems.map((item) {
+          String displayText = item;
+          if (item == 'Tous' || item == 'Toutes') {
+            displayText = isArabic ? 'الكل' : 'Tous';
+          } else {
+            if (isArabic) {
+              for (var t in _allTrainings) {
+                if (t.categorieFr == item && t.categorieAr.isNotEmpty) {
+                  displayText = t.categorieAr;
+                  break;
                 }
               }
-              return DropdownMenuItem<String>(
-                value: item,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Text(
-                    displayText,
-                    style: GoogleFonts.cairo(fontSize: 13),
-                  ),
-                ),
-              );
-            }).toList(),
+            }
+          }
+          return DropdownMenuItem<String>(
+            value: item,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                displayText,
+                style: GoogleFonts.cairo(fontSize: 13),
+              ),
+            ),
+          );
+        }).toList(),
         onChanged: onChanged,
         icon: Icon(Icons.keyboard_arrow_down, color: AppColors.primary),
         dropdownColor: Colors.white,
@@ -814,7 +930,6 @@ class _FormateurSectionState extends State<_FormateurSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ✅ Titre
           Text(
             isArabic ? 'مكونونا' : 'Nos Formateurs',
             style: GoogleFonts.cairo(
@@ -824,8 +939,6 @@ class _FormateurSectionState extends State<_FormateurSection> {
             ),
           ),
           const SizedBox(height: 8),
-
-          // ✅ Sous-titre
           Text(
             isArabic
                 ? 'خبراء في مجالاتهم لمرافقتك في رحلتك التعليمية'
@@ -837,7 +950,6 @@ class _FormateurSectionState extends State<_FormateurSection> {
           ),
           const SizedBox(height: 16),
 
-          // ✅ Liste des formateurs
           if (_isLoading)
             const Center(child: CircularProgressIndicator())
           else if (_formateurs.isEmpty)
@@ -872,12 +984,10 @@ class _FormateurSectionState extends State<_FormateurSection> {
     );
   }
 
-  // ✅ AFFICHAGE EN UNE SEULE LIGNE (Liste horizontale)
   Widget _buildFormateurRow(bool isMobile) {
     final displayedFormateurs =
         _formateurs.length > 8 ? _formateurs.sublist(0, 8) : _formateurs;
 
-    // ✅ Dimensions des cartes formateur
     double cardWidth = isMobile ? 180.0 : 220.0;
     double cardHeight = isMobile ? 195.0 : 225.0;
 
@@ -895,7 +1005,6 @@ class _FormateurSectionState extends State<_FormateurSection> {
               width: cardWidth,
               height: cardHeight,
               child: FormateurCard(
-                // ✅ Utilisation de FormateurCard au lieu de FormateurDetailPage
                 formateur: formateur,
                 isArabic: widget.isArabic,
               ),
@@ -964,52 +1073,51 @@ class _AllTrainingsPageState extends State<AllTrainingsPage> {
           ),
         ],
       ),
-      body:
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _trainings.isEmpty
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _trainings.isEmpty
               ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.school_outlined,
-                      size: 80,
-                      color: AppColors.primary.withOpacity(0.3),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      isArabic
-                          ? 'لا توجد تكوينات حالياً'
-                          : 'Aucune formation disponible',
-                      style: GoogleFonts.cairo(
-                        color: AppColors.textMuted,
-                        fontSize: 16,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.school_outlined,
+                        size: 80,
+                        color: AppColors.primary.withOpacity(0.3),
                       ),
-                    ),
-                  ],
-                ),
-              )
-              : Padding(
-                padding: EdgeInsets.all(isMobile ? 12 : 24),
-                child: GridView.builder(
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: isMobile ? 1 : 3,
-                    childAspectRatio: 0.85,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
+                      const SizedBox(height: 16),
+                      Text(
+                        isArabic
+                            ? 'لا توجد تكوينات حالياً'
+                            : 'Aucune formation disponible',
+                        style: GoogleFonts.cairo(
+                          color: AppColors.textMuted,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
                   ),
-                  itemCount: _trainings.length,
-                  itemBuilder: (context, index) {
-                    return TrainingCard(
-                      training: _trainings[index],
-                      isArabic: isArabic,
-                      onRefresh: _loadAllTrainings,
-                      isMobile: isMobile,
-                    );
-                  },
+                )
+              : Padding(
+                  padding: EdgeInsets.all(isMobile ? 12 : 24),
+                  child: GridView.builder(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: isMobile ? 1 : 3,
+                      childAspectRatio: 0.85,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                    ),
+                    itemCount: _trainings.length,
+                    itemBuilder: (context, index) {
+                      return TrainingCard(
+                        training: _trainings[index],
+                        isArabic: isArabic,
+                        onRefresh: _loadAllTrainings,
+                        isMobile: isMobile,
+                      );
+                    },
+                  ),
                 ),
-              ),
     );
   }
 }

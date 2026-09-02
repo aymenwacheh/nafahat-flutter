@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/pages/adminisration/add_training_card.dart';
 import 'package:nafahat/pages/adminisration/add_categorie.dart';
+import 'package:nafahat/pages/adminisration/apparence_landing.dart';
 import 'package:nafahat/pages/adminisration/edit_categorie.dart';
 import 'package:nafahat/pages/adminisration/add_formateur.dart';
 import 'package:nafahat/pages/adminisration/add_video_fav_page.dart';
@@ -16,10 +17,12 @@ import 'package:nafahat/pages/adminisration/apparence_hero.dart';
 import 'package:nafahat/services/training_service.dart';
 import 'package:nafahat/services/video_service.dart';
 import 'package:nafahat/services/adherent_service.dart';
+import 'package:nafahat/services/bull_service.dart';
 import 'package:nafahat/models/training_model.dart';
 import 'package:nafahat/models/video_model.dart';
 import 'package:nafahat/models/formateur.dart';
 import 'package:nafahat/models/adherent.dart';
+import 'package:nafahat/models/bull_model.dart';
 import 'package:nafahat/providers/language_provider.dart';
 import 'package:provider/provider.dart';
 import 'edit_formateur.dart';
@@ -36,6 +39,8 @@ import 'package:nafahat/pages/users/inscription_adherent.dart';
 import '../../services/navigation_service.dart';
 import 'etat_paiement.dart';
 import 'adherents_list_page.dart';
+import 'apparence_bull.dart'; 
+
 
 class AdministrationPage extends StatefulWidget {
   const AdministrationPage({super.key});
@@ -69,6 +74,8 @@ class _AdministrationPageState extends State<AdministrationPage> {
     const EtatPaiementPage(),
     const UsersListPage(),
     const ApparenceCardFormateurPage(),
+   const ApparitionBullPage(),
+   const ApparitionLandingPage(),
   ];
 
   // Titres pour l'AppBar
@@ -90,6 +97,8 @@ class _AdministrationPageState extends State<AdministrationPage> {
     'paiement',
     'Liste des utilisateurs',
     'Apparence des formateur',
+    'Apparence des bull',
+    'Ordre des sections',
   ];
 
   final List<String> _titlesAr = [
@@ -110,6 +119,9 @@ class _AdministrationPageState extends State<AdministrationPage> {
     'حالة المدفوعات',
     'قائمة المستعملين ',
     'مظهر المكونين ',
+    'مظهر الوحدات ',
+    'ترتيب أقسام الصفحة', 
+
   ];
 
   // Structure des menus avec groupes
@@ -169,6 +181,12 @@ class _AdministrationPageState extends State<AdministrationPage> {
       'titleAr': 'المظهر',
       'children': [
         {
+  'icon': Icons.home_work_outlined,
+  'title': 'Apparence Landing',
+  'titleAr': 'مظهر الصفحة الرئيسية',
+  'page': 18,
+},
+        {
           'icon': Icons.slideshow_outlined,
           'title': 'Apparence Hero',
           'titleAr': 'مظهر الهيرو',
@@ -185,6 +203,12 @@ class _AdministrationPageState extends State<AdministrationPage> {
           'title': 'Apparence Formateur',
           'titleAr': 'مظهر المكونين',
           'page': 16,
+        },
+        {
+          'icon': Icons.palette_outlined,
+          'title': 'Apparence des bull',
+          'titleAr': 'مظهر الوحدات ',
+          'page': 17,
         },
         {
           'icon': Icons.info_outline,

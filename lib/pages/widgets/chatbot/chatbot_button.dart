@@ -120,6 +120,7 @@ class ChatbotButton extends StatelessWidget {
     );
   }
 
+  // ✅ CORRIGÉ : Opacité clampée entre 0 et 1
   Widget _buildPulsingAnimation() {
     if (!showPulsingAnimation || isOpen || notificationCount == 0) {
       return const SizedBox.shrink();
@@ -129,9 +130,11 @@ class ChatbotButton extends StatelessWidget {
       tween: Tween<double>(begin: 1.0, end: 1.3),
       duration: const Duration(seconds: 2),
       builder: (context, value, child) {
+        // ✅ Clamp pour éviter les valeurs hors limites
+        final clampedValue = value.clamp(0.0, 1.3);
         return Container(
-          width: size * value,
-          height: size * value,
+          width: size * clampedValue,
+          height: size * clampedValue,
           decoration: BoxDecoration(
             color: primaryColor.withOpacity(0.2),
             shape: BoxShape.circle,
@@ -141,64 +144,73 @@ class ChatbotButton extends StatelessWidget {
     );
   }
 
-  // Nouvel effet de rebondissement
-  Widget _buildBounceEffect(Widget child) {
-    if (!enableBounceEffect) {
-      return child;
-    }
+  // ✅ CORRIGÉ : Animation avec opacité clampée
+  Widget _buildBouncingIconWithBadge() {
+    final icon = _getIcon(isOpen);
 
-    return TweenAnimationBuilder(
-      tween: Tween<double>(begin: 1.0, end: 1.0),
-      duration: const Duration(milliseconds: 600),
-      builder: (context, value, child) {
-        return Transform.scale(scale: value, child: child);
-      },
-      onEnd: () {
-        // Ne rien faire, l'animation est gérée par le widget parent
-      },
-    );
-  }
-
-  // Effet de rebond avec SpringAnimation
-  Widget _buildBounceIcon(Widget icon) {
-    if (!enableBounceEffect) {
+    if (!enableBounceEffect || isOpen) {
       return icon;
     }
 
-    return AnimatedBuilder(
-      animation: const AlwaysStoppedAnimation(0),
-      builder: (context, child) {
-        return TweenAnimationBuilder(
-          tween: Tween<double>(begin: 0.0, end: 0.0),
-          duration: const Duration(milliseconds: 800),
-          builder: (context, value, child) {
-            // Simulation d'un rebond avec une fonction de ressort
-            final bounceValue = _calculateBounce(value);
-            return Transform.translate(
-              offset: Offset(0, -bounceValue * 10),
-              child: Transform.scale(
-                scale: 1 + bounceValue * 0.1,
-                child: child,
-              ),
-            );
-          },
-          child: icon,
+    return TweenAnimationBuilder(
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 800),
+      curve: Curves.elasticOut,
+      builder: (context, value, child) {
+        // ✅ Clamp pour éviter les valeurs hors limites
+        final clampedValue = value.clamp(0.0, 1.0);
+        final opacityValue = (0.3 + clampedValue * 0.7).clamp(0.0, 1.0);
+        final scaleValue = (0.5 + clampedValue * 0.5).clamp(0.0, 1.0);
+        final translateValue = ((1 - clampedValue) * 20).clamp(0.0, 20.0);
+
+        return Transform.scale(
+          scale: scaleValue,
+          child: Transform.translate(
+            offset: Offset(0, -translateValue),
+            child: Opacity(
+              opacity: opacityValue, // ✅ Opacité toujours entre 0 et 1
+              child: child,
+            ),
+          ),
         );
       },
       child: icon,
     );
   }
 
-  double _calculateBounce(double t) {
-    // Fonction de rebond qui simule un ressort
-    const double a = 0.7;
-    const double b = 0.3;
-    return (1 - a) * (1 - t) +
-        a * (1 - t) * (1 - t) * (1 - t) +
-        b * (1 - t) * (1 - t);
+  // ✅ CORRIGÉ : Animation avec opacité clampée
+  Widget _buildBounceIcon(Widget icon) {
+    if (!enableBounceEffect) {
+      return icon;
+    }
+
+    return TweenAnimationBuilder(
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 800),
+      curve: Curves.elasticOut,
+      builder: (context, value, child) {
+        // ✅ Clamp pour éviter les valeurs hors limites
+        final clampedValue = value.clamp(0.0, 1.0);
+        final opacityValue = (0.3 + clampedValue * 0.7).clamp(0.0, 1.0);
+        final scaleValue = (1 + (1 - clampedValue) * 0.2).clamp(0.0, 1.2);
+        final translateValue = ((1 - clampedValue) * 15).clamp(0.0, 15.0);
+
+        return Transform.scale(
+          scale: scaleValue,
+          child: Transform.translate(
+            offset: Offset(0, -translateValue),
+            child: Opacity(
+              opacity: opacityValue, // ✅ Opacité toujours entre 0 et 1
+              child: child,
+            ),
+          ),
+        );
+      },
+      child: icon,
+    );
   }
 
-  // Version améliorée avec effet de rebond
+  // ✅ CORRIGÉ : Animation de rebond avec opacité clampée
   Widget _buildBouncingIcon(Widget icon) {
     if (!enableBounceEffect) {
       return icon;
@@ -207,13 +219,22 @@ class ChatbotButton extends StatelessWidget {
     return TweenAnimationBuilder(
       tween: Tween<double>(begin: 0.0, end: 1.0),
       duration: const Duration(milliseconds: 1000),
-      curve: Curves.elasticOut, // Effet de rebond élastique !
+      curve: Curves.elasticOut,
       builder: (context, value, child) {
+        // ✅ Clamp pour éviter les valeurs hors limites
+        final clampedValue = value.clamp(0.0, 1.0);
+        final opacityValue = clampedValue.clamp(0.0, 1.0);
+        final scaleValue = (1.0 + (1.0 - clampedValue) * 0.2).clamp(0.8, 1.2);
+        final translateValue = ((1.0 - clampedValue) * 15).clamp(0.0, 15.0);
+
         return Transform.scale(
-          scale: 1.0 + (1.0 - value) * 0.2,
+          scale: scaleValue,
           child: Transform.translate(
-            offset: Offset(0, -(1.0 - value) * 15),
-            child: Opacity(opacity: value, child: child),
+            offset: Offset(0, -translateValue),
+            child: Opacity(
+              opacity: opacityValue, // ✅ Opacité toujours entre 0 et 1
+              child: child,
+            ),
           ),
         );
       },
@@ -267,30 +288,6 @@ class ChatbotButton extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildBouncingIconWithBadge() {
-    final icon = _getIcon(isOpen);
-
-    if (!enableBounceEffect || isOpen) {
-      return icon;
-    }
-
-    return TweenAnimationBuilder(
-      tween: Tween<double>(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 800),
-      curve: Curves.elasticOut,
-      builder: (context, value, child) {
-        return Transform.scale(
-          scale: 0.5 + value * 0.5,
-          child: Transform.translate(
-            offset: Offset(0, -(1 - value) * 20),
-            child: Opacity(opacity: 0.3 + value * 0.7, child: child),
-          ),
-        );
-      },
-      child: icon,
     );
   }
 }
