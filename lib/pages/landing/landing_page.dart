@@ -636,8 +636,9 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
     double cardHeight;
 
     if (isMobile) {
-      cardWidth = 220.0;
-      cardHeight = 240.0;
+      // ✅ Ratio Reel Facebook/Instagram = 9:16 (largeur:hauteur)
+      cardWidth = 150.0;
+      cardHeight = 150.0 / (9 / 16); // ≈ 266.7
     } else if (isTablet) {
       cardWidth = 280.0;
       cardHeight = 300.0;
@@ -1102,8 +1103,9 @@ class _AllTrainingsPageState extends State<AllTrainingsPage> {
                   padding: EdgeInsets.all(isMobile ? 12 : 24),
                   child: GridView.builder(
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: isMobile ? 1 : 3,
-                      childAspectRatio: 0.85,
+                      crossAxisCount: isMobile ? 2 : 3,
+                      // ✅ Ratio Reel Facebook/Instagram = 9:16 sur mobile
+                      childAspectRatio: isMobile ? 9 / 16 : 0.85,
                       crossAxisSpacing: 16,
                       mainAxisSpacing: 16,
                     ),

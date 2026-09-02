@@ -44,7 +44,7 @@ class MyApp extends StatelessWidget {
   Widget _getInitialPage() {
     // Si ce n'est pas le web, on affiche le projet normalement
     if (!kIsWeb) {
-      return const ChatbotGlobalWrapper(child: SplashScreen());
+      return  ChatbotGlobalWrapper(child: SplashScreen());
     }
 
     // Récupération de l'URL complète
@@ -56,7 +56,7 @@ class MyApp extends StatelessWidget {
     if (path == '/' || path.isEmpty) {
       return const ComingSoonPage();
     } else if (path == '/project') {
-      return const ChatbotGlobalWrapper(child: SplashScreen());
+      return  ChatbotGlobalWrapper(child: SplashScreen());
     } else {
       // Par défaut, si l'URL est inconnue -> Coming Soon
       return const ComingSoonPage();

@@ -185,14 +185,21 @@ class _TrainingCardState extends State<TrainingCard> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobileDevice = widget.isMobile || MediaQuery.of(context).size.width < 600;
-        
-        final cardWidth = constraints.maxWidth > 0 
-            ? constraints.maxWidth 
-            : (isMobileDevice ? 210.0 : 210.0);
 
-        final cardHeight = constraints.maxHeight > 0
-            ? constraints.maxHeight
-            : (isMobileDevice ? 310.0 : 320.0);
+        // ✅ RATIO REEL FACEBOOK / INSTAGRAM = 9:16 (largeur:hauteur)
+        const double reelAspectRatio = 9 / 16;
+
+        final cardWidth = isMobileDevice
+            ? (constraints.maxWidth > 0 && constraints.maxWidth < 200
+                ? constraints.maxWidth
+                : 150.0) // largeur étroite type Reel
+            : (constraints.maxWidth > 0 ? constraints.maxWidth : 210.0);
+
+        // ✅ La hauteur est TOUJOURS dérivée de la largeur selon le ratio Reel
+        // (on ignore la hauteur imposée par le parent pour garantir le format 9:16)
+        final cardHeight = isMobileDevice
+            ? cardWidth / reelAspectRatio
+            : (constraints.maxHeight > 0 ? constraints.maxHeight : 320.0);
 
         final title = widget.isArabic ? widget.training.titleAr : widget.training.titleFr;
         final imageUrl = _getValidImageUrl(widget.training.imageUrl);
