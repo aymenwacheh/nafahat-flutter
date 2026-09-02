@@ -334,14 +334,17 @@ class _AdministrationPageState extends State<AdministrationPage> {
   // ============================================================
   // DRAWER MOBILE - Version avec BackToLandingButton
   // ============================================================
-  Widget _buildDrawerMobile() {
-    // Version mobile : liste plate de tous les items (inchangée)
-    final List<Map<String, dynamic>> flatMenuItems = [];
-    for (var group in _menuGroups) {
-      final children = group['children'] as List<Map<String, dynamic>>;
-      flatMenuItems.addAll(children);
-    }
+ // lib/pages/adminisration/administration_page.dart
 
+  // ============================================================
+  // DRAWER MOBILE - Version avec groupes et sous-menus
+  // ============================================================
+  // lib/pages/adminisration/administration_page.dart
+
+  // ============================================================
+  // DRAWER MOBILE - Version avec groupes et sous-menus
+  // ============================================================
+  Widget _buildDrawerMobile() {
     return Drawer(
       backgroundColor: const Color(0xff0D443E),
       child: Column(
@@ -382,7 +385,6 @@ class _AdministrationPageState extends State<AdministrationPage> {
                         ),
                       ],
                     ),
-                    // ✅ Flèche landing page avec BackToLandingButton
                     const BackToLandingButton(),
                   ],
                 );
@@ -392,49 +394,97 @@ class _AdministrationPageState extends State<AdministrationPage> {
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: flatMenuItems.length,
-              itemBuilder: (context, index) {
-                final item = flatMenuItems[index];
-                final isSelected = _selectedIndex == item['page'];
+              itemCount: _menuGroups.length,
+              itemBuilder: (context, groupIndex) {
+                final group = _menuGroups[groupIndex];
+                final children = group['children'] as List<Map<String, dynamic>>;
 
                 return Consumer<LanguageProvider>(
                   builder: (context, languageProvider, child) {
-                    final title =
-                        languageProvider.isArabic
-                            ? (item['titleAr'] ?? item['title'])
-                            : item['title'];
-                    return ListTile(
-                      leading: Icon(
-                        item['icon'],
-                        color:
-                            isSelected
-                                ? const Color(0xffd57653)
-                                : Colors.white70,
-                      ),
-                      title: Text(
-                        title,
-                        style: GoogleFonts.poppins(
-                          color: isSelected ? Colors.white : Colors.white70,
-                          fontWeight:
-                              isSelected ? FontWeight.w600 : FontWeight.w400,
+                    final groupTitle = languageProvider.isArabic
+                        ? (group['titleAr'] ?? group['title'])
+                        : group['title'];
+
+                    return Theme(
+                      data: Theme.of(context).copyWith(
+                        dividerColor: Colors.transparent,
+                        expansionTileTheme: ExpansionTileThemeData(
+                          backgroundColor: Colors.transparent,
+                          collapsedBackgroundColor: Colors.transparent,
+                          iconColor: Colors.white70,
+                          collapsedIconColor: Colors.white70,
+                          textColor: Colors.white70,
+                          collapsedTextColor: Colors.white70,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero,
+                          ),
+                          tilePadding: const EdgeInsets.symmetric(horizontal: 16),
                         ),
                       ),
-                      selected: isSelected,
-                      selectedTileColor: const Color(
-                        0xffd57653,
-                      ).withOpacity(0.2),
-                      onTap: () {
-                        setState(() {
-                          _selectedIndex = item['page'];
-                        });
-                        Navigator.pop(context);
-                      },
+                      child: ExpansionTile(
+                        leading: Icon(
+                          group['icon'],
+                          color: Colors.white70,
+                          size: 24,
+                        ),
+                        title: Text(
+                          groupTitle,
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white70,
+                          ),
+                        ),
+                        iconColor: const Color(0xffd57653),
+                        collapsedIconColor: Colors.white54,
+                        initiallyExpanded: groupIndex == 0,
+                        children: children.map((child) {
+                          final isSelected = _selectedIndex == child['page'];
+                          final childTitle = languageProvider.isArabic
+                              ? (child['titleAr'] ?? child['title'])
+                              : child['title'];
+
+                          return ListTile(
+                            leading: Icon(
+                              child['icon'],
+                              color: isSelected
+                                  ? const Color(0xffd57653)
+                                  : Colors.white54,
+                              size: 20,
+                            ),
+                            title: Text(
+                              childTitle,
+                              style: GoogleFonts.poppins(
+                                color: isSelected ? Colors.white : Colors.white70,
+                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                                fontSize: 13,
+                              ),
+                            ),
+                            selected: isSelected,
+                            selectedTileColor: const Color(0xffd57653).withOpacity(0.2),
+                            onTap: () {
+                              setState(() {
+                                _selectedIndex = child['page'];
+                              });
+                              Navigator.pop(context);
+                            },
+                            contentPadding: const EdgeInsets.only(
+                              left: 52,
+                              right: 16,
+                              top: 2,
+                              bottom: 2,
+                            ),
+                            dense: true,
+                          );
+                        }).toList(),
+                      ),
                     );
                   },
                 );
               },
             ),
           ),
+          // Footer avec déconnexion
           Container(
             padding: const EdgeInsets.all(16),
             decoration: const BoxDecoration(
@@ -462,7 +512,6 @@ class _AdministrationPageState extends State<AdministrationPage> {
       ),
     );
   }
-
   // ============================================================
   // SIDE MENU WEB - AVEC BackToLandingButton
   // ============================================================

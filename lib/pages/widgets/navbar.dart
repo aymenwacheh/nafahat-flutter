@@ -26,12 +26,19 @@ import 'package:nafahat/providers/language_provider.dart';
 import 'package:nafahat/providers/user_provider.dart';
 import 'package:nafahat/services/auth_service.dart';
 import 'package:nafahat/services/cart_service.dart';
-import 'package:nafahat/pages/cart/cart_page.dart';
 import 'package:provider/provider.dart';
-import '../landing/landing_page.dart';
 import 'package:nafahat/services/training_service.dart';
 import 'package:nafahat/pages/widgets/cart_popup.dart';
-
+import 'package:nafahat/pages/adminisration/add_about.dart';
+import 'package:nafahat/pages/adminisration/apparence_hero.dart';
+import 'package:nafahat/pages/adminisration/apparence_landing.dart';
+import 'package:nafahat/pages/adminisration/apparence_card_formateur.dart';
+import 'package:nafahat/pages/adminisration/apparence_bull.dart';
+import 'package:nafahat/pages/adminisration/adherents_list_page.dart';
+import 'package:nafahat/pages/adminisration/users_list_page.dart';
+import 'package:nafahat/pages/adminisration/etat_paiement.dart';
+import 'package:nafahat/pages/adminisration/add_cible_page.dart';
+import 'package:nafahat/pages/adminisration/edit_formateur.dart';
 
 class Navbar extends StatelessWidget {
   final bool isMobile;
@@ -39,7 +46,6 @@ class Navbar extends StatelessWidget {
 
   static const Color nafahatGreen = Color(0xff0D443E);
   static const Color nafahatGold = Color(0xffC4A46C);
-  static const Color nafahatGoldLight = Color(0xffE8D5B7);
 
   const Navbar({super.key, required this.isMobile, this.scaffoldKey});
 
@@ -47,8 +53,7 @@ class Navbar extends StatelessWidget {
   // MÉTHODE DE DÉCONNEXION UNIFIÉE
   // ============================================================
   void _performLogout(BuildContext context) async {
-    final isArabic =
-        Provider.of<LanguageProvider>(context, listen: false).isArabic;
+    final isArabic = Provider.of<LanguageProvider>(context, listen: false).isArabic;
     final userProvider = Provider.of<UserProvider>(context, listen: false);
 
     await userProvider.logout();
@@ -93,158 +98,20 @@ class Navbar extends StatelessWidget {
     return userProvider.canCreateUser;
   }
 
-  bool _canViewAdminPages(BuildContext context) {
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    return userProvider.canViewAdminPages;
-  }
-
   // ============================================================
-  // MENU ADMINISTRATION - ITEMS POUR WEB
-  // ============================================================
-  List<Map<String, dynamic>> _getAdminMenuItems(
-    BuildContext context,
-    bool isArabic,
-  ) {
-    return [
-      {
-        'value': 'go_to_admin',
-        'icon': Icons.dashboard_outlined,
-        'title': isArabic ? 'لوحة الإدارة الكاملة' : 'Administration complète',
-        'subtitle':
-            isArabic
-                ? 'Accéder à toutes les fonctionnalités'
-                : 'Accéder à toutes les fonctionnalités',
-        'isHeader': true,
-      },
-    ];
-  }
-
-  List<Map<String, dynamic>> _getAdminMenuItemsFull(
-    BuildContext context,
-    bool isArabic,
-  ) {
-    final canCreateUser = _canCreateUser(context);
-
-    final items = <Map<String, dynamic>>[
-      {
-        'value': 'go_to_admin',
-        'icon': Icons.dashboard_outlined,
-        'title': isArabic ? 'لوحة الإدارة الكاملة' : 'Administration complète',
-        'subtitle':
-            isArabic
-                ? 'Accéder à toutes les fonctionnalités'
-                : 'Accéder à toutes les fonctionnalités',
-        'isHeader': true,
-      },
-      {'isDivider': true},
-      {
-        'value': 'add_training',
-        'icon': Icons.add_circle_outline,
-        'title': isArabic ? 'إضافة تكوين' : 'Ajouter une formation',
-      },
-      {
-        'value': 'edit_training',
-        'icon': Icons.edit,
-        'title': isArabic ? 'تعديل تكوين' : 'Modifier une formation',
-      },
-      {'isDivider': true},
-      {
-        'value': 'add_duree',
-        'icon': Icons.access_time,
-        'title': isArabic ? 'إضافة مدة' : 'Ajouter une durée',
-      },
-      {'isDivider': true},
-      {
-        'value': 'add_categorie',
-        'icon': Icons.category,
-        'title': isArabic ? 'إضافة تصنيف' : 'Ajouter une catégorie',
-      },
-      {
-        'value': 'edit_categorie',
-        'icon': Icons.edit,
-        'title': isArabic ? 'تعديل تصنيف' : 'Modifier une catégorie',
-      },
-      {'isDivider': true},
-      {
-        'value': 'add_type_formation',
-        'icon': Icons.label_outline,
-        'title': isArabic ? 'إضافة نوع تكوين' : 'Ajouter un type de formation',
-      },
-      {
-        'value': 'edit_type_formation',
-        'icon': Icons.edit_note,
-        'title':
-            isArabic ? 'إدارة أنواع التكوين' : 'Gérer les types de formation',
-      },
-      {'isDivider': true},
-      {
-        'value': 'add_formateur',
-        'icon': Icons.person_add,
-        'title': isArabic ? 'إضافة مكون' : 'Ajouter un formateur',
-      },
-      {'isDivider': true},
-      {
-        'value': 'add_video',
-        'icon': Icons.video_library,
-        'title': isArabic ? 'إضافة فيديو' : 'Ajouter une vidéo',
-      },
-      {'isDivider': true},
-      {
-        'value': 'manage_trainings',
-        'icon': Icons.edit_note,
-        'title': isArabic ? 'إدارة التكوينات' : 'Gérer les formations',
-      },
-      {'isDivider': true},
-      {
-        'value': 'apparence_card',
-        'icon': Icons.palette_outlined,
-        'title': isArabic ? 'مظهر البطاقات' : 'Apparence des cartes',
-      },
-    ];
-
-    if (canCreateUser) {
-      items.addAll([
-        {'isDivider': true},
-        {
-          'value': 'creer_user',
-          'icon': Icons.admin_panel_settings_rounded,
-          'title': isArabic ? 'إنشاء مستخدم' : 'Créer un utilisateur',
-          'isAdminOnly': true,
-        },
-      ]);
-    }
-
-    return items;
-  }
-
-  // ============================================================
-  // OUVRIR LE DRAWER
+  // OUVRIR / FERMER LE DRAWER
   // ============================================================
   void _openDrawer() {
-    debugPrint('🔍 [MENU MOBILE] _openDrawer() appelé');
-    if (scaffoldKey == null) {
-      debugPrint('❌ [MENU MOBILE] scaffoldKey est null!');
-      return;
-    }
-    if (scaffoldKey!.currentState != null) {
-      scaffoldKey!.currentState!.openDrawer();
-    } else {
-      debugPrint('❌ [MENU MOBILE] scaffoldKey.currentState est null!');
-    }
+    if (scaffoldKey == null || scaffoldKey!.currentState == null) return;
+    scaffoldKey!.currentState!.openDrawer();
   }
 
-  // ============================================================
-  // FERMER LE DRAWER
-  // ============================================================
   void _closeDrawer(BuildContext context) {
     Navigator.of(context).pop();
   }
 
-  // ============================================================
-  // NAVIGATION AVEC FERMETURE DU DRAWER
-  // ============================================================
   void _closeDrawerAndNavigate(BuildContext context, Widget page) {
-    Navigator.of(context).pop();
+    _closeDrawer(context);
     Navigator.push(context, MaterialPageRoute(builder: (context) => page));
   }
 
@@ -257,7 +124,6 @@ class Navbar extends StatelessWidget {
     final userProvider = Provider.of<UserProvider>(context);
     final isArabic = languageProvider.isArabic;
     final canViewAdmin = _canViewAdmin(context);
-    final isLoggedIn = userProvider.isLoggedIn;
 
     return ClipRRect(
       child: BackdropFilter(
@@ -296,14 +162,7 @@ class Navbar extends StatelessWidget {
                     children: [
                       _buildSearchBar(isArabic),
                       const SizedBox(width: 16),
-                      _buildDesktopMenu(
-                        context,
-                        isArabic,
-                        languageProvider,
-                        userProvider,
-                        canViewAdmin,
-                        isLoggedIn,
-                      ),
+                      _buildDesktopMenu(context, isArabic),
                       const SizedBox(width: 16),
                       if (canViewAdmin) _buildAdminMenu(context, isArabic),
                       _buildCartIcon(context, isArabic),
@@ -319,7 +178,7 @@ class Navbar extends StatelessWidget {
   }
 
   // ============================================================
-  // LOGO - TEXTE SEULEMENT
+  // LOGO
   // ============================================================
   Widget _buildLogo(bool isArabic, bool isMobile) {
     return Row(
@@ -375,8 +234,7 @@ class Navbar extends StatelessWidget {
           Expanded(
             child: TextField(
               decoration: InputDecoration(
-                hintText:
-                    isArabic ? 'ابحث عن دورة...' : 'Rechercher un cours...',
+                hintText: isArabic ? 'ابحث عن دورة...' : 'Rechercher un cours...',
                 hintStyle: GoogleFonts.cairo(
                   fontSize: 13,
                   color: Colors.grey.shade400,
@@ -412,10 +270,7 @@ class Navbar extends StatelessWidget {
   }
 
   // ============================================================
-  // ICONE PANIER AVEC BADGE (StreamBuilder)
-  // ============================================================
-  // ============================================================
-  // ICONE PANIER AVEC BADGE (Popup au lieu de navigation)
+  // ICONE PANIER
   // ============================================================
   Widget _buildCartIcon(BuildContext context, bool isArabic) {
     return StreamBuilder<int>(
@@ -432,7 +287,6 @@ class Navbar extends StatelessWidget {
                 size: 24,
               ),
               onPressed: () {
-                // 🔥 OUVERTURE EN POPUP au lieu de navigation
                 showDialog(
                   context: context,
                   barrierDismissible: true,
@@ -472,7 +326,83 @@ class Navbar extends StatelessWidget {
   }
 
   // ============================================================
-  // SECTION UTILISATEUR / AUTHENTIFICATION
+  // MENU DESKTOP
+  // ============================================================
+  Widget _buildDesktopMenu(BuildContext context, bool isArabic) {
+    return Row(
+      children: [
+        _navLink(
+          context: context,
+          title: isArabic ? "الرئيسية" : "Accueil",
+          onTap: () {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const LandingPage()),
+              (route) => false,
+            );
+          },
+        ),
+        _navLink(
+          context: context,
+          title: isArabic ? "الدورات" : "Cycles",
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AllTrainingsPage()),
+            );
+          },
+        ),
+        _navLink(
+          context: context,
+          title: isArabic ? "فيديوهات" : "Vidéos",
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AllVideoPage()),
+            );
+          },
+        ),
+        _navLink(
+          context: context,
+          title: isArabic ? "عن المنصة" : "À propos",
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AboutPage()),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _navLink({
+    required BuildContext context,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          child: Text(
+            title,
+            style: GoogleFonts.cairo(
+              color: const Color(0xff2c221e),
+              fontWeight: FontWeight.w500,
+              fontSize: 14,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // SECTION UTILISATEUR
   // ============================================================
   Widget _buildUserSection(
     BuildContext context,
@@ -484,9 +414,7 @@ class Navbar extends StatelessWidget {
         tooltip: isArabic ? "حسابي" : "Mon compte",
         offset: const Offset(0, 50),
         onSelected: (value) => _handleAccountAction(context, value, isArabic),
-        itemBuilder:
-            (context) =>
-                _buildAccountPopupItems(context, isArabic, userProvider),
+        itemBuilder: (context) => _buildAccountPopupItems(context, isArabic, userProvider),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
@@ -581,90 +509,7 @@ class Navbar extends StatelessWidget {
   }
 
   // ============================================================
-  // MENU DESKTOP
-  // ============================================================
-  Widget _buildDesktopMenu(
-    BuildContext context,
-    bool isArabic,
-    LanguageProvider languageProvider,
-    UserProvider userProvider,
-    bool canViewAdmin,
-    bool isLoggedIn,
-  ) {
-    return Row(
-      children: [
-        _navLink(
-          context: context,
-          title: isArabic ? "الرئيسية" : "Accueil",
-          onTap: () {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const LandingPage()),
-              (route) => false,
-            );
-          },
-        ),
-        _navLink(
-          context: context,
-          title: isArabic ? "الدورات" : "Cycles",
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const AllTrainingsPage()),
-            );
-          },
-        ),
-        _navLink(
-          context: context,
-          title: isArabic ? "فيديوهات" : "Vidéos",
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const AllVideoPage()),
-            );
-          },
-        ),
-        _navLink(
-          context: context,
-          title: isArabic ? "عن المنصة" : "À propos",
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const AboutPage()),
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _navLink({
-    required BuildContext context,
-    required String title,
-    required VoidCallback onTap,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-          child: Text(
-            title,
-            style: GoogleFonts.cairo(
-              color: const Color(0xff2c221e),
-              fontWeight: FontWeight.w500,
-              fontSize: 14,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // MENU ADMINISTRATION - WEB
+  // MENU ADMINISTRATION - WEB (Popup) - COMPLET
   // ============================================================
   Widget _buildAdminMenu(BuildContext context, bool isArabic) {
     return PopupMenuButton<String>(
@@ -701,75 +546,146 @@ class Navbar extends StatelessWidget {
     bool isArabic,
   ) {
     final items = <PopupMenuItem<String>>[];
-    final menuItems = _getAdminMenuItems(context, isArabic);
 
-    for (final item in menuItems) {
-      if (item['isDivider'] == true) {
-        items.add(
-          PopupMenuItem<String>(
-            enabled: false,
-            child: const Divider(height: 1, thickness: 1, color: Colors.grey),
-          ),
-        );
-        continue;
-      }
-
-      if (item['isHeader'] == true) {
-        items.add(
-          PopupMenuItem<String>(
-            value: item['value'],
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: nafahatGreen.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(item['icon'], color: nafahatGreen, size: 20),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item['title'],
-                        style: GoogleFonts.cairo(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: nafahatGreen,
-                        ),
-                      ),
-                      Text(
-                        item['subtitle'],
-                        style: GoogleFonts.cairo(
-                          fontSize: 11,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+    // En-tête - Accès à l'administration complète
+    items.add(
+      PopupMenuItem<String>(
+        value: 'go_to_admin',
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: nafahatGreen.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(Icons.dashboard_outlined, color: nafahatGreen, size: 20),
             ),
-          ),
-        );
-        continue;
-      }
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isArabic ? 'لوحة الإدارة الكاملة' : 'Administration complète',
+                    style: GoogleFonts.cairo(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: nafahatGreen,
+                    ),
+                  ),
+                  Text(
+                    isArabic ? 'Accéder à toutes les fonctionnalités' : 'Accéder à toutes les fonctionnalités',
+                    style: GoogleFonts.cairo(
+                      fontSize: 11,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
 
-      if (item['isAdminOnly'] == true && !_canCreateUser(context)) {
-        continue;
-      }
+    items.add(const PopupMenuItem<String>(
+      enabled: false,
+      child: Divider(height: 1, thickness: 1, color: Colors.grey),
+    ));
 
+    // ============================================================
+    // GROUPE FORMATION
+    // ============================================================
+    final formationItems = [
+      {'value': 'add_training', 'icon': Icons.add_circle_outline, 'title': isArabic ? 'إضافة تكوين' : 'Ajouter une formation'},
+      {'value': 'edit_training', 'icon': Icons.edit, 'title': isArabic ? 'تعديل تكوين' : 'Modifier une formation'},
+      {'value': 'add_duree', 'icon': Icons.access_time, 'title': isArabic ? 'إضافة مدة' : 'Ajouter une durée'},
+      {'value': 'add_categorie', 'icon': Icons.category, 'title': isArabic ? 'إضافة تصنيف' : 'Ajouter une catégorie'},
+      {'value': 'edit_categorie', 'icon': Icons.edit, 'title': isArabic ? 'تعديل تصنيف' : 'Modifier une catégorie'},
+      {'value': 'add_type_formation', 'icon': Icons.label_outline, 'title': isArabic ? 'إضافة نوع تكوين' : 'Ajouter un type de formation'},
+      {'value': 'edit_type_formation', 'icon': Icons.edit_note, 'title': isArabic ? 'إدارة أنواع التكوين' : 'Gérer les types de formation'},
+      {'value': 'add_formateur', 'icon': Icons.person_add, 'title': isArabic ? 'إضافة مكون' : 'Ajouter un formateur'},
+      {'value': 'add_video', 'icon': Icons.video_library, 'title': isArabic ? 'إضافة فيديو' : 'Ajouter une vidéo'},
+      {'value': 'manage_trainings', 'icon': Icons.edit_note, 'title': isArabic ? 'إدارة التكوينات' : 'Gérer les formations'},
+    ];
+
+    for (final item in formationItems) {
       items.add(
         PopupMenuItem<String>(
-          value: item['value'],
+          value: item['value'] as String,
           child: Row(
             children: [
-              Icon(item['icon'], color: nafahatGreen, size: 20),
+              Icon(item['icon'] as IconData, color: nafahatGreen, size: 20),
               const SizedBox(width: 12),
-              Text(item['title'], style: GoogleFonts.cairo()),
+              Text(item['title'] as String, style: GoogleFonts.cairo()),
+            ],
+          ),
+        ),
+      );
+    }
+
+    items.add(const PopupMenuItem<String>(
+      enabled: false,
+      child: Divider(height: 1, thickness: 1, color: Colors.grey),
+    ));
+
+    // ============================================================
+    // GROUPE APPARE NCE - COMPLET
+    // ============================================================
+    final apparenceItems = [
+      {'value': 'apparence_landing', 'icon': Icons.home_work_outlined, 'title': isArabic ? 'مظهر الصفحة الرئيسية' : 'Apparence Landing'},
+      {'value': 'apparence_hero', 'icon': Icons.slideshow_outlined, 'title': isArabic ? 'مظهر الهيرو' : 'Apparence Hero'},
+      {'value': 'apparence_card', 'icon': Icons.palette_outlined, 'title': isArabic ? 'مظهر البطاقات' : 'Apparence Cartes'},
+      {'value': 'apparence_formateur', 'icon': Icons.person_outline, 'title': isArabic ? 'مظهر المكونين' : 'Apparence Formateur'},
+      {'value': 'apparence_bull', 'icon': Icons.apps_outlined, 'title': isArabic ? 'مظهر الوحدات' : 'Apparence Bull'},
+      {'value': 'add_about', 'icon': Icons.info_outline, 'title': isArabic ? 'عن المنصة' : 'À propos'},
+    ];
+
+    for (final item in apparenceItems) {
+      items.add(
+        PopupMenuItem<String>(
+          value: item['value'] as String,
+          child: Row(
+            children: [
+              Icon(item['icon'] as IconData, color: nafahatGreen, size: 20),
+              const SizedBox(width: 12),
+              Text(item['title'] as String, style: GoogleFonts.cairo()),
+            ],
+          ),
+        ),
+      );
+    }
+
+    items.add(const PopupMenuItem<String>(
+      enabled: false,
+      child: Divider(height: 1, thickness: 1, color: Colors.grey),
+    ));
+
+    // ============================================================
+    // GROUPE UTILISATEURS & ADHÉRENTS - COMPLET
+    // ============================================================
+    final userItems = [
+      {'value': 'adherents', 'icon': Icons.people_outline, 'title': isArabic ? 'المنخرطين' : 'Adhérents'},
+      {'value': 'users_list', 'icon': Icons.list_alt, 'title': isArabic ? 'قائمة المستعملين' : 'Liste des utilisateurs'},
+      {'value': 'creer_user', 'icon': Icons.admin_panel_settings_rounded, 'title': isArabic ? 'إنشاء مستخدم' : 'Créer un utilisateur'},
+      {'value': 'inscription_adherent', 'icon': Icons.person_add, 'title': isArabic ? 'تسجيل منخرط' : 'Inscription adhérent'},
+      {'value': 'etat_paiement', 'icon': Icons.verified, 'title': isArabic ? 'حالة المدفوعات' : 'État des paiements'},
+    ];
+
+    for (final item in userItems) {
+      // Vérifier la permission pour créer un utilisateur
+      if (item['value'] == 'creer_user' && !_canCreateUser(context)) {
+        continue;
+      }
+      items.add(
+        PopupMenuItem<String>(
+          value: item['value'] as String,
+          child: Row(
+            children: [
+              Icon(item['icon'] as IconData, color: nafahatGreen, size: 20),
+              const SizedBox(width: 12),
+              Text(item['title'] as String, style: GoogleFonts.cairo()),
             ],
           ),
         ),
@@ -779,6 +695,9 @@ class Navbar extends StatelessWidget {
     return items;
   }
 
+  // ============================================================
+  // GESTIONNAIRE D'ACTIONS ADMIN - COMPLET
+  // ============================================================
   void _handleAdminAction(BuildContext context, String value, bool isArabic) {
     switch (value) {
       case 'go_to_admin':
@@ -787,12 +706,8 @@ class Navbar extends StatelessWidget {
           MaterialPageRoute(builder: (context) => const AdministrationPage()),
         );
         break;
-      case 'creer_user':
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const CreerUserPage()),
-        );
-        break;
+      
+      // Formation
       case 'add_training':
         Navigator.push(
           context,
@@ -801,6 +716,12 @@ class Navbar extends StatelessWidget {
         break;
       case 'edit_training':
         _showEditTrainingDialog(context, isArabic);
+        break;
+      case 'add_duree':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AddDureePage()),
+        );
         break;
       case 'add_categorie':
         Navigator.push(
@@ -832,27 +753,83 @@ class Navbar extends StatelessWidget {
           MaterialPageRoute(builder: (context) => const AddVideoFavPage()),
         );
         break;
-      case 'add_duree':
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const AddDureePage()),
-        );
-        break;
       case 'manage_trainings':
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              isArabic
-                  ? 'إدارة التكوينات - قريباً'
-                  : 'Gestion des formations - Bientôt disponible',
+              isArabic ? 'إدارة التكوينات - قريباً' : 'Gestion des formations - Bientôt disponible',
             ),
           ),
+        );
+        break;
+      
+      // Apparence
+      case 'apparence_landing':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ApparitionLandingPage()),
+        );
+        break;
+      case 'apparence_hero':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => ApparenceHero(isArabic: isArabic)),
         );
         break;
       case 'apparence_card':
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const ApparenceCardPage()),
+        );
+        break;
+      case 'apparence_formateur':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ApparenceCardFormateurPage()),
+        );
+        break;
+      case 'apparence_bull':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ApparitionBullPage()),
+        );
+        break;
+      case 'add_about':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AddAboutPage()),
+        );
+        break;
+      
+      // Utilisateurs & Adhérents
+      case 'adherents':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AdherentsListPage()),
+        );
+        break;
+      case 'users_list':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const UsersListPage()),
+        );
+        break;
+      case 'creer_user':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const CreerUserPage()),
+        );
+        break;
+      case 'inscription_adherent':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const InscriptionAdherentPage()),
+        );
+        break;
+      case 'etat_paiement':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const EtatPaiementPage()),
         );
         break;
     }
@@ -866,9 +843,6 @@ class Navbar extends StatelessWidget {
     UserProvider userProvider,
   ) {
     final bool isLoggedIn = userProvider.isLoggedIn;
-    final bool isAdherentOrFormateur =
-        userProvider.isAdherent || userProvider.isFormateur;
-
     final items = <Map<String, dynamic>>[];
 
     if (isLoggedIn) {
@@ -885,7 +859,7 @@ class Navbar extends StatelessWidget {
         },
       ]);
 
-      if (isAdherentOrFormateur) {
+      if (userProvider.isAdherent || userProvider.isFormateur) {
         items.add({
           'value': 'account_management',
           'icon': Icons.settings_outlined,
@@ -929,9 +903,9 @@ class Navbar extends StatelessWidget {
     for (final item in menuItems) {
       if (item['isDivider'] == true) {
         items.add(
-          PopupMenuItem<String>(
+          const PopupMenuItem<String>(
             enabled: false,
-            child: const Divider(height: 1, thickness: 1, color: Colors.grey),
+            child: Divider(height: 1, thickness: 1, color: Colors.grey),
           ),
         );
         continue;
@@ -940,17 +914,17 @@ class Navbar extends StatelessWidget {
       final isDanger = item['isDanger'] ?? false;
       items.add(
         PopupMenuItem<String>(
-          value: item['value'],
+          value: item['value'] as String,
           child: Row(
             children: [
               Icon(
-                item['icon'],
+                item['icon'] as IconData,
                 color: isDanger ? Colors.red : nafahatGreen,
                 size: 20,
               ),
               const SizedBox(width: 12),
               Text(
-                item['title'],
+                item['title'] as String,
                 style: GoogleFonts.cairo(color: isDanger ? Colors.red : null),
               ),
             ],
@@ -994,9 +968,7 @@ class Navbar extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              isArabic
-                  ? '🔧 إدارة الحساب - قريباً'
-                  : '🔧 Gestion de compte - Bientôt disponible',
+              isArabic ? '🔧 إدارة الحساب - قريباً' : '🔧 Gestion de compte - Bientôt disponible',
             ),
             backgroundColor: nafahatGreen,
           ),
@@ -1021,15 +993,12 @@ class Navbar extends StatelessWidget {
   }
 
   // ============================================================
-  // DRAWER MOBILE
+  // DRAWER MOBILE - COMPLET
   // ============================================================
   Widget buildDrawer(BuildContext context) {
     final isArabic = Provider.of<LanguageProvider>(context).isArabic;
     final userProvider = Provider.of<UserProvider>(context);
     final canViewAdmin = _canViewAdmin(context);
-    final isLoggedIn = userProvider.isLoggedIn;
-    final isAdherentOrFormateur =
-        userProvider.isAdherent || userProvider.isFormateur;
 
     return Drawer(
       backgroundColor: Colors.white.withOpacity(0.95),
@@ -1045,81 +1014,50 @@ class Navbar extends StatelessWidget {
                   vertical: 10,
                 ),
                 children: [
-                  // ==========================================================
-                  // MENU PRINCIPAL
-                  // ==========================================================
+                  // Menu principal
                   _drawerTile(
                     icon: Icons.home_outlined,
                     title: isArabic ? "الرئيسية" : "Accueil",
-                    onTap:
-                        () => _closeDrawerAndNavigate(
-                          context,
-                          const LandingPage(),
-                        ),
+                    onTap: () => _closeDrawerAndNavigate(context, const LandingPage()),
                   ),
                   _drawerTile(
                     icon: Icons.school_outlined,
                     title: isArabic ? "الدورات" : "Cycles de Formation",
-                    onTap:
-                        () => _closeDrawerAndNavigate(
-                          context,
-                          const AllTrainingsPage(),
-                        ),
+                    onTap: () => _closeDrawerAndNavigate(context, const AllTrainingsPage()),
                   ),
                   _drawerTile(
                     icon: Icons.video_library_outlined,
                     title: isArabic ? "فيديوهات مميزة" : "Vidéos Favorites",
-                    onTap:
-                        () => _closeDrawerAndNavigate(
-                          context,
-                          const AllVideoPage(),
-                        ),
+                    onTap: () => _closeDrawerAndNavigate(context, const AllVideoPage()),
                   ),
                   _drawerTile(
                     icon: Icons.info_outline,
                     title: isArabic ? "عن المنصة" : "À propos",
-                    onTap:
-                        () =>
-                            _closeDrawerAndNavigate(context, const AboutPage()),
+                    onTap: () => _closeDrawerAndNavigate(context, const AboutPage()),
+                  ),
+                  _drawerTile(
+                    icon: Icons.shopping_cart_outlined,
+                    title: isArabic ? "🛒 السلة" : "🛒 Panier",
+                    onTap: () {
+                      _closeDrawer(context);
+                      showDialog(
+                        context: context,
+                        barrierDismissible: true,
+                        barrierColor: Colors.black.withOpacity(0.4),
+                        builder: (context) => const CartPopup(),
+                      );
+                    },
                   ),
 
-                  // ==========================================================
-                  // PANIER DANS LE DRAWER MOBILE
-                  // ==========================================================
-                _drawerTile(
-    icon: Icons.shopping_cart_outlined,
-    title: isArabic ? "🛒 السلة" : "🛒 Panier",
-    onTap: () {
-      _closeDrawer(context);
-      // 🔥 OUVERTURE EN POPUP
-      showDialog(
-        context: context,
-        barrierDismissible: true,
-        barrierColor: Colors.black.withOpacity(0.4),
-        builder: (context) => const CartPopup(),
-      );
-    },
-  ),
+                  const Divider(height: 30, thickness: 1.5, color: nafahatGreen),
 
-                  const Divider(
-                    height: 30,
-                    thickness: 1.5,
-                    color: nafahatGreen,
-                  ),
-
-                  // ==========================================================
-                  // SECTION ADMIN
-                  // ==========================================================
+                  // Section Admin - COMPLETE
                   if (canViewAdmin) _buildDrawerAdminSection(context, isArabic),
 
-                  // ==========================================================
-                  // SECTION COMPTE
-                  // ==========================================================
+                  // Section Compte
                   _buildDrawerAccountSection(context, isArabic, userProvider),
 
-                  // ==========================================================
-                  // BOUTON LANGUE
-                  // ==========================================================
+                  // Bouton Langue
                   const SizedBox(height: 10),
                   ListTile(
                     leading: const Icon(Icons.language, color: nafahatGreen),
@@ -1152,6 +1090,9 @@ class Navbar extends StatelessWidget {
     );
   }
 
+  // ============================================================
+  // EN-TÊTE DU DRAWER
+  // ============================================================
   Widget _buildDrawerHeader(bool isArabic, UserProvider userProvider) {
     return Container(
       height: 120,
@@ -1209,10 +1150,7 @@ class Navbar extends StatelessWidget {
               if (userProvider.isLoggedIn && userProvider.userRole != null)
                 Container(
                   margin: const EdgeInsets.only(top: 4),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(10),
@@ -1229,10 +1167,7 @@ class Navbar extends StatelessWidget {
               if (!userProvider.isLoggedIn)
                 Container(
                   margin: const EdgeInsets.only(top: 4),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(10),
@@ -1254,13 +1189,10 @@ class Navbar extends StatelessWidget {
   }
 
   // ============================================================
-  // SECTION ADMIN DANS LE DRAWER
+  // SECTION ADMIN DANS LE DRAWER - COMPLETE
   // ============================================================
   Widget _buildDrawerAdminSection(BuildContext context, bool isArabic) {
     final canCreateUser = _canCreateUser(context);
-
-    // ✅ Utiliser la liste complète comme dans le web
-    final adminItems = _getAdminMenuItemsFull(context, isArabic);
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
@@ -1288,24 +1220,125 @@ class Navbar extends StatelessWidget {
         tilePadding: const EdgeInsets.symmetric(horizontal: 8),
         childrenPadding: const EdgeInsets.only(left: 16, bottom: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        children: adminItems
-            .where(
-              (item) =>
-                  !item.containsKey('isDivider') &&
-                  (item['isAdminOnly'] != true || canCreateUser),
-            )
-            .map((item) {
-              return _drawerTile(
-                icon: item['icon'],
-                title: item['title'],
-                padding: const EdgeInsets.only(left: 32, right: 8),
-                onTap: () {
-                  _closeDrawer(context);
-                  _handleAdminAction(context, item['value'], isArabic);
-                },
+        children: [
+          // ============================================================
+          // SOUS-GROUPE FORMATION
+          // ============================================================
+          _buildAdminSubGroup(
+            context: context,
+            isArabic: isArabic,
+            icon: Icons.school_outlined,
+            title: isArabic ? 'التكوين' : 'Formation',
+            items: [
+              {'value': 'add_training', 'icon': Icons.add_circle_outline, 'title': isArabic ? 'إضافة تكوين' : 'Ajouter une formation'},
+              {'value': 'edit_training', 'icon': Icons.edit, 'title': isArabic ? 'تعديل تكوين' : 'Modifier une formation'},
+              {'value': 'add_duree', 'icon': Icons.access_time, 'title': isArabic ? 'إضافة مدة' : 'Ajouter une durée'},
+              {'value': 'add_categorie', 'icon': Icons.category, 'title': isArabic ? 'إضافة تصنيف' : 'Ajouter une catégorie'},
+              {'value': 'edit_categorie', 'icon': Icons.edit, 'title': isArabic ? 'تعديل تصنيف' : 'Modifier une catégorie'},
+              {'value': 'add_type_formation', 'icon': Icons.label_outline, 'title': isArabic ? 'إضافة نوع تكوين' : 'Ajouter un type de formation'},
+              {'value': 'edit_type_formation', 'icon': Icons.edit_note, 'title': isArabic ? 'إدارة أنواع التكوين' : 'Gérer les types de formation'},
+              {'value': 'add_formateur', 'icon': Icons.person_add, 'title': isArabic ? 'إضافة مكون' : 'Ajouter un formateur'},
+              {'value': 'add_video', 'icon': Icons.video_library, 'title': isArabic ? 'إضافة فيديو' : 'Ajouter une vidéo'},
+              {'value': 'manage_trainings', 'icon': Icons.edit_note, 'title': isArabic ? 'إدارة التكوينات' : 'Gérer les formations'},
+            ],
+          ),
+          
+          // ============================================================
+          // SOUS-GROUPE APPARE NCE - COMPLET
+          // ============================================================
+          _buildAdminSubGroup(
+            context: context,
+            isArabic: isArabic,
+            icon: Icons.palette_outlined,
+            title: isArabic ? 'المظهر' : 'Apparence',
+            items: [
+              {'value': 'apparence_landing', 'icon': Icons.home_work_outlined, 'title': isArabic ? 'مظهر الصفحة الرئيسية' : 'Apparence Landing'},
+              {'value': 'apparence_hero', 'icon': Icons.slideshow_outlined, 'title': isArabic ? 'مظهر الهيرو' : 'Apparence Hero'},
+              {'value': 'apparence_card', 'icon': Icons.palette_outlined, 'title': isArabic ? 'مظهر البطاقات' : 'Apparence Cartes'},
+              {'value': 'apparence_formateur', 'icon': Icons.person_outline, 'title': isArabic ? 'مظهر المكونين' : 'Apparence Formateur'},
+              {'value': 'apparence_bull', 'icon': Icons.apps_outlined, 'title': isArabic ? 'مظهر الوحدات' : 'Apparence Bull'},
+              {'value': 'add_about', 'icon': Icons.info_outline, 'title': isArabic ? 'عن المنصة' : 'À propos'},
+            ],
+          ),
+          
+          // ============================================================
+          // SOUS-GROUPE UTILISATEURS & ADHÉRENTS - COMPLET
+          // ============================================================
+          _buildAdminSubGroup(
+            context: context,
+            isArabic: isArabic,
+            icon: Icons.people_outline,
+            title: isArabic ? 'المستخدمون والمنخرطين' : 'Utilisateurs & Adhérents',
+            items: [
+              {'value': 'adherents', 'icon': Icons.people_outline, 'title': isArabic ? 'المنخرطين' : 'Adhérents'},
+              {'value': 'users_list', 'icon': Icons.list_alt, 'title': isArabic ? 'قائمة المستعملين' : 'Liste des utilisateurs'},
+              if (canCreateUser)
+                {'value': 'creer_user', 'icon': Icons.admin_panel_settings_rounded, 'title': isArabic ? 'إنشاء مستخدم' : 'Créer un utilisateur'},
+              {'value': 'inscription_adherent', 'icon': Icons.person_add, 'title': isArabic ? 'تسجيل منخرط' : 'Inscription adhérent'},
+              {'value': 'etat_paiement', 'icon': Icons.verified, 'title': isArabic ? 'حالة المدفوعات' : 'État des paiements'},
+            ],
+          ),
+          
+          // Lien vers l'administration complète
+          _drawerTile(
+            icon: Icons.dashboard_outlined,
+            title: isArabic ? 'لوحة الإدارة الكاملة' : 'Administration complète',
+            padding: const EdgeInsets.only(left: 32, right: 8),
+            onTap: () {
+              _closeDrawer(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AdministrationPage()),
               );
-            })
-            .toList(),
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // SOUS-GROUPE ADMIN
+  // ============================================================
+  Widget _buildAdminSubGroup({
+    required BuildContext context,
+    required bool isArabic,
+    required IconData icon,
+    required String title,
+    required List<Map<String, dynamic>> items,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(left: 16, top: 2, bottom: 2),
+      decoration: BoxDecoration(
+        color: nafahatGreen.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: ExpansionTile(
+        leading: Icon(icon, color: nafahatGreen, size: 18),
+        title: Text(
+          title,
+          style: GoogleFonts.cairo(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: nafahatGreen,
+          ),
+        ),
+        iconColor: nafahatGold,
+        collapsedIconColor: nafahatGold,
+        tilePadding: const EdgeInsets.symmetric(horizontal: 8),
+        childrenPadding: const EdgeInsets.only(left: 16, bottom: 4),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        children: items.map((item) {
+          return _drawerTile(
+            icon: item['icon'] as IconData,
+            title: item['title'] as String,
+            padding: const EdgeInsets.only(left: 32, right: 8),
+            onTap: () {
+              _closeDrawer(context);
+              _handleAdminAction(context, item['value'] as String, isArabic);
+            },
+          );
+        }).toList(),
       ),
     );
   }
@@ -1348,20 +1381,18 @@ class Navbar extends StatelessWidget {
         tilePadding: const EdgeInsets.symmetric(horizontal: 8),
         childrenPadding: const EdgeInsets.only(left: 16, bottom: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        children:
-            _getAccountMenuItems(
-              isArabic,
-              userProvider,
-            ).where((item) => !item.containsKey('isDivider')).map((item) {
+        children: _getAccountMenuItems(isArabic, userProvider)
+            .where((item) => !item.containsKey('isDivider'))
+            .map((item) {
               final isDanger = item['isDanger'] ?? false;
               return _drawerTile(
-                icon: item['icon'],
-                title: item['title'],
+                icon: item['icon'] as IconData,
+                title: item['title'] as String,
                 color: isDanger ? Colors.red : null,
                 padding: const EdgeInsets.only(left: 32, right: 8),
                 onTap: () {
                   _closeDrawer(context);
-                  _handleAccountAction(context, item['value'], isArabic);
+                  _handleAccountAction(context, item['value'] as String, isArabic);
                 },
               );
             }).toList(),
@@ -1370,7 +1401,7 @@ class Navbar extends StatelessWidget {
   }
 
   // ============================================================
-  // WIDGETS COMMUNS
+  // WIDGET TILE DU DRAWER
   // ============================================================
   Widget _drawerTile({
     required IconData icon,
@@ -1419,36 +1450,11 @@ class Navbar extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  isArabic
-                      ? 'أدخل معرف التكوين لتعديله'
-                      : 'Entrez l\'ID de la formation à modifier',
+                  isArabic ? 'اختر تكويناً من القائمة أدناه' : 'Sélectionnez une formation dans la liste ci-dessous',
                   style: GoogleFonts.cairo(
                     color: Colors.grey.shade600,
                     fontSize: 14,
                   ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  decoration: InputDecoration(
-                    hintText: isArabic ? 'معرف التكوين' : 'ID de la formation',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    prefixIcon: const Icon(Icons.search),
-                  ),
-                  onSubmitted: (value) {
-                    if (value.trim().isNotEmpty) {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (context) =>
-                                  EditFormationPage(formationId: value.trim()),
-                        ),
-                      );
-                    }
-                  },
                 ),
                 const SizedBox(height: 16),
                 FutureBuilder<List<Map<String, dynamic>>>(
@@ -1462,23 +1468,13 @@ class Navbar extends StatelessWidget {
                         ),
                       );
                     }
-                    if (snapshot.hasError || !snapshot.hasData) {
+                    if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
                       return Text(
-                        isArabic
-                            ? 'خطأ في تحميل التكوينات'
-                            : 'Erreur de chargement des formations',
-                        style: GoogleFonts.cairo(color: Colors.red.shade400),
-                      );
-                    }
-                    final formations = snapshot.data!;
-                    if (formations.isEmpty) {
-                      return Text(
-                        isArabic
-                            ? 'لا توجد تكوينات متاحة'
-                            : 'Aucune formation disponible',
+                        isArabic ? 'لا توجد تكوينات متاحة' : 'Aucune formation disponible',
                         style: GoogleFonts.cairo(color: Colors.grey.shade600),
                       );
                     }
+                    final formations = snapshot.data!;
                     return Container(
                       height: 200,
                       decoration: BoxDecoration(
@@ -1490,14 +1486,9 @@ class Navbar extends StatelessWidget {
                         itemCount: formations.length,
                         itemBuilder: (context, index) {
                           final formation = formations[index];
-                          final title =
-                              isArabic
-                                  ? formation['titre_ar'] ??
-                                      formation['titre_fr'] ??
-                                      'Sans titre'
-                                  : formation['titre_fr'] ??
-                                      formation['titre_ar'] ??
-                                      'Sans titre';
+                          final title = isArabic
+                              ? formation['titre_ar'] ?? formation['titre_fr'] ?? 'Sans titre'
+                              : formation['titre_fr'] ?? formation['titre_ar'] ?? 'Sans titre';
                           return ListTile(
                             leading: CircleAvatar(
                               backgroundColor: nafahatGreen.withOpacity(0.1),
@@ -1511,7 +1502,7 @@ class Navbar extends StatelessWidget {
                               ),
                             ),
                             title: Text(
-                              title,
+                              title as String,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.cairo(
@@ -1526,19 +1517,15 @@ class Navbar extends StatelessWidget {
                                 color: Colors.grey.shade500,
                               ),
                             ),
-                            trailing: Icon(
-                              Icons.chevron_right,
-                              color: nafahatGreen,
-                            ),
+                            trailing: Icon(Icons.chevron_right, color: nafahatGreen),
                             onTap: () {
                               Navigator.pop(context);
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder:
-                                      (context) => EditFormationPage(
-                                        formationId: formation['id'].toString(),
-                                      ),
+                                  builder: (context) => EditFormationPage(
+                                    formationId: formation['id'].toString(),
+                                  ),
                                 ),
                               );
                             },
@@ -1600,9 +1587,7 @@ class Navbar extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  isArabic
-                      ? 'اختر تصنيفاً من القائمة أدناه'
-                      : 'Sélectionnez une catégorie dans la liste ci-dessous',
+                  isArabic ? 'اختر تصنيفاً من القائمة أدناه' : 'Sélectionnez une catégorie dans la liste ci-dessous',
                   style: GoogleFonts.cairo(
                     color: Colors.grey.shade600,
                     fontSize: 14,
@@ -1615,13 +1600,9 @@ class Navbar extends StatelessWidget {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
                     }
-                    if (snapshot.hasError ||
-                        !snapshot.hasData ||
-                        snapshot.data!.isEmpty) {
+                    if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
                       return Text(
-                        isArabic
-                            ? 'لا توجد تصنيفات متاحة'
-                            : 'Aucune catégorie disponible',
+                        isArabic ? 'لا توجد تصنيفات متاحة' : 'Aucune catégorie disponible',
                         style: GoogleFonts.cairo(color: Colors.grey.shade600),
                       );
                     }
@@ -1637,12 +1618,10 @@ class Navbar extends StatelessWidget {
                         itemCount: categories.length,
                         itemBuilder: (context, index) {
                           final cat = categories[index];
-                          final name =
-                              isArabic
-                                  ? cat['categorie_ar'] ?? cat['categorie_fr']
-                                  : cat['categorie_fr'] ?? cat['categorie_ar'];
-                          final parentName =
-                              cat['parent_fr'] ?? cat['parent_ar'];
+                          final name = isArabic
+                              ? cat['categorie_ar'] ?? cat['categorie_fr']
+                              : cat['categorie_fr'] ?? cat['categorie_ar'];
+                          final parentName = cat['parent_fr'] ?? cat['parent_ar'];
                           return ListTile(
                             leading: CircleAvatar(
                               backgroundColor: nafahatGreen.withOpacity(0.1),
@@ -1666,31 +1645,23 @@ class Navbar extends StatelessWidget {
                             ),
                             subtitle: Text(
                               parentName != null
-                                  ? (isArabic
-                                      ? 'الأب: $parentName'
-                                      : 'Parent: $parentName')
-                                  : (isArabic
-                                      ? 'تصنيف رئيسي'
-                                      : 'Catégorie principale'),
+                                  ? (isArabic ? 'الأب: $parentName' : 'Parent: $parentName')
+                                  : (isArabic ? 'تصنيف رئيسي' : 'Catégorie principale'),
                               style: GoogleFonts.cairo(
                                 fontSize: 12,
                                 color: Colors.grey.shade500,
                               ),
                             ),
-                            trailing: Icon(
-                              Icons.chevron_right,
-                              color: nafahatGreen,
-                            ),
+                            trailing: Icon(Icons.chevron_right, color: nafahatGreen),
                             onTap: () {
                               Navigator.pop(context);
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder:
-                                      (context) => EditCategoriePage(
-                                        itemId: cat['id'].toString(),
-                                        type: 'categorie',
-                                      ),
+                                  builder: (context) => EditCategoriePage(
+                                    itemId: cat['id'].toString(),
+                                    type: 'categorie',
+                                  ),
                                 ),
                               );
                             },
@@ -1752,9 +1723,7 @@ class Navbar extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  isArabic
-                      ? 'اختر نوع تكوين من القائمة أدناه'
-                      : 'Sélectionnez un type de formation dans la liste ci-dessous',
+                  isArabic ? 'اختر نوع تكوين من القائمة أدناه' : 'Sélectionnez un type de formation dans la liste ci-dessous',
                   style: GoogleFonts.cairo(
                     color: Colors.grey.shade600,
                     fontSize: 14,
@@ -1767,13 +1736,9 @@ class Navbar extends StatelessWidget {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
                     }
-                    if (snapshot.hasError ||
-                        !snapshot.hasData ||
-                        snapshot.data!.isEmpty) {
+                    if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
                       return Text(
-                        isArabic
-                            ? 'لا توجد أنواع تكوين متاحة'
-                            : 'Aucun type de formation disponible',
+                        isArabic ? 'لا توجد أنواع تكوين متاحة' : 'Aucun type de formation disponible',
                         style: GoogleFonts.cairo(color: Colors.grey.shade600),
                       );
                     }
@@ -1789,26 +1754,18 @@ class Navbar extends StatelessWidget {
                         itemCount: types.length,
                         itemBuilder: (context, index) {
                           final type = types[index];
-                          final chapters =
-                              [
-                                    type['ch1'],
-                                    type['ch2'],
-                                    type['ch3'],
-                                    type['ch4'],
-                                    type['ch5'],
-                                    type['ch6'],
-                                  ]
-                                  .where(
-                                    (ch) =>
-                                        ch != null && ch.toString().isNotEmpty,
-                                  )
-                                  .length;
+                          final chapters = [
+                            type['ch1'],
+                            type['ch2'],
+                            type['ch3'],
+                            type['ch4'],
+                            type['ch5'],
+                            type['ch6'],
+                          ].where((ch) => ch != null && ch.toString().isNotEmpty).length;
 
                           return ListTile(
                             leading: CircleAvatar(
-                              backgroundColor: const Color(
-                                0xffd57653,
-                              ).withOpacity(0.1),
+                              backgroundColor: const Color(0xffd57653).withOpacity(0.1),
                               child: Text(
                                 '${index + 1}',
                                 style: GoogleFonts.cairo(
@@ -1834,19 +1791,15 @@ class Navbar extends StatelessWidget {
                                 color: Colors.grey.shade500,
                               ),
                             ),
-                            trailing: Icon(
-                              Icons.chevron_right,
-                              color: const Color(0xff0D443E),
-                            ),
+                            trailing: Icon(Icons.chevron_right, color: nafahatGreen),
                             onTap: () {
                               Navigator.pop(context);
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder:
-                                      (context) => AddTypeFormationPage(
-                                        typeToEdit: type,
-                                      ),
+                                  builder: (context) => AddTypeFormationPage(
+                                    typeToEdit: type,
+                                  ),
                                 ),
                               );
                             },
