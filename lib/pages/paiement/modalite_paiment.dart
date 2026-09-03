@@ -1,14 +1,19 @@
 // lib/pages/paiement/modalite_paiment.dart
 
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:nafahat/services/payment_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:permission_handler/permission_handler.dart';
+
+// ✅ CORRECTIF: sur le web, on n'utilise plus file_picker pour la SÉLECTION
+// du fichier (bug connu du plugin sur certains navigateurs mobiles où
+// `.path` est accédé en interne et lève l'exception "On web `path` is
+// unavailable..."). On utilise directement l'input HTML natif, beaucoup
+// plus fiable sur mobile.
+import 'dart:html' as html;
 
 class ModalitePaimentPage extends StatefulWidget {
   final String? paymentId;
@@ -40,7 +45,7 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
   Uint8List? _selectedFileBytes; // Pour Web
   File? _selectedFile; // Pour Mobile/Desktop
   String? _selectedFileName;
-  String? _selectedMethod;
+  String? _selectedMethod; // 'bancaire' ou 'postal'
 
   bool _isLoading = false;
   bool _isSubmitting = false;
@@ -54,72 +59,8 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
   void initState() {
     super.initState();
     _loadLanguage();
-    _checkPermissions();
-    print('🔵 [ModalitePaiment] Page initialisée avec paymentId: ${widget.paymentId}');
-  }
-
-  // ============================================================
-  // PERMISSIONS (Android & iOS)
-  // ============================================================
-
-  Future<void> _checkPermissions() async {
-    if (!kIsWeb) {
-      print('🔵 [Permissions] Vérification des permissions...');
-      
-      // Pour Android 13+ et iOS
-      final status = await Permission.storage.request();
-      
-      if (status.isGranted) {
-        print('✅ [Permissions] Accès au stockage accordé');
-      } else if (status.isDenied) {
-        print('⚠️ [Permissions] Accès au stockage refusé');
-        // Demander à nouveau
-        final newStatus = await Permission.storage.request();
-        if (newStatus.isGranted) {
-          print('✅ [Permissions] Accès au stockage accordé (2ème tentative)');
-        } else {
-          print('❌ [Permissions] Accès au stockage définitivement refusé');
-          setState(() {
-            _errorMessage = _isArabic 
-                ? '⚠️ Veuillez autoriser l\'accès au stockage dans les paramètres'
-                : '⚠️ Veuillez autoriser l\'accès au stockage dans les paramètres';
-          });
-        }
-      } else if (status.isPermanentlyDenied) {
-        print('❌ [Permissions] Accès au stockage définitivement refusé');
-        // Ouvrir les paramètres
-        _showPermissionDialog();
-      }
-    }
-  }
-
-  void _showPermissionDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(_isArabic ? '🔒 Permission requise' : '🔒 Permission requise'),
-        content: Text(
-          _isArabic 
-              ? 'Pour joindre un justificatif, veuillez autoriser l\'accès au stockage dans les paramètres de l\'application.'
-              : 'Pour joindre un justificatif, veuillez autoriser l\'accès au stockage dans les paramètres de l\'application.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(_isArabic ? 'Annuler' : 'Annuler'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              openAppSettings();
-            },
-            child: Text(
-              _isArabic ? 'Ouvrir les paramètres' : 'Ouvrir les paramètres',
-              style: TextStyle(color: const Color(0xff0D443E)),
-            ),
-          ),
-        ],
-      ),
+    print(
+      '🔵 [ModalitePaiment] Page initialisée avec paymentId: ${widget.paymentId}',
     );
   }
 
@@ -137,142 +78,143 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
   }
 
   // ============================================================
-  // SÉLECTION DE FICHIER (UNIFIÉE) - CORRIGÉE
+  // SÉLECTION DE FICHIER (UNIFIÉE)
   // ============================================================
 
-  Future<void> _pickFile() async {
+  Future<void> _pickFile(String method) async {
+    // ✅ CORRECTIF: sur le web (PC ET mobile), on ne passe plus du tout
+    // par file_picker pour choisir le fichier. On utilise un <input type=
+    // "file"> HTML natif, qui ne présente pas le bug de `.path` non
+    // disponible rencontré sur certains navigateurs mobiles.
+    if (kIsWeb) {
+      return _pickFileWeb(method);
+    }
+    return _pickFileMobile(method);
+  }
+
+  // ============================================================
+  // SÉLECTION DE FICHIER - WEB (PC + MOBILE)
+  // ============================================================
+
+  Future<void> _pickFileWeb(String method) async {
     try {
-      // Vérifier les permissions avant de sélectionner
-      if (!kIsWeb) {
-        final status = await Permission.storage.status;
-        if (!status.isGranted) {
-          final newStatus = await Permission.storage.request();
-          if (!newStatus.isGranted) {
-            _showPermissionDialog();
-            return;
-          }
-        }
-      }
+      print('🔵 [FilePicker-Web] Sélection de fichier pour: $method');
 
-      print('🔵 [FilePicker] Sélection de fichier');
-      print('   📋 Plateforme: ${kIsWeb ? "Web" : "Mobile/Desktop"}');
+      final input = html.FileUploadInputElement()
+        ..accept = '.pdf,.jpg,.jpeg,.png,.doc,.docx';
+      input.click();
 
-      // Vérifier qu'une méthode de paiement est sélectionnée
-      if (_selectedPaymentMethod == null) {
-        setState(() {
-          _errorMessage = _isArabic 
-              ? '⚠️ الرجاء اختيار طريقة الدفع أولاً' 
-              : '⚠️ Veuillez sélectionner un mode de paiement d\'abord';
-        });
+      // Attend que l'utilisateur choisisse un fichier (ou annule)
+      await input.onChange.first;
+
+      if (input.files == null || input.files!.isEmpty) {
+        print('ℹ️ [FilePicker-Web] Sélection annulée');
         return;
       }
 
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'],
-        // ✅ Important: allowMultiple false par défaut
-      );
+      final file = input.files!.first;
 
-      if (result != null) {
-        final file = result.files.single;
-        
-        print('📄 Fichier sélectionné: ${file.name}');
-        print('📄 Taille: ${file.size} bytes');
-        print('📄 Path: ${file.path}');
-        print('📄 Bytes: ${file.bytes != null ? "Disponible" : "Non disponible"}');
-
-        // Vérifier la taille
-        if (file.size > 5 * 1024 * 1024) {
-          throw Exception(_isArabic 
-              ? 'الملف كبير جداً (الحد الأقصى 5 ميجابايت)' 
-              : 'Fichier trop volumineux (max 5MB)');
-        }
-
-        setState(() {
-          _selectedMethod = _selectedPaymentMethod;
-          _selectedFileName = file.name;
-          _errorMessage = null;
-          
-          // Réinitialiser les anciens fichiers
-          _selectedFile = null;
-          _selectedFileBytes = null;
-        });
-
-        if (kIsWeb) {
-          // ✅ WEB: Utiliser les bytes
-          if (file.bytes != null) {
-            setState(() {
-              _selectedFileBytes = file.bytes;
-            });
-            print('✅ [FilePicker] Web: ${file.name} (${file.bytes!.length} bytes)');
-          } else {
-            throw Exception('Fichier Web sans données');
-          }
-        } else {
-          // ✅ MOBILE/DESKTOP: Utiliser le path avec vérification
-          if (file.path != null) {
-            final fileObj = File(file.path!);
-            
-            // Vérifier que le fichier existe
-            if (!await fileObj.exists()) {
-              throw Exception('Le fichier n\'existe pas');
-            }
-            
-            final fileSize = await fileObj.length();
-            
-            if (fileSize > 5 * 1024 * 1024) {
-              throw Exception('Fichier trop volumineux (max 5MB)');
-            }
-            
-            if (fileSize == 0) {
-              throw Exception('Fichier vide');
-            }
-
-            setState(() {
-              _selectedFile = fileObj;
-            });
-            print('✅ [FilePicker] Mobile: ${file.name} ($fileSize bytes)');
-            print('   📍 Chemin: ${file.path}');
-          } else {
-            throw Exception('Fichier Mobile sans chemin');
-          }
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _isArabic 
-                  ? '✅ تم اختيار الملف بنجاح' 
-                  : '✅ Fichier sélectionné avec succès',
-              style: GoogleFonts.cairo(),
-            ),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
-          ),
+      // Vérification de l'extension (car l'attribut `accept` n'est
+      // qu'indicatif et n'est pas toujours respecté par le navigateur)
+      final ext = file.name.split('.').last.toLowerCase();
+      const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'];
+      if (!allowedExtensions.contains(ext)) {
+        throw Exception(
+          _isArabic
+              ? '⚠️ صيغة الملف غير مقبولة'
+              : '⚠️ Format de fichier non accepté',
         );
-      } else {
-        print('ℹ️ [FilePicker] Sélection annulée');
       }
-    } catch (e) {
-      print('❌ [FilePicker] Erreur: $e');
+
+      final reader = html.FileReader();
+      reader.readAsArrayBuffer(file);
+      await reader.onLoad.first;
+
+      final bytes = reader.result as Uint8List;
+
+      if (bytes.length > 5 * 1024 * 1024) {
+        throw Exception(
+          _isArabic
+              ? '⚠️ الملف كبير جداً (الحد الأقصى 5 ميجابايت)'
+              : '⚠️ Fichier trop volumineux (max 5MB)',
+        );
+      }
+
       setState(() {
+        _selectedMethod = method;
+        _selectedFileName = file.name;
+        _selectedFileBytes = bytes;
         _selectedFile = null;
-        _selectedFileBytes = null;
-        _selectedFileName = null;
-        _errorMessage = e.toString();
+        _errorMessage = null;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _isArabic ? '❌ خطأ: ${e.toString()}' : '❌ Erreur: ${e.toString()}',
-            style: GoogleFonts.cairo(),
-          ),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 3),
-        ),
-      );
+      print('✅ [FilePicker-Web] ${file.name} (${bytes.length} bytes)');
+      _showFileSelectedSnackBar();
+    } catch (e) {
+      print('❌ [FilePicker-Web] Erreur: $e');
+      _handleFilePickError(e);
     }
+  }
+
+  // ============================================================
+  // SÉLECTION DE FICHIER - MOBILE/DESKTOP NATIF (app installée)
+  // ============================================================
+
+  // ⚠️ Cette app est déployée exclusivement en Flutter Web (kIsWeb est
+  // toujours `true` en production). Cette branche ne s'exécute donc
+  // jamais en pratique — elle existe uniquement pour que le code
+  // compile proprement si l'app est un jour packagée en app native
+  // (Android/iOS/Desktop). Si ce jour arrive, réintroduis `file_picker`
+  // à ce moment-là et implémente cette méthode avec le plugin.
+  Future<void> _pickFileMobile(String method) async {
+    print('⚠️ [FilePicker-Mobile] Sélection native non implémentée sur '
+        'cette plateforme (app 100% web).');
+    _handleFilePickError(
+      Exception(
+        _isArabic
+            ? '⚠️ هذه الميزة غير متوفرة على هذه المنصة'
+            : '⚠️ Cette fonctionnalité n\'est pas disponible sur cette plateforme',
+      ),
+    );
+  }
+
+  // ============================================================
+  // HELPERS PARTAGÉS (snackbars / gestion d'erreur)
+  // ============================================================
+
+  void _showFileSelectedSnackBar() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _isArabic
+              ? '✅ تم اختيار الملف بنجاح'
+              : '✅ Fichier sélectionné avec succès',
+          style: GoogleFonts.cairo(),
+        ),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _handleFilePickError(Object e) {
+    setState(() {
+      _selectedFile = null;
+      _selectedFileBytes = null;
+      _selectedFileName = null;
+      _errorMessage = e.toString();
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _isArabic ? '❌ خطأ: ${e.toString()}' : '❌ Erreur: ${e.toString()}',
+          style: GoogleFonts.cairo(),
+        ),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   // ============================================================
@@ -283,39 +225,31 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
     if (kIsWeb) {
       return _selectedFileBytes != null && _selectedFileName != null;
     } else {
-      // Vérifier que le fichier existe toujours sur mobile
-      if (_selectedFile != null && _selectedFileName != null) {
-        try {
-          return _selectedFile!.existsSync();
-        } catch (e) {
-          print('⚠️ Erreur vérification fichier: $e');
-          return false;
-        }
-      }
-      return false;
+      return _selectedFile != null && _selectedFileName != null;
     }
   }
 
   // ============================================================
-  // SOUMISSION DU PAIEMENT - CORRIGÉE
+  // SOUMISSION DU PAIEMENT
   // ============================================================
 
   Future<void> _submitPayment() async {
-    // Vérifications
     if (_selectedPaymentMethod == null) {
       setState(() {
-        _errorMessage = _isArabic 
-            ? '⚠️ الرجاء اختيار طريقة الدفع' 
-            : '⚠️ Veuillez sélectionner un mode de paiement';
+        _errorMessage =
+            _isArabic
+                ? '⚠️ الرجاء اختيار طريقة الدفع'
+                : '⚠️ Veuillez sélectionner un mode de paiement';
       });
       return;
     }
 
     if (!_hasFile()) {
       setState(() {
-        _errorMessage = _isArabic 
-            ? '⚠️ الرجاء إرفاق ملف' 
-            : '⚠️ Veuillez joindre un fichier';
+        _errorMessage =
+            _isArabic
+                ? '⚠️ الرجاء إرفاق ملف'
+                : '⚠️ Veuillez joindre un fichier';
       });
       return;
     }
@@ -329,7 +263,6 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
     print('   📋 PaymentId: ${widget.paymentId}');
     print('   📋 Modalité: $_selectedPaymentMethod');
     print('   📋 Fichier: $_selectedFileName');
-    print('   📋 Plateforme: ${kIsWeb ? "Web" : "Mobile"}');
 
     try {
       // 1. Confirmer la modalité de paiement
@@ -340,40 +273,18 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
 
       print('🟡 [ModalitePaiment] Résultat confirmation: $confirmResult');
 
-      if (confirmResult['success'] == false) {
+      if (!confirmResult['success']) {
         throw Exception(confirmResult['message'] ?? 'Erreur de confirmation');
       }
 
-      // 2. Préparer les données du fichier pour l'upload
+      // 2. Uploader la quittance
       dynamic fileData;
-      
       if (kIsWeb) {
-        // Web: utiliser les bytes
         fileData = _selectedFileBytes;
-        if (fileData == null) {
-          throw Exception('Fichier Web non disponible');
-        }
       } else {
-        // Mobile/Desktop: utiliser le File
         fileData = _selectedFile;
-        if (fileData == null) {
-          throw Exception('Fichier Mobile non disponible');
-        }
-        
-        // Vérifier que le fichier existe toujours
-        if (!await (fileData as File).exists()) {
-          throw Exception('Le fichier a été supprimé ou déplacé');
-        }
-        
-        // Vérifier la taille
-        final fileSize = await (fileData as File).length();
-        if (fileSize == 0) {
-          throw Exception('Le fichier est vide');
-        }
-        print('📄 Taille du fichier avant upload: $fileSize bytes');
       }
 
-      // 3. Uploader la quittance
       final uploadResult = await PaymentService.uploadQuittance(
         paymentId: widget.paymentId ?? '',
         fileData: fileData,
@@ -382,16 +293,12 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
 
       print('🟡 [ModalitePaiment] Résultat upload: $uploadResult');
 
-      if (uploadResult['success'] == false) {
+      if (!uploadResult['success']) {
         throw Exception(uploadResult['message'] ?? 'Erreur lors de l\'upload');
       }
 
       // Succès !
-      setState(() {
-        _isSubmitting = false;
-      });
       _showSuccessDialog();
-      
     } catch (e) {
       print('❌ [ModalitePaiment] Erreur: $e');
       setState(() {
@@ -419,7 +326,8 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
 
   Widget _buildFilePickerSection() {
     final hasFile = _hasFile();
-    final fileName = _selectedFileName ?? 
+    final fileName =
+        _selectedFileName ??
         (_isArabic ? 'لم يتم اختيار ملف' : 'Aucun fichier sélectionné');
 
     return Column(
@@ -456,7 +364,7 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
                 ),
               ),
               TextButton.icon(
-                onPressed: _pickFile, // ✅ Plus de paramètre
+                onPressed: () => _pickFile(_selectedPaymentMethod!),
                 icon: Icon(Icons.attach_file, color: const Color(0xff0D443E)),
                 label: Text(
                   _isArabic ? 'اختيار' : 'Parcourir',
@@ -483,8 +391,8 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
               ),
               const SizedBox(width: 4.0),
               Text(
-                _isArabic 
-                    ? '✅ الملف جاهز للإرسال' 
+                _isArabic
+                    ? '✅ الملف جاهز للإرسال'
                     : '✅ Fichier prêt à être envoyé',
                 style: GoogleFonts.cairo(
                   fontSize: 12.0,
@@ -493,36 +401,16 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
               ),
             ],
           ),
-          // ✅ Afficher la taille du fichier sur mobile
-          if (!kIsWeb && _selectedFile != null)
-            FutureBuilder<int>(
-              future: _selectedFile!.length(),
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  final size = snapshot.data!;
-                  final sizeStr = size > 1024 * 1024 
-                      ? '${(size / (1024 * 1024)).toStringAsFixed(2)} MB'
-                      : '${(size / 1024).toStringAsFixed(1)} KB';
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 4.0),
-                    child: Text(
-                      '📊 Taille: $sizeStr',
-                      style: GoogleFonts.cairo(
-                        fontSize: 11.0,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            ),
         ],
         const SizedBox(height: 4.0),
         Text(
-          _isArabic 
-              ? '📌 الصيغ المقبولة: PDF, JPG, PNG, DOC (الحد الأقصى 5 ميجابايت)' 
-              : '📌 Formats acceptés : PDF, JPG, PNG, DOC (max 5Mo)',
+          kIsWeb
+              ? (_isArabic
+                  ? '📌 الصيغ المقبولة: PDF, JPG, PNG, DOC (الحد الأقصى 5 ميجابايت)'
+                  : '📌 Formats acceptés : PDF, JPG, PNG, DOC (max 5Mo)')
+              : (_isArabic
+                  ? '📌 الصيغ المقبولة: PDF, JPG, PNG, DOC (الحد الأقصى 5 ميجابايت)'
+                  : '📌 Formats acceptés : PDF, JPG, PNG, DOC (max 5Mo)'),
           style: GoogleFonts.cairo(
             fontSize: 11.0,
             color: Colors.grey.shade600,
@@ -537,17 +425,6 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
               style: GoogleFonts.cairo(
                 fontSize: 10.0,
                 color: Colors.blue.shade600,
-              ),
-            ),
-          ),
-        if (!kIsWeb)
-          Padding(
-            padding: const EdgeInsets.only(top: 4.0),
-            child: Text(
-              '📱 Mode Mobile - Fichier local',
-              style: GoogleFonts.cairo(
-                fontSize: 10.0,
-                color: Colors.green.shade600,
               ),
             ),
           ),
@@ -577,14 +454,15 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
           ),
         ),
         child: InkWell(
-          onTap: isDisabled
-              ? _showDisabledDialog
-              : () {
-                setState(() {
-                  _selectedPaymentMethod = method;
-                  _errorMessage = null;
-                });
-              },
+          onTap:
+              isDisabled
+                  ? _showDisabledDialog
+                  : () {
+                    setState(() {
+                      _selectedPaymentMethod = method;
+                      _errorMessage = null;
+                    });
+                  },
           borderRadius: BorderRadius.circular(16.0),
           child: Padding(
             padding: const EdgeInsets.all(20.0),
@@ -596,9 +474,10 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
                     Container(
                       padding: const EdgeInsets.all(12.0),
                       decoration: BoxDecoration(
-                        color: isDisabled
-                            ? Colors.grey.shade200
-                            : color.withOpacity(0.1),
+                        color:
+                            isDisabled
+                                ? Colors.grey.shade200
+                                : color.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12.0),
                       ),
                       child: Icon(
@@ -614,9 +493,10 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
                         style: GoogleFonts.cairo(
                           fontSize: 16.0,
                           fontWeight: FontWeight.w600,
-                          color: isDisabled
-                              ? Colors.grey.shade500
-                              : Colors.black87,
+                          color:
+                              isDisabled
+                                  ? Colors.grey.shade500
+                                  : Colors.black87,
                         ),
                       ),
                     ),
@@ -887,27 +767,28 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
           ),
           elevation: isEnabled ? 4.0 : 0.0,
         ),
-        child: _isSubmitting
-            ? const SizedBox(
-                height: 24.0,
-                width: 24.0,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.0,
-                  color: Colors.white,
+        child:
+            _isSubmitting
+                ? const SizedBox(
+                  height: 24.0,
+                  width: 24.0,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.0,
+                    color: Colors.white,
+                  ),
+                )
+                : Text(
+                  isEnabled
+                      ? (_isArabic ? '✅ تأكيد الدفع' : '✅ Valider le paiement')
+                      : (_isArabic
+                          ? '⚠️ اختر طريقة الدفع وأرفق ملفاً'
+                          : '⚠️ Sélectionnez un mode et joignez un fichier'),
+                  style: GoogleFonts.cairo(
+                    fontSize: buttonFontSize,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-              )
-            : Text(
-                isEnabled
-                    ? (_isArabic ? '✅ تأكيد الدفع' : '✅ Valider le paiement')
-                    : (_isArabic
-                        ? '⚠️ اختر طريقة الدفع وأرفق ملفاً'
-                        : '⚠️ Sélectionnez un mode et joignez un fichier'),
-                style: GoogleFonts.cairo(
-                  fontSize: buttonFontSize,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
       ),
     );
   }

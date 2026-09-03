@@ -1,4 +1,5 @@
 // lib/pages/adminisration/edit_formation.dart
+
 import 'dart:typed_data';
 import 'dart:convert';
 import 'dart:html' as html;
@@ -292,6 +293,7 @@ class _EditFormationPageState extends State<EditFormationPage> {
   }
 
   // ==================== MÉTHODES DE SÉLECTION D'IMAGE ====================
+
   Future<void> _pickImageWeb() async {
     try {
       setState(() => _isUploadingImage = true);
@@ -358,6 +360,7 @@ class _EditFormationPageState extends State<EditFormationPage> {
     }
   }
 
+  // ✅ MÉTHODE UPLOAD WEB CORRIGÉE
   Future<void> _uploadImageWeb(html.File file) async {
     try {
       setState(() {
@@ -365,36 +368,68 @@ class _EditFormationPageState extends State<EditFormationPage> {
         _isUploadingImage = true;
       });
 
-      final result = await UploadService.uploadImageSmart(file);
+      print('🔵 [EditFormation] Upload image Web...');
+      print('   📋 Nom fichier: ${file.name}');
+      print('   📋 Taille: ${file.size} bytes');
 
-      if (result['success'] == true) {
-        setState(() {
-          _uploadedImageUrl = result['image_url'];
-          _imageUrlController.text = result['image_url'];
-          _isUploadingImage = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _isArabic ? '✅ Image téléchargée' : '✅ Image téléchargée',
-            ),
-            backgroundColor: nafahatGreen,
-          ),
-        );
-      } else {
-        setState(() => _isUploadingImage = false);
-        throw Exception(result['message'] ?? 'Upload failed');
+      // ✅ Lire le fichier en bytes
+      final reader = html.FileReader();
+      reader.readAsArrayBuffer(file);
+      await reader.onLoad.first;
+      final bytes = reader.result as Uint8List;
+
+      // ✅ Utiliser uploadFile au lieu de uploadImageSmart
+      final result = await UploadService.uploadFile(
+        fileData: bytes,
+        fileName: file.name.isNotEmpty ? file.name : 'image.jpg',
+        fieldName: 'image',
+        endpoint: '/upload/image',
+        mimeType: file.type.isNotEmpty ? file.type : null,
+      );
+
+      print('🔵 [EditFormation] Résultat upload: $result');
+
+      // ✅ Extraire l'URL de l'image
+      final imageUrl = result['image_url'] ?? 
+                       result['data']?['image_url'] ?? 
+                       result['data']?['url'] ?? 
+                       result['url'] ?? 
+                       '';
+
+      if (imageUrl.isEmpty) {
+        throw Exception('URL de l\'image non trouvée dans la réponse');
       }
+
+      setState(() {
+        _uploadedImageUrl = imageUrl;
+        _imageUrlController.text = imageUrl;
+        _isUploadingImage = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _isArabic ? '✅ Image téléchargée avec succès' : '✅ Image téléchargée avec succès',
+            style: GoogleFonts.cairo(),
+          ),
+          backgroundColor: nafahatGreen,
+          duration: const Duration(seconds: 2),
+        ),
+      );
     } catch (e) {
+      print('❌ [EditFormation] Erreur upload image: $e');
       setState(() {
         _selectedImageFile = null;
         _isUploadingImage = false;
       });
-      _showErrorSnackBar(_isArabic ? '❌ Erreur upload' : '❌ Erreur upload');
-      debugPrint('❌ Erreur upload image: $e');
+
+      _showErrorSnackBar(
+        _isArabic ? '❌ Erreur upload: ${e.toString()}' : '❌ Erreur upload: ${e.toString()}',
+      );
     }
   }
 
+  // ✅ MÉTHODE UPLOAD MOBILE CORRIGÉE
   Future<void> _uploadImageMobile(File imageFile) async {
     try {
       setState(() {
@@ -402,33 +437,60 @@ class _EditFormationPageState extends State<EditFormationPage> {
         _isUploadingImage = true;
       });
 
-      final result = await TrainingService.uploadImage(imageFile);
+      print('📱 [EditFormation] Upload image Mobile...');
+      print('   📋 Chemin: ${imageFile.path}');
 
-      if (result['success'] == true) {
-        setState(() {
-          _uploadedImageUrl = result['image_url'];
-          _imageUrlController.text = result['image_url'];
-          _isUploadingImage = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _isArabic ? '✅ Image téléchargée' : '✅ Image téléchargée',
-            ),
-            backgroundColor: nafahatGreen,
-          ),
-        );
-      } else {
-        setState(() => _isUploadingImage = false);
-        throw Exception(result['message'] ?? 'Upload failed');
+      // ✅ Lire le fichier en bytes
+      final bytes = await imageFile.readAsBytes();
+      final fileName = imageFile.path.split('/').last;
+
+      // ✅ Utiliser uploadFile
+      final result = await UploadService.uploadFile(
+        fileData: bytes,
+        fileName: fileName.isNotEmpty ? fileName : 'image.jpg',
+        fieldName: 'image',
+        endpoint: '/upload/image',
+      );
+
+      print('📱 [EditFormation] Résultat upload: $result');
+
+      // ✅ Extraire l'URL
+      final imageUrl = result['image_url'] ?? 
+                       result['data']?['image_url'] ?? 
+                       result['data']?['url'] ?? 
+                       result['url'] ?? 
+                       '';
+
+      if (imageUrl.isEmpty) {
+        throw Exception('URL de l\'image non trouvée');
       }
+
+      setState(() {
+        _uploadedImageUrl = imageUrl;
+        _imageUrlController.text = imageUrl;
+        _isUploadingImage = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _isArabic ? '✅ Image téléchargée' : '✅ Image téléchargée',
+            style: GoogleFonts.cairo(),
+          ),
+          backgroundColor: nafahatGreen,
+          duration: const Duration(seconds: 2),
+        ),
+      );
     } catch (e) {
+      print('❌ [EditFormation] Erreur upload image: $e');
       setState(() {
         _selectedImageFile = null;
         _isUploadingImage = false;
       });
-      _showErrorSnackBar(_isArabic ? '❌ Erreur upload' : '❌ Erreur upload');
-      debugPrint('❌ Erreur upload image: $e');
+
+      _showErrorSnackBar(
+        _isArabic ? '❌ Erreur upload: ${e.toString()}' : '❌ Erreur upload: ${e.toString()}',
+      );
     }
   }
 
@@ -445,12 +507,18 @@ class _EditFormationPageState extends State<EditFormationPage> {
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 5),
+        content: Text(
+          message,
+          style: GoogleFonts.cairo(),
+        ),
+        backgroundColor: Colors.red.shade700,
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
+
+  // ==================== RESTE DU CODE (inchangé) ====================
 
   Future<void> _selectDate(TextEditingController controller) async {
     final locale =
@@ -557,6 +625,7 @@ class _EditFormationPageState extends State<EditFormationPage> {
                 _isArabic
                     ? '✅ تم تحديث التكوين "${_titleArController.text}" بنجاح!'
                     : '✅ Formation "${_titleFrController.text}" mise à jour avec succès!',
+                style: GoogleFonts.cairo(),
               ),
               backgroundColor: nafahatGreen,
             ),
@@ -569,6 +638,7 @@ class _EditFormationPageState extends State<EditFormationPage> {
                 _isArabic
                     ? '❌ خطأ في تحديث التكوين'
                     : '❌ Erreur lors de la mise à jour',
+                style: GoogleFonts.cairo(),
               ),
               backgroundColor: Colors.red,
             ),
@@ -579,6 +649,7 @@ class _EditFormationPageState extends State<EditFormationPage> {
           SnackBar(
             content: Text(
               _isArabic ? '❌ خطأ في الاتصال' : '❌ Erreur de connexion',
+              style: GoogleFonts.cairo(),
             ),
             backgroundColor: Colors.red,
           ),
@@ -593,21 +664,34 @@ class _EditFormationPageState extends State<EditFormationPage> {
       context: context,
       builder:
           (context) => AlertDialog(
-            title: Text(_isArabic ? 'تأكيد الحذف' : 'Confirmer la suppression'),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: Text(
+              _isArabic ? 'تأكيد الحذف' : 'Confirmer la suppression',
+              style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+            ),
             content: Text(
               _isArabic
                   ? 'Voulez-vous vraiment désactiver cette formation ?'
                   : 'Voulez-vous vraiment désactiver cette formation ?',
+              style: GoogleFonts.cairo(),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: Text(_isArabic ? 'إلغاء' : 'Annuler'),
+                child: Text(
+                  _isArabic ? 'إلغاء' : 'Annuler',
+                  style: GoogleFonts.cairo(),
+                ),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(context, true),
                 style: TextButton.styleFrom(foregroundColor: Colors.red),
-                child: Text(_isArabic ? 'حذف' : 'Supprimer'),
+                child: Text(
+                  _isArabic ? 'حذف' : 'Supprimer',
+                  style: GoogleFonts.cairo(),
+                ),
               ),
             ],
           ),
@@ -630,6 +714,7 @@ class _EditFormationPageState extends State<EditFormationPage> {
                 _isArabic
                     ? '✅ تم حذف التكوين بنجاح'
                     : '✅ Formation supprimée avec succès',
+                style: GoogleFonts.cairo(),
               ),
               backgroundColor: nafahatGreen,
             ),
@@ -642,6 +727,7 @@ class _EditFormationPageState extends State<EditFormationPage> {
           SnackBar(
             content: Text(
               _isArabic ? '❌ Erreur suppression' : '❌ Erreur suppression',
+              style: GoogleFonts.cairo(),
             ),
             backgroundColor: Colors.red,
           ),
@@ -650,6 +736,808 @@ class _EditFormationPageState extends State<EditFormationPage> {
       setState(() => _isSaving = false);
     }
   }
+
+  // ==================== WIDGETS ====================
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [nafahatGreen, nafahatGreen],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: nafahatGreen.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.edit_note_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _isArabic ? 'تعديل تكوين' : 'Modifier la formation',
+                  style: GoogleFonts.cairo(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  _isArabic
+                      ? 'قم بتعديل معلومات التكوين'
+                      : 'Modifiez les informations de la formation',
+                  style: GoogleFonts.cairo(
+                    color: Colors.white.withOpacity(0.8),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSection({
+    required IconData icon,
+    required String title,
+    required List<Widget> children,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: nafahatGreen.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: nafahatGreen, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              title,
+              style: GoogleFonts.cairo(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: nafahatGreen,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        ...children,
+      ],
+    );
+  }
+
+  Widget _buildField({
+    required String label,
+    required TextEditingController controller,
+    required String hint,
+    bool required = false,
+    int maxLines = 1,
+    TextDirection textDirection = TextDirection.ltr,
+    TextInputType keyboardType = TextInputType.text,
+    IconData? prefixIcon,
+    bool readOnly = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              label,
+              style: GoogleFonts.cairo(
+                fontWeight: FontWeight.w600,
+                color: nafahatGreen,
+                fontSize: 13,
+              ),
+            ),
+            if (required) ...[
+              const SizedBox(width: 4),
+              Text(
+                '*',
+                style: GoogleFonts.cairo(
+                  color: Colors.red,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: controller,
+          textDirection: textDirection,
+          keyboardType: keyboardType,
+          maxLines: maxLines,
+          readOnly: readOnly,
+          style: GoogleFonts.cairo(fontSize: 14),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: GoogleFonts.cairo(color: grey400),
+            filled: true,
+            fillColor: readOnly ? grey100 : Colors.white,
+            prefixIcon:
+                prefixIcon != null
+                    ? Icon(
+                      prefixIcon,
+                      color: nafahatGreen.withOpacity(0.6),
+                      size: 20,
+                    )
+                    : null,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 14,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: grey300),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: grey300),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: nafahatGreen, width: 2),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.red.shade400),
+            ),
+          ),
+          validator: (value) {
+            if (required && (value == null || value.isEmpty)) {
+              return _isArabic ? '⚠️ حقل مطلوب' : '⚠️ Champ requis';
+            }
+            if (keyboardType == TextInputType.number &&
+                value != null &&
+                value.isNotEmpty &&
+                double.tryParse(value) == null) {
+              return _isArabic ? '⚠️ رقم غير صالح' : '⚠️ Nombre invalide';
+            }
+            return null;
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDateField({
+    required String label,
+    required TextEditingController controller,
+    required VoidCallback onTap,
+    bool required = false,
+    bool isArabic = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              label,
+              style: GoogleFonts.cairo(
+                fontWeight: FontWeight.w600,
+                color: nafahatGreen,
+                fontSize: 13,
+              ),
+            ),
+            if (required) ...[
+              const SizedBox(width: 4),
+              Text(
+                '*',
+                style: GoogleFonts.cairo(
+                  color: Colors.red,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 6),
+        GestureDetector(
+          onTap: onTap,
+          child: AbsorbPointer(
+            child: TextFormField(
+              controller: controller,
+              style: GoogleFonts.cairo(fontSize: 14),
+              decoration: InputDecoration(
+                hintText: isArabic ? 'اختر تاريخ' : 'Choisir une date',
+                hintStyle: GoogleFonts.cairo(color: grey400),
+                filled: true,
+                fillColor: Colors.white,
+                prefixIcon: Icon(
+                  Icons.calendar_today_rounded,
+                  color: nafahatGreen.withOpacity(0.6),
+                  size: 20,
+                ),
+                suffixIcon: Icon(
+                  Icons.arrow_drop_down_rounded,
+                  color: nafahatGreen.withOpacity(0.6),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 14,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: grey300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: grey300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: nafahatGreen, width: 2),
+                ),
+              ),
+              validator: (value) {
+                if (required && (value == null || value.isEmpty)) {
+                  return isArabic ? '⚠️ حقل مطلوب' : '⚠️ Champ requis';
+                }
+                return null;
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDropdownField({
+    required String label,
+    required dynamic value,
+    required List<DropdownMenuItem> items,
+    required ValueChanged<dynamic> onChanged,
+    bool required = false,
+    bool isArabic = false,
+  }) {
+    final bool hasValidValue = items.any((item) => item.value == value);
+    final dynamic effectiveValue = hasValidValue ? value : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              label,
+              style: GoogleFonts.cairo(
+                fontWeight: FontWeight.w600,
+                color: nafahatGreen,
+                fontSize: 13,
+              ),
+            ),
+            if (required) ...[
+              const SizedBox(width: 4),
+              Text(
+                '*',
+                style: GoogleFonts.cairo(
+                  color: Colors.red,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: grey300),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<dynamic>(
+              key: ValueKey(
+                'dropdown_${label.replaceAll(' ', '_')}_${effectiveValue ?? 'none'}',
+              ),
+              value: effectiveValue,
+              isExpanded: true,
+              hint: Text(
+                required
+                    ? (isArabic ? 'اختر' : 'Sélectionner')
+                    : (isArabic ? 'اختياري' : 'Optionnel'),
+                style: GoogleFonts.cairo(color: grey400),
+              ),
+              items: items,
+              onChanged: onChanged,
+              icon: Icon(Icons.arrow_drop_down_rounded, color: nafahatGreen),
+              style: GoogleFonts.cairo(color: nafahatGreen, fontSize: 14),
+              dropdownColor: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRepetitiveSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _isRepetitive ? nafahatGreen.withOpacity(0.05) : grey50,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: _isRepetitive ? nafahatGreen : grey300,
+          width: _isRepetitive ? 2 : 1,
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.repeat_rounded,
+                    color: _isRepetitive ? nafahatGreen : grey600,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    _isArabic ? 'تكوين متكرر' : 'Formation répétitive',
+                    style: GoogleFonts.cairo(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: _isRepetitive ? nafahatGreen : grey600,
+                    ),
+                  ),
+                ],
+              ),
+              Switch(
+                value: _isRepetitive,
+                onChanged: (value) => setState(() => _isRepetitive = value),
+                activeThumbColor: nafahatGreen,
+                activeTrackColor: nafahatGreen.withOpacity(0.3),
+              ),
+            ],
+          ),
+          if (_isRepetitive) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: grey200),
+              ),
+              child: Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children:
+                    _joursSemaine.keys.map((key) {
+                      final label = _isArabic ? _joursAr[key] : _joursFr[key];
+                      final isSelected = _joursSemaine[key]!;
+                      return ChoiceChip(
+                        label: Text(
+                          label ?? key,
+                          style: GoogleFonts.cairo(
+                            fontSize: 13,
+                            fontWeight:
+                                isSelected ? FontWeight.w600 : FontWeight.w400,
+                            color: isSelected ? Colors.white : nafahatGreen,
+                          ),
+                        ),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setState(() {
+                            _joursSemaine[key] = selected;
+                          });
+                        },
+                        selectedColor: nafahatGreen,
+                        backgroundColor: Colors.white,
+                        side: BorderSide(
+                          color: isSelected ? nafahatGreen : grey300,
+                          width: 1.5,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(25),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        labelStyle: GoogleFonts.cairo(),
+                        avatar:
+                            isSelected
+                                ? const Icon(
+                                  Icons.check_circle_rounded,
+                                  color: Colors.white,
+                                  size: 16,
+                                )
+                                : null,
+                      );
+                    }).toList(),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDiscountSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: nafahatOrange.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: _hasDiscount ? nafahatOrange : grey200,
+          width: _hasDiscount ? 2 : 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.local_offer_rounded,
+                    color: _hasDiscount ? nafahatOrange : grey600,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    _isArabic ? 'تفعيل الخصم' : 'Activer la réduction',
+                    style: GoogleFonts.cairo(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: _hasDiscount ? nafahatOrange : grey600,
+                    ),
+                  ),
+                ],
+              ),
+              Switch(
+                value: _hasDiscount,
+                onChanged: (value) => setState(() => _hasDiscount = value),
+                activeThumbColor: nafahatOrange,
+                activeTrackColor: nafahatOrange.withOpacity(0.3),
+              ),
+            ],
+          ),
+          if (_hasDiscount) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _isArabic ? 'نوع الخصم' : 'Type de réduction',
+                        style: GoogleFonts.cairo(fontSize: 12, color: grey600),
+                      ),
+                      const SizedBox(height: 8),
+                      SegmentedButton<bool>(
+                        style: ButtonStyle(
+                          backgroundColor: WidgetStateProperty.resolveWith((
+                            states,
+                          ) {
+                            if (states.contains(WidgetState.selected)) {
+                              return nafahatOrange.withOpacity(0.15);
+                            }
+                            return grey100;
+                          }),
+                          foregroundColor: WidgetStateProperty.resolveWith((
+                            states,
+                          ) {
+                            if (states.contains(WidgetState.selected)) {
+                              return nafahatOrange;
+                            }
+                            return grey600;
+                          }),
+                        ),
+                        segments: [
+                          ButtonSegment(
+                            value: true,
+                            icon: const Icon(Icons.percent_rounded, size: 16),
+                            label: Text(
+                              _isArabic ? 'نسبة' : 'Pourcentage',
+                              style: GoogleFonts.cairo(),
+                            ),
+                          ),
+                          ButtonSegment(
+                            value: false,
+                            icon: const Icon(Icons.money_rounded, size: 16),
+                            label: Text(
+                              _isArabic ? 'مبلغ' : 'Montant',
+                              style: GoogleFonts.cairo(),
+                            ),
+                          ),
+                        ],
+                        selected: {_isPercentageDiscount},
+                        onSelectionChanged: (Set<bool> newSelection) {
+                          setState(
+                            () => _isPercentageDiscount = newSelection.first,
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildField(
+                    label:
+                        _isPercentageDiscount
+                            ? (_isArabic ? 'نسبة الخصم (%)' : 'Valeur (%)')
+                            : (_isArabic ? 'قيمة الخصم (درهم)' : 'Valeur (DH)'),
+                    controller: _discountValueController,
+                    hint: _isPercentageDiscount ? '15' : '2000',
+                    required: _hasDiscount,
+                    keyboardType: TextInputType.number,
+                    prefixIcon:
+                        _isPercentageDiscount
+                            ? Icons.percent_rounded
+                            : Icons.money_rounded,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ==================== SECTION IMAGE ====================
+
+  Widget _buildImageSection() {
+    final bool hasImage =
+        _selectedImageFile != null ||
+        (_imageUrlController.text.isNotEmpty && _uploadedImageUrl != null);
+
+    return _buildSection(
+      icon: Icons.image_outlined,
+      title: _isArabic ? 'الصورة' : 'Image',
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              flex: 3,
+              child: _buildField(
+                label: _isArabic ? 'رابط الصورة' : 'URL de l\'image',
+                controller: _imageUrlController,
+                hint:
+                    _isArabic
+                        ? 'URL ou sélectionnez une image'
+                        : 'URL ou sélectionnez une image',
+                prefixIcon: Icons.link_rounded,
+                readOnly: true,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 1,
+              child: Column(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _isUploadingImage ? null : _pickImage,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: nafahatGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      minimumSize: const Size(double.infinity, 40),
+                      textStyle: GoogleFonts.cairo(fontSize: 12),
+                    ),
+                    icon:
+                        _isUploadingImage
+                            ? const SizedBox(
+                              height: 16,
+                              width: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                            : const Icon(Icons.folder_open_rounded, size: 16),
+                    label: Text(
+                      _isUploadingImage
+                          ? (_isArabic ? 'جاري...' : 'Chargement...')
+                          : (_isArabic ? 'تصفح' : 'Parcourir'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        if (hasImage) ...[
+          const SizedBox(height: 16),
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: nafahatGreen.withOpacity(0.3)),
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.white,
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: _getImagePreview(),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: _removeImage,
+              icon: const Icon(
+                Icons.delete_outline,
+                color: Colors.red,
+                size: 18,
+              ),
+              label: Text(
+                _isArabic ? 'إزالة الصورة' : 'Supprimer l\'image',
+                style: GoogleFonts.cairo(color: Colors.red),
+              ),
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.red.withOpacity(0.05),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  // ==================== APERÇU DE L'IMAGE ====================
+
+  Widget _getImagePreview() {
+    if (_selectedImageFile is File && _selectedImageFile != null) {
+      return Image.file(
+        _selectedImageFile as File,
+        height: 180,
+        width: double.infinity,
+        fit: BoxFit.cover,
+      );
+    }
+
+    if (_selectedImageFile is html.File && _selectedImageFile != null) {
+      final file = _selectedImageFile as html.File;
+      final url = html.Url.createObjectUrl(file);
+      return Image.network(
+        url,
+        height: 180,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            height: 180,
+            color: grey100,
+            child: Center(
+              child: CircularProgressIndicator(
+                value:
+                    loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded /
+                            loadingProgress.expectedTotalBytes!
+                        : null,
+                color: nafahatGreen,
+              ),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            height: 180,
+            color: grey200,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.broken_image, color: grey400, size: 48),
+                  const SizedBox(height: 8),
+                  Text(
+                    _isArabic ? '❌ صورة غير صالحة' : '❌ Image invalide',
+                    style: GoogleFonts.cairo(color: grey600),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    if (_uploadedImageUrl != null && _uploadedImageUrl!.isNotEmpty) {
+      return Image.network(
+        _uploadedImageUrl!,
+        height: 180,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            height: 180,
+            color: grey100,
+            child: Center(
+              child: CircularProgressIndicator(
+                value:
+                    loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded /
+                            loadingProgress.expectedTotalBytes!
+                        : null,
+                color: nafahatGreen,
+              ),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            height: 180,
+            color: grey200,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.broken_image, color: grey400, size: 48),
+                  const SizedBox(height: 8),
+                  Text(
+                    _isArabic ? '❌ صورة غير صالحة' : '❌ Image invalide',
+                    style: GoogleFonts.cairo(color: grey600),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  // ==================== BUILD ====================
 
   @override
   Widget build(BuildContext context) {
@@ -756,6 +1644,7 @@ class _EditFormationPageState extends State<EditFormationPage> {
                                                   value: t['id'],
                                                   child: Text(
                                                     t['type_formation'] ?? '',
+                                                    style: GoogleFonts.cairo(),
                                                   ),
                                                 );
                                               }).toList(),
@@ -781,6 +1670,7 @@ class _EditFormationPageState extends State<EditFormationPage> {
                                                   value: d['id'],
                                                   child: Text(
                                                     d['type_duree'] ?? '',
+                                                    style: GoogleFonts.cairo(),
                                                   ),
                                                 );
                                               }).toList(),
@@ -827,7 +1717,10 @@ class _EditFormationPageState extends State<EditFormationPage> {
                                                       : c['categorie_fr'];
                                               return DropdownMenuItem<int>(
                                                 value: c['id'],
-                                                child: Text(label ?? ''),
+                                                child: Text(
+                                                  label ?? '',
+                                                  style: GoogleFonts.cairo(),
+                                                ),
                                               );
                                             }),
                                           ],
@@ -858,7 +1751,10 @@ class _EditFormationPageState extends State<EditFormationPage> {
                                                       : sc['nom_fr'];
                                               return DropdownMenuItem<int>(
                                                 value: sc['id'],
-                                                child: Text(label ?? ''),
+                                                child: Text(
+                                                  label ?? '',
+                                                  style: GoogleFonts.cairo(),
+                                                ),
                                               );
                                             }),
                                           ],
@@ -890,7 +1786,10 @@ class _EditFormationPageState extends State<EditFormationPage> {
                                                 : f['nom_prenom_fr'];
                                         return DropdownMenuItem<int>(
                                           value: f['id'],
-                                          child: Text(label ?? ''),
+                                          child: Text(
+                                            label ?? '',
+                                            style: GoogleFonts.cairo(),
+                                          ),
                                         );
                                       }),
                                     ],
@@ -1289,805 +2188,6 @@ class _EditFormationPageState extends State<EditFormationPage> {
                   ),
                 ),
               ),
-    );
-  }
-
-  // ==================== SECTION IMAGE ====================
-  Widget _buildImageSection() {
-    final bool hasImage =
-        _selectedImageFile != null ||
-        (_imageUrlController.text.isNotEmpty && _uploadedImageUrl != null);
-
-    return _buildSection(
-      icon: Icons.image_outlined,
-      title: _isArabic ? 'الصورة' : 'Image',
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(
-              flex: 3,
-              child: _buildField(
-                label: _isArabic ? 'رابط الصورة' : 'URL de l\'image',
-                controller: _imageUrlController,
-                hint:
-                    _isArabic
-                        ? 'URL ou sélectionnez une image'
-                        : 'URL ou sélectionnez une image',
-                prefixIcon: Icons.link_rounded,
-                readOnly: true,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 1,
-              child: Column(
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: _isUploadingImage ? null : _pickImage,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: nafahatGreen,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      minimumSize: const Size(double.infinity, 40),
-                      textStyle: GoogleFonts.cairo(fontSize: 12),
-                    ),
-                    icon:
-                        _isUploadingImage
-                            ? const SizedBox(
-                              height: 16,
-                              width: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                            : const Icon(Icons.folder_open_rounded, size: 16),
-                    label: Text(
-                      _isUploadingImage
-                          ? (_isArabic ? 'جاري...' : 'Chargement...')
-                          : (_isArabic ? 'تصفح' : 'Parcourir'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-
-        if (hasImage) ...[
-          const SizedBox(height: 16),
-          Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: nafahatGreen.withOpacity(0.3)),
-              borderRadius: BorderRadius.circular(12),
-              color: Colors.white,
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: _getImagePreview(),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: _removeImage,
-              icon: const Icon(
-                Icons.delete_outline,
-                color: Colors.red,
-                size: 18,
-              ),
-              label: Text(
-                _isArabic ? 'إزالة الصورة' : 'Supprimer l\'image',
-                style: GoogleFonts.cairo(color: Colors.red),
-              ),
-              style: TextButton.styleFrom(
-                backgroundColor: Colors.red.withOpacity(0.05),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  // ==================== APERÇU DE L'IMAGE ====================
-  Widget _getImagePreview() {
-    if (_selectedImageFile is File && _selectedImageFile != null) {
-      return Image.file(
-        _selectedImageFile as File,
-        height: 180,
-        width: double.infinity,
-        fit: BoxFit.cover,
-      );
-    }
-
-    if (_selectedImageFile is html.File && _selectedImageFile != null) {
-      final file = _selectedImageFile as html.File;
-      final url = html.Url.createObjectUrl(file);
-      return Image.network(
-        url,
-        height: 180,
-        width: double.infinity,
-        fit: BoxFit.cover,
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Container(
-            height: 180,
-            color: grey100,
-            child: Center(
-              child: CircularProgressIndicator(
-                value:
-                    loadingProgress.expectedTotalBytes != null
-                        ? loadingProgress.cumulativeBytesLoaded /
-                            loadingProgress.expectedTotalBytes!
-                        : null,
-                color: nafahatGreen,
-              ),
-            ),
-          );
-        },
-        errorBuilder: (context, error, stackTrace) {
-          return Container(
-            height: 180,
-            color: grey200,
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.broken_image, color: grey400, size: 48),
-                  const SizedBox(height: 8),
-                  Text(
-                    _isArabic ? '❌ صورة غير صالحة' : '❌ Image invalide',
-                    style: GoogleFonts.cairo(color: grey600),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-    }
-
-    if (_uploadedImageUrl != null && _uploadedImageUrl!.isNotEmpty) {
-      return Image.network(
-        _uploadedImageUrl!,
-        height: 180,
-        width: double.infinity,
-        fit: BoxFit.cover,
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Container(
-            height: 180,
-            color: grey100,
-            child: Center(
-              child: CircularProgressIndicator(
-                value:
-                    loadingProgress.expectedTotalBytes != null
-                        ? loadingProgress.cumulativeBytesLoaded /
-                            loadingProgress.expectedTotalBytes!
-                        : null,
-                color: nafahatGreen,
-              ),
-            ),
-          );
-        },
-        errorBuilder: (context, error, stackTrace) {
-          return Container(
-            height: 180,
-            color: grey200,
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.broken_image, color: grey400, size: 48),
-                  const SizedBox(height: 8),
-                  Text(
-                    _isArabic ? '❌ صورة غير صالحة' : '❌ Image invalide',
-                    style: GoogleFonts.cairo(color: grey600),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-    }
-
-    return const SizedBox.shrink();
-  }
-
-  // ==================== WIDGETS ====================
-
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [nafahatGreen, nafahatGreen],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: nafahatGreen.withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.edit_note_rounded,
-              color: Colors.white,
-              size: 28,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _isArabic ? 'تعديل تكوين' : 'Modifier la formation',
-                  style: GoogleFonts.cairo(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                Text(
-                  _isArabic
-                      ? 'قم بتعديل معلومات التكوين'
-                      : 'Modifiez les informations de la formation',
-                  style: GoogleFonts.cairo(
-                    color: Colors.white.withOpacity(0.8),
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSection({
-    required IconData icon,
-    required String title,
-    required List<Widget> children,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: nafahatGreen.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: nafahatGreen, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              title,
-              style: GoogleFonts.cairo(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: nafahatGreen,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        ...children,
-      ],
-    );
-  }
-
-  Widget _buildRepetitiveSection() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _isRepetitive ? nafahatGreen.withOpacity(0.05) : grey50,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: _isRepetitive ? nafahatGreen : grey300,
-          width: _isRepetitive ? 2 : 1,
-        ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.repeat_rounded,
-                    color: _isRepetitive ? nafahatGreen : grey600,
-                    size: 22,
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    _isArabic ? 'تكوين متكرر' : 'Formation répétitive',
-                    style: GoogleFonts.cairo(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: _isRepetitive ? nafahatGreen : grey600,
-                    ),
-                  ),
-                ],
-              ),
-              Switch(
-                value: _isRepetitive,
-                onChanged: (value) => setState(() => _isRepetitive = value),
-                activeThumbColor: nafahatGreen,
-                activeTrackColor: nafahatGreen.withOpacity(0.3),
-              ),
-            ],
-          ),
-          if (_isRepetitive) ...[
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: grey200),
-              ),
-              child: Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children:
-                    _joursSemaine.keys.map((key) {
-                      final label = _isArabic ? _joursAr[key] : _joursFr[key];
-                      final isSelected = _joursSemaine[key]!;
-                      return ChoiceChip(
-                        label: Text(
-                          label ?? key,
-                          style: GoogleFonts.cairo(
-                            fontSize: 13,
-                            fontWeight:
-                                isSelected ? FontWeight.w600 : FontWeight.w400,
-                            color: isSelected ? Colors.white : nafahatGreen,
-                          ),
-                        ),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          setState(() {
-                            _joursSemaine[key] = selected;
-                          });
-                        },
-                        selectedColor: nafahatGreen,
-                        backgroundColor: Colors.white,
-                        side: BorderSide(
-                          color: isSelected ? nafahatGreen : grey300,
-                          width: 1.5,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        labelStyle: GoogleFonts.cairo(),
-                        avatar:
-                            isSelected
-                                ? const Icon(
-                                  Icons.check_circle_rounded,
-                                  color: Colors.white,
-                                  size: 16,
-                                )
-                                : null,
-                      );
-                    }).toList(),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDiscountSection() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: nafahatOrange.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: _hasDiscount ? nafahatOrange : grey200,
-          width: _hasDiscount ? 2 : 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.local_offer_rounded,
-                    color: _hasDiscount ? nafahatOrange : grey600,
-                    size: 22,
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    _isArabic ? 'تفعيل الخصم' : 'Activer la réduction',
-                    style: GoogleFonts.cairo(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: _hasDiscount ? nafahatOrange : grey600,
-                    ),
-                  ),
-                ],
-              ),
-              Switch(
-                value: _hasDiscount,
-                onChanged: (value) => setState(() => _hasDiscount = value),
-                activeThumbColor: nafahatOrange,
-                activeTrackColor: nafahatOrange.withOpacity(0.3),
-              ),
-            ],
-          ),
-          if (_hasDiscount) ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _isArabic ? 'نوع الخصم' : 'Type de réduction',
-                        style: GoogleFonts.cairo(fontSize: 12, color: grey600),
-                      ),
-                      const SizedBox(height: 8),
-                      SegmentedButton<bool>(
-                        style: ButtonStyle(
-                          backgroundColor: WidgetStateProperty.resolveWith((
-                            states,
-                          ) {
-                            if (states.contains(WidgetState.selected)) {
-                              return nafahatOrange.withOpacity(0.15);
-                            }
-                            return grey100;
-                          }),
-                          foregroundColor: WidgetStateProperty.resolveWith((
-                            states,
-                          ) {
-                            if (states.contains(WidgetState.selected)) {
-                              return nafahatOrange;
-                            }
-                            return grey600;
-                          }),
-                        ),
-                        segments: [
-                          ButtonSegment(
-                            value: true,
-                            icon: const Icon(Icons.percent_rounded, size: 16),
-                            label: Text(
-                              _isArabic ? 'نسبة' : 'Pourcentage',
-                              style: GoogleFonts.cairo(),
-                            ),
-                          ),
-                          ButtonSegment(
-                            value: false,
-                            icon: const Icon(Icons.money_rounded, size: 16),
-                            label: Text(
-                              _isArabic ? 'مبلغ' : 'Montant',
-                              style: GoogleFonts.cairo(),
-                            ),
-                          ),
-                        ],
-                        selected: {_isPercentageDiscount},
-                        onSelectionChanged: (Set<bool> newSelection) {
-                          setState(
-                            () => _isPercentageDiscount = newSelection.first,
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildField(
-                    label:
-                        _isPercentageDiscount
-                            ? (_isArabic ? 'نسبة الخصم (%)' : 'Valeur (%)')
-                            : (_isArabic ? 'قيمة الخصم (درهم)' : 'Valeur (DH)'),
-                    controller: _discountValueController,
-                    hint: _isPercentageDiscount ? '15' : '2000',
-                    required: _hasDiscount,
-                    keyboardType: TextInputType.number,
-                    prefixIcon:
-                        _isPercentageDiscount
-                            ? Icons.percent_rounded
-                            : Icons.money_rounded,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildField({
-    required String label,
-    required TextEditingController controller,
-    required String hint,
-    bool required = false,
-    int maxLines = 1,
-    TextDirection textDirection = TextDirection.ltr,
-    TextInputType keyboardType = TextInputType.text,
-    IconData? prefixIcon,
-    bool readOnly = false,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              label,
-              style: GoogleFonts.cairo(
-                fontWeight: FontWeight.w600,
-                color: nafahatGreen,
-                fontSize: 13,
-              ),
-            ),
-            if (required) ...[
-              const SizedBox(width: 4),
-              Text(
-                '*',
-                style: GoogleFonts.cairo(
-                  color: Colors.red,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ],
-        ),
-        const SizedBox(height: 6),
-        TextFormField(
-          controller: controller,
-          textDirection: textDirection,
-          keyboardType: keyboardType,
-          maxLines: maxLines,
-          readOnly: readOnly,
-          style: GoogleFonts.cairo(fontSize: 14),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: GoogleFonts.cairo(color: grey400),
-            filled: true,
-            fillColor: readOnly ? grey100 : Colors.white,
-            prefixIcon:
-                prefixIcon != null
-                    ? Icon(
-                      prefixIcon,
-                      color: nafahatGreen.withOpacity(0.6),
-                      size: 20,
-                    )
-                    : null,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 14,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: grey300),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: grey300),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: nafahatGreen, width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.red.shade400),
-            ),
-          ),
-          validator: (value) {
-            if (required && (value == null || value.isEmpty)) {
-              return _isArabic ? '⚠️ حقل مطلوب' : '⚠️ Champ requis';
-            }
-            if (keyboardType == TextInputType.number &&
-                value != null &&
-                value.isNotEmpty &&
-                double.tryParse(value) == null) {
-              return _isArabic ? '⚠️ رقم غير صالح' : '⚠️ Nombre invalide';
-            }
-            return null;
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDateField({
-    required String label,
-    required TextEditingController controller,
-    required VoidCallback onTap,
-    bool required = false,
-    bool isArabic = false,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              label,
-              style: GoogleFonts.cairo(
-                fontWeight: FontWeight.w600,
-                color: nafahatGreen,
-                fontSize: 13,
-              ),
-            ),
-            if (required) ...[
-              const SizedBox(width: 4),
-              Text(
-                '*',
-                style: GoogleFonts.cairo(
-                  color: Colors.red,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ],
-        ),
-        const SizedBox(height: 6),
-        GestureDetector(
-          onTap: onTap,
-          child: AbsorbPointer(
-            child: TextFormField(
-              controller: controller,
-              style: GoogleFonts.cairo(fontSize: 14),
-              decoration: InputDecoration(
-                hintText: isArabic ? 'اختر تاريخ' : 'Choisir une date',
-                hintStyle: GoogleFonts.cairo(color: grey400),
-                filled: true,
-                fillColor: Colors.white,
-                prefixIcon: Icon(
-                  Icons.calendar_today_rounded,
-                  color: nafahatGreen.withOpacity(0.6),
-                  size: 20,
-                ),
-                suffixIcon: Icon(
-                  Icons.arrow_drop_down_rounded,
-                  color: nafahatGreen.withOpacity(0.6),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 14,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: grey300),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: grey300),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: nafahatGreen, width: 2),
-                ),
-              ),
-              validator: (value) {
-                if (required && (value == null || value.isEmpty)) {
-                  return isArabic ? '⚠️ حقل مطلوب' : '⚠️ Champ requis';
-                }
-                return null;
-              },
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDropdownField({
-    required String label,
-    required dynamic value,
-    required List<DropdownMenuItem> items,
-    required ValueChanged<dynamic> onChanged,
-    bool required = false,
-    bool isArabic = false,
-  }) {
-    final bool hasValidValue = items.any((item) => item.value == value);
-    final dynamic effectiveValue = hasValidValue ? value : null;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              label,
-              style: GoogleFonts.cairo(
-                fontWeight: FontWeight.w600,
-                color: nafahatGreen,
-                fontSize: 13,
-              ),
-            ),
-            if (required) ...[
-              const SizedBox(width: 4),
-              Text(
-                '*',
-                style: GoogleFonts.cairo(
-                  color: Colors.red,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ],
-        ),
-        const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: grey300),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<dynamic>(
-              key: ValueKey(
-                'dropdown_${label.replaceAll(' ', '_')}_${effectiveValue ?? 'none'}',
-              ),
-              value: effectiveValue,
-              isExpanded: true,
-              hint: Text(
-                required
-                    ? (isArabic ? 'اختر' : 'Sélectionner')
-                    : (isArabic ? 'اختياري' : 'Optionnel'),
-                style: GoogleFonts.cairo(color: grey400),
-              ),
-              items: items,
-              onChanged: onChanged,
-              icon: Icon(Icons.arrow_drop_down_rounded, color: nafahatGreen),
-              style: GoogleFonts.cairo(color: nafahatGreen, fontSize: 14),
-              dropdownColor: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

@@ -1,11 +1,13 @@
 // lib/pages/adminisration/apparence_hero.dart
-import 'dart:io';
+
+import 'dart:html' as html; // ✅ Pour Web
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'dart:io';
 import 'package:nafahat/pages/adminisration/admin_page_wrapper.dart';
 import '../widgets/hero_section.dart';
 import '../widgets/slide_item.dart';
@@ -195,91 +197,83 @@ class _ApparenceHeroState extends State<ApparenceHero> {
     }
   }
 
+  // ============================================================
+  // ✅ UPLOAD IMAGE - VERSION WEB UNIQUEMENT (dart:html)
+  // ============================================================
+
   Future<void> _uploadImage() async {
     try {
-      print('=== UPLOAD IMAGE DEPUIS PC ===');
+      print('=== UPLOAD IMAGE (Web) ===');
 
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.image,
-        allowMultiple: false,
-      );
+      // ✅ Utiliser l'input HTML natif
+      final input = html.FileUploadInputElement()
+        ..accept = 'image/*'; // Accepte toutes les images
+      input.click();
 
-      if (result != null) {
-        PlatformFile file = result.files.first;
-        print('Nom du fichier: ${file.name}');
-        print('Plateforme: ${kIsWeb ? "Web" : "Mobile/Desktop"}');
-
-        if (kIsWeb) {
-          if (file.bytes == null) {
-            throw Exception('Impossible de récupérer les données de l\'image');
-          }
-
-          final bytes = file.bytes!;
-          final String base64Image = base64Encode(bytes);
-          final String imageKey =
-              'hero_image_${DateTime.now().millisecondsSinceEpoch}';
-
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString(imageKey, base64Image);
-          print('Image stockée dans SharedPreferences avec clé: $imageKey');
-
-          setState(() {
-            _slides.add(
-              SlideItem(
-                id: DateTime.now().millisecondsSinceEpoch.toString(),
-                titleFr: 'Nouveau Slide',
-                titleAr: 'شريحة جديدة',
-                subtitleFr: 'Description du slide',
-                subtitleAr: 'وصف الشريحة',
-                imagePath: imageKey,
-                isAsset: false,
-                imageBytes: bytes,
-              ),
-            );
-          });
-        } else {
-          String? filePath = file.path;
-          if (filePath == null) {
-            throw Exception('Impossible de récupérer le chemin du fichier');
-          }
-
-          File sourceFile = File(filePath);
-          final appDir = await getApplicationDocumentsDirectory();
-          final String newPath =
-              '${appDir.path}/hero_${DateTime.now().millisecondsSinceEpoch}_${file.name}';
-
-          await sourceFile.copy(newPath);
-          print('Fichier copié vers: $newPath');
-
-          setState(() {
-            _slides.add(
-              SlideItem(
-                id: DateTime.now().millisecondsSinceEpoch.toString(),
-                titleFr: 'Nouveau Slide',
-                titleAr: 'شريحة جديدة',
-                subtitleFr: 'Description du slide',
-                subtitleAr: 'وصف الشريحة',
-                imagePath: newPath,
-                isAsset: false,
-              ),
-            );
-          });
-        }
-
-        await _saveSlides();
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                widget.isArabic ? 'تم رفع الصورة' : 'Image uploadée',
-              ),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } else {
+      // Attendre la sélection
+      await input.onChange.first;
+      if (input.files == null || input.files!.isEmpty) {
         print('Aucun fichier sélectionné');
+        return;
+      }
+
+      final file = input.files!.first;
+      print('Fichier sélectionné: ${file.name}');
+      print('Taille: ${file.size} bytes');
+      print('Type: ${file.type}');
+
+      // Vérifier que c'est bien une image
+      if (!file.type.startsWith('image/')) {
+        throw Exception('Le fichier doit être une image');
+      }
+
+      // Vérifier la taille (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        throw Exception('L\'image est trop volumineuse (max 5MB)');
+      }
+
+      // Lire le fichier en bytes
+      final reader = html.FileReader();
+      reader.readAsArrayBuffer(file);
+      await reader.onLoad.first;
+      final bytes = reader.result as Uint8List;
+
+      // Stocker dans SharedPreferences
+      final String base64Image = base64Encode(bytes);
+      final String imageKey =
+          'hero_image_${DateTime.now().millisecondsSinceEpoch}';
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(imageKey, base64Image);
+      print('Image stockée dans SharedPreferences avec clé: $imageKey');
+
+      // Ajouter le slide
+      setState(() {
+        _slides.add(
+          SlideItem(
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            titleFr: 'Nouveau Slide',
+            titleAr: 'شريحة جديدة',
+            subtitleFr: 'Description du slide',
+            subtitleAr: 'وصف الشريحة',
+            imagePath: imageKey,
+            isAsset: false,
+            imageBytes: bytes,
+          ),
+        );
+      });
+
+      await _saveSlides();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              widget.isArabic ? 'تم رفع الصورة' : 'Image uploadée',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
     } catch (e) {
       print('ERREUR upload: $e');
@@ -294,78 +288,75 @@ class _ApparenceHeroState extends State<ApparenceHero> {
     }
   }
 
+  // ============================================================
+  // ✅ IMAGE DEPUIS LA GALERIE - VERSION WEB UNIQUEMENT
+  // ============================================================
+
   Future<void> _pickImageFromGallery() async {
     try {
-      print('=== UPLOAD IMAGE DEPUIS GALERIE ===');
+      print('=== PICK IMAGE FROM GALLERY (Web) ===');
 
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+      // ✅ Utiliser l'input HTML natif
+      final input = html.FileUploadInputElement()
+        ..accept = 'image/*';
+      input.click();
 
-      if (image != null) {
-        print('Image sélectionnée: ${image.name}');
-        print('Plateforme: ${kIsWeb ? "Web" : "Mobile/Desktop"}');
-
-        if (kIsWeb) {
-          final bytes = await image.readAsBytes();
-          final String base64Image = base64Encode(bytes);
-          final String imageKey =
-              'hero_image_${DateTime.now().millisecondsSinceEpoch}';
-
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString(imageKey, base64Image);
-
-          setState(() {
-            _slides.add(
-              SlideItem(
-                id: DateTime.now().millisecondsSinceEpoch.toString(),
-                titleFr: 'Nouveau Slide',
-                titleAr: 'شريحة جديدة',
-                subtitleFr: 'Description du slide',
-                subtitleAr: 'وصف الشريحة',
-                imagePath: imageKey,
-                isAsset: false,
-                imageBytes: bytes,
-              ),
-            );
-          });
-        } else {
-          File file = File(image.path);
-          String fileName = image.name;
-          final appDir = await getApplicationDocumentsDirectory();
-          final String newPath =
-              '${appDir.path}/hero_${DateTime.now().millisecondsSinceEpoch}_$fileName';
-          await file.copy(newPath);
-          print('Fichier copié vers: $newPath');
-
-          setState(() {
-            _slides.add(
-              SlideItem(
-                id: DateTime.now().millisecondsSinceEpoch.toString(),
-                titleFr: 'Nouveau Slide',
-                titleAr: 'شريحة جديدة',
-                subtitleFr: 'Description du slide',
-                subtitleAr: 'وصف الشريحة',
-                imagePath: newPath,
-                isAsset: false,
-              ),
-            );
-          });
-        }
-
-        await _saveSlides();
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                widget.isArabic ? 'تم رفع الصورة' : 'Image importée',
-              ),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } else {
+      await input.onChange.first;
+      if (input.files == null || input.files!.isEmpty) {
         print('Aucune image sélectionnée');
+        return;
+      }
+
+      final file = input.files!.first;
+      print('Image sélectionnée: ${file.name}');
+      print('Taille: ${file.size} bytes');
+
+      if (!file.type.startsWith('image/')) {
+        throw Exception('Le fichier doit être une image');
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        throw Exception('L\'image est trop volumineuse (max 5MB)');
+      }
+
+      final reader = html.FileReader();
+      reader.readAsArrayBuffer(file);
+      await reader.onLoad.first;
+      final bytes = reader.result as Uint8List;
+
+      final String base64Image = base64Encode(bytes);
+      final String imageKey =
+          'hero_image_${DateTime.now().millisecondsSinceEpoch}';
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(imageKey, base64Image);
+
+      setState(() {
+        _slides.add(
+          SlideItem(
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            titleFr: 'Nouveau Slide',
+            titleAr: 'شريحة جديدة',
+            subtitleFr: 'Description du slide',
+            subtitleAr: 'وصف الشريحة',
+            imagePath: imageKey,
+            isAsset: false,
+            imageBytes: bytes,
+          ),
+        );
+      });
+
+      await _saveSlides();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              widget.isArabic ? 'تم رفع الصورة' : 'Image importée',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
     } catch (e) {
       print('ERREUR galerie: $e');
@@ -693,9 +684,7 @@ class _ApparenceHeroState extends State<ApparenceHero> {
             ),
             const SizedBox(height: 12),
             Text(
-              kIsWeb
-                  ? '🌐 Les images sont stockées dans SharedPreferences (base64)'
-                  : '📱 Les images sont stockées dans le dossier documents',
+              '🌐 Les images sont stockées dans SharedPreferences (base64)',
               style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
             const SizedBox(height: 12),
@@ -705,13 +694,13 @@ class _ApparenceHeroState extends State<ApparenceHero> {
               children: [
                 _buildUploadButton(
                   icon: Icons.folder_open,
-                  label: 'Parcourir PC',
+                  label: widget.isArabic ? 'تصفح' : 'Parcourir',
                   color: Colors.blue,
                   onTap: _uploadImage,
                 ),
                 _buildUploadButton(
                   icon: Icons.photo_library,
-                  label: 'Galerie',
+                  label: widget.isArabic ? 'المعرض' : 'Galerie',
                   color: Colors.green,
                   onTap: _pickImageFromGallery,
                 ),
@@ -767,7 +756,7 @@ class _ApparenceHeroState extends State<ApparenceHero> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              initialValue: _animationType,
+              value: _animationType,
               decoration: InputDecoration(
                 labelText: widget.isArabic ? 'نوع الحركة' : 'Type d\'animation',
                 border: OutlineInputBorder(
@@ -794,7 +783,7 @@ class _ApparenceHeroState extends State<ApparenceHero> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              initialValue: _animationDirection,
+              value: _animationDirection,
               decoration: InputDecoration(
                 labelText:
                     widget.isArabic ? 'اتجاه الحركة' : 'Direction d\'animation',
@@ -1012,27 +1001,6 @@ class _ApparenceHeroState extends State<ApparenceHero> {
             );
           },
         );
-      } else if (!kIsWeb) {
-        final file = File(slide.imagePath);
-        final exists = file.existsSync();
-
-        if (exists) {
-          imageWidget = Image.file(
-            file,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                color: Colors.grey[300],
-                child: const Icon(Icons.broken_image, color: Colors.grey),
-              );
-            },
-          );
-        } else {
-          imageWidget = Container(
-            color: Colors.grey[300],
-            child: const Icon(Icons.image_not_supported, color: Colors.grey),
-          );
-        }
       } else {
         imageWidget = Container(
           color: Colors.grey[300],
