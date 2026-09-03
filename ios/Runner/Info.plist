@@ -41,6 +41,12 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+<string>Cette application a besoin d'accéder à votre bibliothèque photos pour joindre des justificatifs de paiement</string>
+<key>NSDocumentsFolderUsageDescription</key>
+<string>Cette application a besoin d'accéder à vos documents pour joindre des justificatifs</string>
+<key>UIFileSharingEnabled</key>
+<true/>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

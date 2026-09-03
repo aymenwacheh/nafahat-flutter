@@ -26,6 +26,7 @@ dependencies:
   url_launcher: ^6.2.5
   rxdart: ^0.27.7 
   reorderable_grid_view: ^2.2.8
+  permission_handler: ^11.0.1  # Pour gérer les permissions storage mobile
   
 
 dev_dependencies:

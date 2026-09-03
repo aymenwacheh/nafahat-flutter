@@ -35,7 +35,7 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    // 2. Logo : Fondu + Scale (Curves.easeOutBack est le nom correct en Flutter)
+    // 2. Logo : Fondu + Scale
     _logoOpacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
@@ -45,7 +45,7 @@ class _SplashScreenState extends State<SplashScreen>
     _logoScaleAnimation = Tween<double>(begin: 0.85, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.1, 0.7, curve: Curves.easeOutBack), // CORRIGÉ : easeOutBack
+        curve: const Interval(0.1, 0.7, curve: Curves.easeOutBack),
       ),
     );
 
@@ -85,6 +85,35 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final isMobile = screenSize.width < 600;
+    final isTablet = screenSize.width >= 600 && screenSize.width < 1200;
+    
+    // ✅ TAILLES AGRANDIES
+    double logoWidth;
+    double textWidth;
+    
+    if (isMobile) {
+      // Mobile : 65% de la largeur
+      logoWidth = screenSize.width * 0.65;
+      textWidth = screenSize.width * 0.80;
+    } else if (isTablet) {
+      // Tablette : 50% de la largeur
+      logoWidth = screenSize.width * 0.45;
+      textWidth = screenSize.width * 0.55;
+    } else {
+      // Desktop : 35% de la largeur
+      logoWidth = screenSize.width * 0.30;
+      textWidth = screenSize.width * 0.40;
+    }
+    
+    // ✅ Limites maximales pour éviter que ce soit trop grand
+    final double maxLogoWidth = isMobile ? 350 : 500;
+    final double maxTextWidth = isMobile ? 500 : 700;
+    
+    logoWidth = logoWidth > maxLogoWidth ? maxLogoWidth : logoWidth;
+    textWidth = textWidth > maxTextWidth ? maxTextWidth : textWidth;
+
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,
@@ -104,21 +133,21 @@ class _SplashScreenState extends State<SplashScreen>
             ),
           ),
 
-          // Calques Logo (2.png) et Texte (3.png)
+          // Calques Logo et Texte
           SafeArea(
             child: Stack(
               children: [
-                // Logo
+                // ✅ LOGO - plus grand et plus haut
                 Positioned.fill(
                   child: Align(
-                    alignment: Alignment(0.0, -0.35),
+                    alignment: const Alignment(0.0, -0.25), // ✅ Décalé vers le haut
                     child: FadeTransition(
                       opacity: _logoOpacityAnimation,
                       child: ScaleTransition(
                         scale: _logoScaleAnimation,
                         child: Image.asset(
                           'assets/splash/2.png',
-                          width: 160,
+                          width: logoWidth,
                           fit: BoxFit.contain,
                         ),
                       ),
@@ -126,17 +155,17 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                 ),
 
-                // Texte
+                // ✅ TEXTE - plus grand et légèrement plus haut
                 Positioned.fill(
                   child: Align(
-                    alignment: Alignment(0.0, 0.15),
+                    alignment: const Alignment(0.0, 0.35), // ✅ Positionné plus haut
                     child: FadeTransition(
                       opacity: _textOpacityAnimation,
                       child: SlideTransition(
                         position: _textSlideAnimation,
                         child: Image.asset(
                           'assets/splash/3.png',
-                          width: 280,
+                          width: textWidth,
                           fit: BoxFit.contain,
                         ),
                       ),
