@@ -340,7 +340,7 @@ class _LandingPageState extends State<LandingPage> {
               // ============================================================
               // ✅ MOBILE BOTTOM NAVIGATION
               // ============================================================
-              const MobileBottomNav(),
+            //  const MobileBottomNav(),
             ],
           ),
         ),

@@ -210,7 +210,7 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
                 // ============================================================
                 // ✅ MOBILE BOTTOM NAVIGATION
                 // ============================================================
-                const MobileBottomNav(),
+                //const MobileBottomNav(),
               ],
             ),
           ),

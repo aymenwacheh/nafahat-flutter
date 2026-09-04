@@ -85,7 +85,10 @@ class _FormationsPageState extends State<FormationsPage> {
   @override
   Widget build(BuildContext context) {
     final isArabic = Provider.of<LanguageProvider>(context).isArabic;
-    final isMobile = MediaQuery.of(context).size.width < 600;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+    final isTablet = screenWidth >= 600 && screenWidth < 1200;
+    final isDesktop = screenWidth >= 1200;
     
     // Créer une instance unique du Navbar
     final navbar = Navbar(
@@ -95,138 +98,142 @@ class _FormationsPageState extends State<FormationsPage> {
 
     return Scaffold(
       key: _scaffoldKey,
+      backgroundColor: Colors.grey.shade50,
       // ============================================================
       // DRAWER MOBILE - AJOUTÉ POUR QUE LE MENU FONCTIONNE
       // ============================================================
-      drawer: navbar.buildDrawer(context),
-      body: Column(
-        children: [
-          // ============================================================
-          // NAVBAR (responsif mobile/web)
-          // ============================================================
-          navbar,
-          // ============================================================
-          // CONTENU PRINCIPAL
-          // ============================================================
-          Expanded(
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xffd57653),
-                    ),
-                  )
-                : _errorMessage != null
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.error_outline,
-                              size: 64,
-                              color: Colors.red[300],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              isArabic ? 'حدث خطأ' : 'Une erreur est survenue',
-                              style: GoogleFonts.cairo(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+      drawer: isMobile ? navbar.buildDrawer(context) : null,
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            // ============================================================
+            // NAVBAR (responsif mobile/web)
+            // ============================================================
+            navbar,
+            // ============================================================
+            // CONTENU PRINCIPAL
+            // ============================================================
+            Expanded(
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xffd57653),
+                      ),
+                    )
+                  : _errorMessage != null
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                size: 64,
+                                color: Colors.red[300],
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _errorMessage!,
-                              style: GoogleFonts.cairo(
-                                color: Colors.grey[600],
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: _loadTrainings,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xffd57653),
-                                foregroundColor: Colors.white,
-                              ),
-                              child: Text(
-                                isArabic ? 'إعادة المحاولة' : 'Réessayer',
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : _trainings.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.school_outlined,
-                                  size: 80,
-                                  color: const Color(0xffd57653).withOpacity(0.3),
+                              const SizedBox(height: 16),
+                              Text(
+                                isArabic ? 'حدث خطأ' : 'Une erreur est survenue',
+                                style: GoogleFonts.cairo(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  isArabic
-                                      ? 'لا توجد تكوينات مطابقة'
-                                      : 'Aucune formation correspondante',
-                                  style: GoogleFonts.cairo(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  isArabic
-                                      ? 'جرب تغيير الفلتر أو العودة للصفحة الرئيسية'
-                                      : 'Essayez de changer le filtre ou revenez à l\'accueil',
-                                  style: GoogleFonts.cairo(
-                                    color: Colors.grey[500],
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    Navigator.pop(context);
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xffd57653),
-                                    foregroundColor: Colors.white,
-                                  ),
-                                  child: Text(
-                                    isArabic ? 'العودة للرئيسية' : 'Retour à l\'accueil',
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        : Padding(
-                            padding: EdgeInsets.all(isMobile ? 12 : 24),
-                            child: GridView.builder(
-                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: isMobile ? 1 : 3,
-                                childAspectRatio: isMobile ? 0.7 : 0.85,
-                                crossAxisSpacing: 16,
-                                mainAxisSpacing: 16,
                               ),
-                              itemCount: _trainings.length,
-                              itemBuilder: (context, index) {
-                                return TrainingCard(
-                                  training: _trainings[index],
-                                  isArabic: isArabic,
-                                  onRefresh: _loadTrainings,
-                                  isMobile: isMobile,
-                                );
-                              },
-                            ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _errorMessage!,
+                                style: GoogleFonts.cairo(
+                                  color: Colors.grey[600],
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: _loadTrainings,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xffd57653),
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: Text(
+                                  isArabic ? 'إعادة المحاولة' : 'Réessayer',
+                                ),
+                              ),
+                            ],
                           ),
-          ),
-          // ============================================================
-          // ✅ MOBILE BOTTOM NAVIGATION
-          // ============================================================
-          const MobileBottomNav(),
-        ],
+                        )
+                      : _trainings.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.school_outlined,
+                                    size: 80,
+                                    color: const Color(0xffd57653).withOpacity(0.3),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    isArabic
+                                        ? 'لا توجد تكوينات مطابقة'
+                                        : 'Aucune formation correspondante',
+                                    style: GoogleFonts.cairo(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    isArabic
+                                        ? 'جرب تغيير الفلتر أو العودة للصفحة الرئيسية'
+                                        : 'Essayez de changer le filtre ou revenez à l\'accueil',
+                                    style: GoogleFonts.cairo(
+                                      color: Colors.grey[500],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xffd57653),
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    child: Text(
+                                      isArabic ? 'العودة للرئيسية' : 'Retour à l\'accueil',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : Padding(
+                              padding: EdgeInsets.all(isMobile ? 12 : 24),
+                              child: GridView.builder(
+                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: isMobile ? 1 : (isTablet ? 2 : 3),
+                                  childAspectRatio: isMobile ? 0.7 : 0.85,
+                                  crossAxisSpacing: 16,
+                                  mainAxisSpacing: 16,
+                                ),
+                                itemCount: _trainings.length,
+                                itemBuilder: (context, index) {
+                                  return TrainingCard(
+                                    training: _trainings[index],
+                                    isArabic: isArabic,
+                                    onRefresh: _loadTrainings,
+                                    isMobile: isMobile,
+                                  );
+                                },
+                              ),
+                            ),
+            ),
+            // ============================================================
+            // ✅ MOBILE BOTTOM NAVIGATION
+            // ============================================================
+            // const MobileBottomNav(),
+          ],
+        ),
       ),
     );
   }

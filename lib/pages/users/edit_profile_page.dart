@@ -1083,7 +1083,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
               // ============================================================
               // ✅ MOBILE BOTTOM NAVIGATION
               // ============================================================
-              const MobileBottomNav(),
+              //const MobileBottomNav(),
             ],
           ),
         ),

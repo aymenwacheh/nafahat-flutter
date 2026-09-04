@@ -947,7 +947,7 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
                 // ============================================================
                 // ✅ MOBILE BOTTOM NAVIGATION
                 // ============================================================
-                const MobileBottomNav(),
+               // const MobileBottomNav(),
               ],
             ),
     );

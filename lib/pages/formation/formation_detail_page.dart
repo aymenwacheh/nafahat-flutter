@@ -635,7 +635,7 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
             // ============================================================
             // ✅ MOBILE BOTTOM NAVIGATION
             // ============================================================
-            const MobileBottomNav(),
+            //const MobileBottomNav(),
           ],
         ),
         // Overlay de chargement

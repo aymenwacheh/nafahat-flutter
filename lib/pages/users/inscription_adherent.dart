@@ -74,6 +74,8 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
   Timer? _debounceTimer;
 
   final List<Enfant> _enfants = [];
+  
+  // ✅ Clé pour le Scaffold (utilisée par la Navbar)
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   final List<Map<String, String>> _countryCodes = [
@@ -1066,33 +1068,39 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
     final double cardPadding = isMobile ? 16 : 24;
     final double maxWidth = isDesktop ? 800 : double.infinity;
     final double fontSize = isMobile ? 14 : 16;
-    final double topMargin = isMobile ? 100 : 90;
 
     return ChatbotWrapper(
       apiBaseUrl: ApiConfig.baseUrl,
       langue: isArabic ? 'ar' : 'fr',
       primaryColor: const Color(0xff0D443E),
       child: Scaffold(
-        key: _scaffoldKey,
+        key: _scaffoldKey,  // ✅ Utilisation du scaffoldKey
         backgroundColor: Colors.grey.shade50,
+        // ✅ Drawer mobile géré par la Navbar
+        drawer: isMobile ? Navbar(isMobile: true, scaffoldKey: _scaffoldKey).buildDrawer(context) : null,
         body: SafeArea(
           top: false,
           child: Column(
             children: [
-              // Contenu principal
+              // ✅ Navbar en haut (non positionnée, utilise le scaffoldKey)
+              Navbar(
+                isMobile: isMobile,
+                scaffoldKey: _scaffoldKey,
+              ),
+              // ✅ Contenu principal
               Expanded(
-                child: Stack(
-                  children: [
-                    Center(
-                      child: Container(
-                        constraints: BoxConstraints(maxWidth: maxWidth),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: horizontalPadding,
-                          vertical: verticalPadding,
-                        ),
-                        child: SingleChildScrollView(
+                child: Center(
+                  child: Container(
+                    constraints: BoxConstraints(maxWidth: maxWidth),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding,
+                      vertical: verticalPadding,
+                    ),
+                    child: Stack(
+                      children: [
+                        SingleChildScrollView(
                           physics: const BouncingScrollPhysics(),
-                          padding: EdgeInsets.only(top: topMargin),
+                          padding: EdgeInsets.only(top: isMobile ? 0 : 0),
                           child: Column(
                             children: [
                               Card(
@@ -1125,12 +1133,10 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
                                         fontSize: fontSize,
                                         focusNode: _nomFocusNode,
                                       ),
-                                      // ✅ PAYS EN MODE DROPDOWN AVEC DRAPEAUX (BILINGUE) - CORRIGÉ
                                       _buildCountryDropdown(
                                         isArabic: isArabic,
                                         fontSize: fontSize,
                                       ),
-                                      // ✅ VILLE / GOUVERNORAT EN MODE DROPDOWN (BILINGUE) - CORRIGÉ
                                       _buildGovernorateDropdown(
                                         isArabic: isArabic,
                                         fontSize: fontSize,
@@ -1257,37 +1263,30 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
                             ],
                           ),
                         ),
-                      ),
+                        // ✅ Indicateur de chargement en overlay
+                        if (isLoading)
+                          const Opacity(
+                            opacity: 0.5,
+                            child: ModalBarrier(
+                              dismissible: false,
+                              color: Colors.black,
+                            ),
+                          ),
+                        if (isLoading)
+                          const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                      ],
                     ),
-
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      child: Navbar(isMobile: isMobile, scaffoldKey: _scaffoldKey),
-                    ),
-
-                    if (isLoading)
-                      const Opacity(
-                        opacity: 0.5,
-                        child: ModalBarrier(dismissible: false, color: Colors.black),
-                      ),
-                    if (isLoading) const Center(child: CircularProgressIndicator()),
-                  ],
+                  ),
                 ),
               ),
-              // ============================================================
-              // ✅ MOBILE BOTTOM NAVIGATION
-              // ============================================================
-              const MobileBottomNav(),
             ],
           ),
         ),
       ),
     );
   }
-
-
 
   // ============================================================
   // WIDGETS
@@ -1536,15 +1535,13 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
     );
   }
 
-  // ✅ DROPDOWN PAYS AVEC DRAPEAUX (BILINGUE) - CORRIGÉ
+  // ✅ DROPDOWN PAYS AVEC DRAPEAUX (BILINGUE)
   Widget _buildCountryDropdown({
     required bool isArabic,
     required double fontSize,
   }) {
-    // Récupérer la valeur actuelle du pays
     String? currentValue = _pays.isNotEmpty ? _pays : null;
 
-    // Vérifier si la valeur existe dans la liste
     bool hasValidValue = false;
     if (currentValue != null) {
       hasValidValue = _countries.any(
@@ -1554,7 +1551,6 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
       );
     }
 
-    // Si la valeur n'est pas valide, on la met à null
     if (!hasValidValue) {
       currentValue = null;
     }
@@ -1604,7 +1600,6 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
           if (value != null) {
             setState(() {
               _pays = value;
-              // Si le pays n'est pas la Tunisie, réinitialiser la ville
               if (value != 'Tunisie' && value != 'تونس') {
                 _ville = '';
               }
@@ -1623,12 +1618,11 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
     );
   }
 
-  // ✅ DROPDOWN GOUVERNORATS DE TUNISIE (BILINGUE) - CORRIGÉ
+  // ✅ DROPDOWN GOUVERNORATS DE TUNISIE (BILINGUE)
   Widget _buildGovernorateDropdown({
     required bool isArabic,
     required double fontSize,
   }) {
-    // Si le pays n'est pas la Tunisie ou si aucun pays n'est sélectionné
     if (_pays != 'Tunisie' && _pays != 'تونس') {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 6.0),
@@ -1665,10 +1659,8 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
       );
     }
 
-    // Récupérer la valeur actuelle du gouvernorat
     String? currentValue = _ville.isNotEmpty ? _ville : null;
 
-    // Vérifier si la valeur existe dans la liste
     bool hasValidValue = false;
     if (currentValue != null) {
       hasValidValue = _tunisiaGovernorates.any(
@@ -1676,12 +1668,10 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
       );
     }
 
-    // Si la valeur n'est pas valide, on la met à null
     if (!hasValidValue) {
       currentValue = null;
     }
 
-    // Si le pays est la Tunisie, afficher la liste des 24 gouvernorats
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
       child: DropdownButtonFormField<String>(
@@ -2142,9 +2132,7 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
                                         : 'Mémorisation',
                                 value: enfant.memorisation ?? 'juz_amma',
                                 items:
-                                    ['juz_amma', 'plus_5_hizbs', 'autre'].map((
-                                      m,
-                                    ) {
+                                    ['juz_amma', 'plus_5_hizbs', 'autre'].map((m) {
                                       String label =
                                           isArabic
                                               ? {
@@ -2267,7 +2255,6 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
     );
   }
 
-  // ✅ DROPDOWN CORRIGÉ POUR LES ENFANTS
   Widget _buildDropdown({
     required String label,
     required String value,
@@ -2275,7 +2262,6 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
     required Function(String?) onChanged,
     double fontSize = 14,
   }) {
-    // Vérifier si la valeur existe dans les items
     bool hasValidValue = items.any((item) => item.value == value);
     String? validValue = hasValidValue ? value : null;
 
@@ -2300,16 +2286,12 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
     );
   }
 
-  // ✅ CHECKBOX CORRIGÉE AVEC REQUIRED
   Widget _buildCheckbox({
     required String label,
     required bool value,
     required Function(bool?) onChanged,
     double fontSize = 14,
   }) {
-    final isArabic =
-        Provider.of<LanguageProvider>(context, listen: false).isArabic;
-
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

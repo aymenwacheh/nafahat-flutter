@@ -313,7 +313,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
               child: _pages[_selectedIndex],
             ),
             // ✅ MOBILE BOTTOM NAVIGATION
-            const MobileBottomNav(),
+            //const MobileBottomNav(),
           ],
         ),
       );
