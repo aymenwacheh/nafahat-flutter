@@ -1,4 +1,4 @@
-// lib/pages/landing/widgets/about_page.dart
+// lib/pages/landing/widgets/about.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:nafahat/providers/language_provider.dart';
 import 'package:nafahat/providers/about_provider.dart';
 import 'package:nafahat/models/about_model.dart';
+import 'package:nafahat/pages/widgets/navbar.dart';
 
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
@@ -20,6 +21,15 @@ class AboutPage extends StatelessWidget {
     final isTablet = screenWidth >= 600 && screenWidth < 900;
     final isDesktop = screenWidth >= 900;
 
+    // Clé pour le scaffold (nécessaire pour le drawer)
+    final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+
+    // Créer une instance unique du Navbar
+    final navbar = Navbar(
+      isMobile: isMobile,
+      scaffoldKey: scaffoldKey,
+    );
+
     // Charger les données si pas encore chargées
     if (!aboutProvider.hasData && !aboutProvider.isLoading) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -28,54 +38,42 @@ class AboutPage extends StatelessWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          isArabic ? 'عن المنصة' : 'À propos',
-          style: GoogleFonts.cairo(
-            fontWeight: FontWeight.bold,
-            fontSize: isMobile ? 18 : 22,
-          ),
-        ),
-        backgroundColor: const Color(0xff0D443E),
-        foregroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: false,
-        actions: [
-          // Bouton de rafraîchissement
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: () {
-              final provider = Provider.of<AboutProvider>(
-                context,
-                listen: false,
-              );
-              provider.loadAbout();
-            },
-            tooltip: isArabic ? 'تحديث' : 'Rafraîchir',
+      key: scaffoldKey,
+      backgroundColor: const Color(0xfffcfbfa),
+      // ============================================================
+      // DRAWER MOBILE - POUR QUE LE MENU FONCTIONNE
+      // ============================================================
+      drawer: navbar.buildDrawer(context),
+      body: Column(
+        children: [
+          // ============================================================
+          // NAVBAR (responsif mobile/web)
+          // ============================================================
+          navbar,
+          // ============================================================
+          // CONTENU PRINCIPAL
+          // ============================================================
+          Expanded(
+            child: aboutProvider.isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xff0D443E),
+                    ),
+                  )
+                : aboutProvider.hasData
+                    ? _buildContent(
+                        context,
+                        aboutProvider.about!,
+                        isArabic,
+                        isMobile,
+                        isTablet,
+                        isDesktop,
+                        screenWidth,
+                        screenHeight,
+                      )
+                    : _buildErrorState(context, isArabic, isMobile),
           ),
         ],
-      ),
-      body: Container(
-        color: Colors.grey.shade50,
-        child: SafeArea(
-          child:
-              aboutProvider.isLoading
-                  ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xff0D443E)),
-                  )
-                  : aboutProvider.hasData
-                  ? _buildContent(
-                    context,
-                    aboutProvider.about!,
-                    isArabic,
-                    isMobile,
-                    isTablet,
-                    isDesktop,
-                    screenWidth,
-                    screenHeight,
-                  )
-                  : _buildErrorState(context, isArabic, isMobile),
-        ),
       ),
     );
   }

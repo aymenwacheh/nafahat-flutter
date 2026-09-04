@@ -1622,22 +1622,28 @@ Widget _buildColorPicker({
                             ),
                           );
                         }).toList(),
-                        onChanged: (value) {
-                          _log('🔄 [SELECTOR] Changement de valeur: "$value"');
-                          if (value != null && value.isNotEmpty) {
-                            final selected = items.firstWhere(
-                              (item) => item['id'].toString() == value,
-                              orElse: () => {},
-                            );
-                            if (selected.isNotEmpty) {
-                              String name = _getItemDisplayName(type, selected, isArabic);
-                              _log('✅ [SELECTOR] Sélectionné: "$name" (ID: $value)');
-                              onItemSelected(value, name);
-                            } else {
-                              _log('⚠️ [SELECTOR] Item non trouvé pour ID: $value');
-                            }
-                          }
-                        },
+                    onChanged: (value) {
+  _log('🔄 [SELECTOR] Changement de valeur: "$value"');
+  if (value != null && value.isNotEmpty) {
+    // ✅ Correction : utiliser un Map<String, dynamic> au lieu de {}
+    Map<String, dynamic>? selected;
+    try {
+      selected = items.firstWhere(
+        (item) => item['id'].toString() == value,
+      );
+    } catch (e) {
+      _log('⚠️ [SELECTOR] Item non trouvé pour ID: $value');
+    }
+    
+    if (selected != null) {
+      String name = _getItemDisplayName(type, selected, isArabic);
+      _log('✅ [SELECTOR] Sélectionné: "$name" (ID: $value)');
+      onItemSelected(value, name);
+    } else {
+      _log('⚠️ [SELECTOR] Item non trouvé pour ID: $value');
+    }
+  }
+},
                         isExpanded: true,
                         icon: Icon(Icons.arrow_drop_down_rounded, color: const Color(0xffd57653)),
                         dropdownColor: Colors.white,

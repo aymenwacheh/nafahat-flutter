@@ -26,8 +26,7 @@ import 'package:nafahat/pages/cart/cart_page.dart';
 import 'services/navigation_service.dart';
 import 'services/cart_service.dart';
 import 'package:nafahat/pages/widgets/all_video_page.dart';
-
-
+import 'pages/formation/formation_detail_page.dart';
 
 void main() {
   // ✅ Initialiser le service du panier au démarrage
@@ -44,7 +43,7 @@ class MyApp extends StatelessWidget {
   Widget _getInitialPage() {
     // Si ce n'est pas le web, on affiche le projet normalement
     if (!kIsWeb) {
-      return  ChatbotGlobalWrapper(child: SplashScreen());
+      return ChatbotGlobalWrapper(child: SplashScreen());
     }
 
     // Récupération de l'URL complète
@@ -56,7 +55,7 @@ class MyApp extends StatelessWidget {
     if (path == '/' || path.isEmpty) {
       return const ComingSoonPage();
     } else if (path == '/project') {
-      return  ChatbotGlobalWrapper(child: SplashScreen());
+      return ChatbotGlobalWrapper(child: SplashScreen());
     } else {
       // Par défaut, si l'URL est inconnue -> Coming Soon
       return const ComingSoonPage();
@@ -145,6 +144,9 @@ class MyApp extends StatelessWidget {
             },
             // ✅ ROUTES DYNAMIQUES
             onGenerateRoute: (settings) {
+              print('📍 [ROUTE] Navigation vers: ${settings.name}');
+              
+              // ✅ ROUTE /login
               if (settings.name == '/login') {
                 final args = settings.arguments as Map<String, dynamic>?;
                 final returnToPrevious =
@@ -159,6 +161,7 @@ class MyApp extends StatelessWidget {
                 );
               }
 
+              // ✅ ROUTE /inscription
               if (settings.name == '/inscription') {
                 final args = settings.arguments as Map<String, dynamic>?;
                 final fromFormationDetail =
@@ -190,9 +193,23 @@ class MyApp extends StatelessWidget {
                 );
               }
 
+              // ✅ ROUTE /formation/:id POUR LES FORMATIONS
+              if (settings.name != null && settings.name!.startsWith('/formation/')) {
+                final formationId = settings.name!.replaceAll('/formation/', '');
+                print('📍 [ROUTE] Navigation vers formation: $formationId');
+                return MaterialPageRoute(
+                  settings: settings,
+                  builder: (context) => ChatbotGlobalWrapper(
+                    hideOnRoute: false,
+                    child: FormationDetailPage(formationId: formationId),
+                  ),
+                );
+              }
+
               // ✅ ROUTE /video/:id POUR LES VIDÉOS
               if (settings.name != null && settings.name!.startsWith('/video/')) {
                 final videoId = settings.name!.replaceAll('/video/', '');
+                print('📍 [ROUTE] Navigation vers vidéo: $videoId');
                 return MaterialPageRoute(
                   settings: settings,
                   builder: (context) => ChatbotGlobalWrapper(
@@ -202,6 +219,7 @@ class MyApp extends StatelessWidget {
                 );
               }
 
+              // ✅ ROUTE /cart
               if (settings.name == '/cart') {
                 return MaterialPageRoute(
                   settings: settings,
@@ -209,6 +227,96 @@ class MyApp extends StatelessWidget {
                       (context) => const ChatbotGlobalWrapper(
                         hideOnRoute: false,
                         child: CartPage(),
+                      ),
+                );
+              }
+
+              // ✅ ROUTE /profile
+              if (settings.name == '/profile') {
+                return MaterialPageRoute(
+                  settings: settings,
+                  builder:
+                      (context) => ChatbotGlobalWrapper(
+                        hideOnRoute: false,
+                        child: ProfileDashboardPage(),
+                      ),
+                );
+              }
+
+              // ✅ ROUTE /about
+              if (settings.name == '/about') {
+                return MaterialPageRoute(
+                  settings: settings,
+                  builder:
+                      (context) => ChatbotGlobalWrapper(
+                        hideOnRoute: false,
+                        child: Container(
+                          child: Center(
+                            child: Text(
+                              'À propos',
+                              style: GoogleFonts.cairo(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                );
+              }
+
+              // ✅ ROUTE /contact
+              if (settings.name == '/contact') {
+                return MaterialPageRoute(
+                  settings: settings,
+                  builder:
+                      (context) => ChatbotGlobalWrapper(
+                        hideOnRoute: false,
+                        child: Container(
+                          child: Center(
+                            child: Text(
+                              'Contact',
+                              style: GoogleFonts.cairo(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                );
+              }
+
+              // ✅ ROUTE /formateurs
+              if (settings.name == '/formateurs') {
+                return MaterialPageRoute(
+                  settings: settings,
+                  builder:
+                      (context) => ChatbotGlobalWrapper(
+                        hideOnRoute: false,
+                        child: Container(
+                          child: Center(
+                            child: Text(
+                              'Formateurs',
+                              style: GoogleFonts.cairo(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                );
+              }
+
+              // ✅ ROUTE /videos
+              if (settings.name == '/videos') {
+                return MaterialPageRoute(
+                  settings: settings,
+                  builder:
+                      (context) => ChatbotGlobalWrapper(
+                        hideOnRoute: false,
+                        child: AllVideoPage(),
                       ),
                 );
               }

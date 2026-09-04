@@ -82,63 +82,77 @@ class _LandingPageState extends State<LandingPage> {
   // ============================================================
   // GESTIONNAIRE DE CLIC SUR BULL - NAVIGATION INTELLIGENTE
   // ============================================================
-  void _handleBullTap(BuildContext context, BullModel bull) {
-    print('🔗 [BULL] Clic sur: ${bull.title}');
-    print('   📍 Lien: ${bull.link}');
+// lib/pages/landing/landing_page.dart - _handleBullTap
+
+void _handleBullTap(BuildContext context, BullModel bull) {
+  print('🔗 [BULL] Clic sur: ${bull.title}');
+  print('   📍 Lien: ${bull.link}');
+  
+  final link = bull.link;
+  
+  // ✅ Si c'est un lien vers une catégorie
+  if (link.startsWith('/categorie/')) {
+    final categorieId = link.replaceAll('/categorie/', '');
+    print('   🏷️ Navigation vers catégorie: $categorieId');
     
-    final link = bull.link;
-    
-    // ✅ Si c'est un lien vers une catégorie
-    if (link.startsWith('/categorie/')) {
-      final categorieId = link.replaceAll('/categorie/', '');
-      print('   🏷️ Navigation vers catégorie: $categorieId');
-      
-      Navigator.pushNamed(
-        context,
-        '/formations',
-        arguments: {'categorieId': categorieId},
-      );
-      return;
-    }
-    
-    // ✅ Si c'est un lien vers un formateur
-    if (link.startsWith('/formateur/')) {
-      final formateurId = link.replaceAll('/formateur/', '');
-      print('   👤 Navigation vers formateur: $formateurId');
-      
-      Navigator.pushNamed(
-        context,
-        '/formations',
-        arguments: {'formateurId': formateurId},
-      );
-      return;
-    }
-    
-    // ✅ Si c'est un lien vers une vidéo
-    if (link.startsWith('/video/')) {
-      final videoId = link.replaceAll('/video/', '');
-      print('   🎬 Navigation vers vidéo: $videoId');
-      
-      Navigator.pushNamed(
-        context,
-        '/video/$videoId',
-      );
-      return;
-    }
-    
-    // ✅ Si c'est un lien vers une section (scroll)
-    if (link.startsWith('/section/')) {
-      final sectionKey = link.replaceAll('/section/', '');
-      print('   📑 Navigation vers section: $sectionKey');
-      
-      _scrollToSection(sectionKey);
-      return;
-    }
-    
-    // ✅ Navigation normale (page)
-    print('   🔗 Navigation normale vers: $link');
-    Navigator.pushNamed(context, link);
+    Navigator.pushNamed(
+      context,
+      '/formations',
+      arguments: {'categorieId': categorieId},
+    );
+    return;
   }
+  
+  // ✅ Si c'est un lien vers un formateur
+  if (link.startsWith('/formateur/')) {
+    final formateurId = link.replaceAll('/formateur/', '');
+    print('   👤 Navigation vers formateur: $formateurId');
+    
+    Navigator.pushNamed(
+      context,
+      '/formations',
+      arguments: {'formateurId': formateurId},
+    );
+    return;
+  }
+  
+  // ✅ Si c'est un lien vers une formation
+  if (link.startsWith('/formation/')) {
+    final formationId = link.replaceAll('/formation/', '');
+    print('   📚 Navigation vers formation: $formationId');
+    
+    Navigator.pushNamed(
+      context,
+      '/formation/$formationId',
+    );
+    return;
+  }
+  
+  // ✅ Si c'est un lien vers une vidéo
+  if (link.startsWith('/video/')) {
+    final videoId = link.replaceAll('/video/', '');
+    print('   🎬 Navigation vers vidéo: $videoId');
+    
+    Navigator.pushNamed(
+      context,
+      '/video/$videoId',
+    );
+    return;
+  }
+  
+  // ✅ Si c'est un lien vers une section (scroll)
+  if (link.startsWith('/section/')) {
+    final sectionKey = link.replaceAll('/section/', '');
+    print('   📑 Navigation vers section: $sectionKey');
+    
+    _scrollToSection(sectionKey);
+    return;
+  }
+  
+  // ✅ Navigation normale (page)
+  print('   🔗 Navigation normale vers: $link');
+  Navigator.pushNamed(context, link);
+}
 
   // ============================================================
   // SCROLL VERS UNE SECTION

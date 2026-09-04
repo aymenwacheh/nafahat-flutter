@@ -571,6 +571,12 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
+    
+    // Créer une instance unique du Navbar
+    final navbar = Navbar(
+      isMobile: isMobile,
+      scaffoldKey: _scaffoldKey,
+    );
 
     return ChatbotWrapper(
       apiBaseUrl: 'http://localhost:3000',
@@ -579,15 +585,16 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
       child: Scaffold(
         key: _scaffoldKey,
         backgroundColor: const Color(0xfffcfbfa),
+        // ============================================================
+        // DRAWER MOBILE - AJOUTÉ ICI POUR QUE LE MENU FONCTIONNE
+        // ============================================================
+        drawer: navbar.buildDrawer(context),
         body: Column(
           children: [
             // ============================================================
             // NAVBAR (responsif mobile/web)
             // ============================================================
-            Navbar(
-              isMobile: isMobile,
-              scaffoldKey: _scaffoldKey,
-            ),
+            navbar,
             // ============================================================
             // BODY CONTENT
             // ============================================================

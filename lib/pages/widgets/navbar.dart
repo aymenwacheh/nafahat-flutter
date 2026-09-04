@@ -150,30 +150,65 @@ class Navbar extends StatelessWidget {
               ),
             ],
           ),
+          child: isMobile
+              ? _buildMobileLayout(context, isArabic, userProvider)
+              : _buildDesktopLayout(context, isArabic, userProvider, canViewAdmin),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // LAYOUT MOBILE (Panier à gauche, titre au centre, menu à droite)
+  // ============================================================
+  Widget _buildMobileLayout(
+    BuildContext context,
+    bool isArabic,
+    UserProvider userProvider,
+  ) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        // Panier à gauche
+        _buildCartIcon(context, isArabic),
+        
+        // Logo / Titre au centre
+        _buildLogo(isArabic, true),
+        
+        // Menu hamburger à droite
+        _buildMobileMenuButton(),
+      ],
+    );
+  }
+
+  // ============================================================
+  // LAYOUT DESKTOP (inchangé)
+  // ============================================================
+  Widget _buildDesktopLayout(
+    BuildContext context,
+    bool isArabic,
+    UserProvider userProvider,
+    bool canViewAdmin,
+  ) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        _buildLogo(isArabic, false),
+        Expanded(
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              _buildLogo(isArabic, isMobile),
-              if (isMobile) _buildMobileMenuButton(),
-              if (!isMobile)
-                Expanded(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      _buildSearchBar(isArabic),
-                      const SizedBox(width: 16),
-                      _buildDesktopMenu(context, isArabic),
-                      const SizedBox(width: 16),
-                      if (canViewAdmin) _buildAdminMenu(context, isArabic),
-                      _buildCartIcon(context, isArabic),
-                      _buildUserSection(context, isArabic, userProvider),
-                    ],
-                  ),
-                ),
+              _buildSearchBar(isArabic),
+              const SizedBox(width: 16),
+              _buildDesktopMenu(context, isArabic),
+              const SizedBox(width: 16),
+              if (canViewAdmin) _buildAdminMenu(context, isArabic),
+              _buildCartIcon(context, isArabic),
+              _buildUserSection(context, isArabic, userProvider),
             ],
           ),
         ),
-      ),
+      ],
     );
   }
 
@@ -182,6 +217,7 @@ class Navbar extends StatelessWidget {
   // ============================================================
   Widget _buildLogo(bool isArabic, bool isMobile) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           isArabic ? "نفحات" : "Nafahat",
@@ -284,7 +320,7 @@ class Navbar extends StatelessWidget {
               icon: Icon(
                 Icons.shopping_cart_outlined,
                 color: nafahatGreen,
-                size: 24,
+                size: isMobile ? 28 : 24,
               ),
               onPressed: () {
                 showDialog(
@@ -295,14 +331,16 @@ class Navbar extends StatelessWidget {
                 );
               },
               tooltip: isArabic ? 'السلة' : 'Panier',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
             ),
             if (count > 0)
               Positioned(
-                right: 4,
-                top: 4,
+                right: isMobile ? 2 : 4,
+                top: isMobile ? 2 : 4,
                 child: Container(
-                  width: 18,
-                  height: 18,
+                  width: isMobile ? 20 : 18,
+                  height: isMobile ? 20 : 18,
                   decoration: const BoxDecoration(
                     color: nafahatGold,
                     shape: BoxShape.circle,
@@ -311,7 +349,7 @@ class Navbar extends StatelessWidget {
                     child: Text(
                       count > 99 ? '99+' : count.toString(),
                       style: GoogleFonts.cairo(
-                        fontSize: 9,
+                        fontSize: isMobile ? 10 : 9,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
@@ -989,6 +1027,8 @@ class Navbar extends StatelessWidget {
       onPressed: _openDrawer,
       tooltip: 'Menu',
       splashColor: nafahatGreen.withOpacity(0.2),
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
     );
   }
 

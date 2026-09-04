@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:nafahat/providers/language_provider.dart';
 import 'package:nafahat/pages/widgets/video_fav_section.dart';
-
+import 'package:nafahat/pages/widgets/navbar.dart';
 
 class AllVideoPage extends StatefulWidget {
   const AllVideoPage({super.key});
@@ -14,42 +14,48 @@ class AllVideoPage extends StatefulWidget {
 }
 
 class _AllVideoPageState extends State<AllVideoPage> {
+  // Clé pour le scaffold (nécessaire pour le drawer)
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
   @override
   Widget build(BuildContext context) {
     final isArabic = Provider.of<LanguageProvider>(context).isArabic;
     final isMobile = MediaQuery.of(context).size.width < 600;
+    
+    // Créer une instance unique du Navbar
+    final navbar = Navbar(
+      isMobile: isMobile,
+      scaffoldKey: _scaffoldKey,
+    );
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          isArabic ? 'جميع الفيديوهات المميزة' : 'Toutes les vidéos favorites',
-          style: GoogleFonts.cairo(
-            fontWeight: FontWeight.bold,
-            fontSize: isMobile ? 18 : 22,
-          ),
-        ),
-        backgroundColor: const Color(0xff0D443E),
-        foregroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              setState(() {});
-            },
-            tooltip: isArabic ? 'تحديث' : 'Rafraîchir',
+      key: _scaffoldKey,
+      backgroundColor: const Color(0xfffcfbfa),
+      // ============================================================
+      // DRAWER MOBILE - POUR QUE LE MENU FONCTIONNE
+      // ============================================================
+      drawer: navbar.buildDrawer(context),
+      body: Column(
+        children: [
+          // ============================================================
+          // NAVBAR (responsif mobile/web)
+          // ============================================================
+          navbar,
+          // ============================================================
+          // CONTENU PRINCIPAL
+          // ============================================================
+          Expanded(
+            child: Container(
+              color: Colors.grey.shade50,
+              child: SafeArea(
+                child: Padding(
+                  padding: EdgeInsets.all(isMobile ? 12.0 : 24.0),
+                  child: _buildVideoGrid(isArabic, isMobile),
+                ),
+              ),
+            ),
           ),
         ],
-      ),
-      body: Container(
-        color: Colors.grey.shade50,
-        child: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.all(isMobile ? 12.0 : 24.0),
-            child: _buildVideoGrid(isArabic, isMobile),
-          ),
-        ),
       ),
     );
   }
