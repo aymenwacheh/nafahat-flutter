@@ -1,5 +1,6 @@
 // lib/pages/users/auth_page.dart
 import 'package:flutter/material.dart';
+import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/navbar.dart';
@@ -85,8 +86,6 @@ class _AuthPageState extends State<AuthPage> {
           );
 
           // ✅ FIX : synchroniser aussi AuthService (SharedPreferences)
-          // sinon AuthService.isAuthenticated() reste "false" après connexion,
-          // et FormationDetailPage redemande la connexion même si l'utilisateur l'est déjà.
           final int adherentId =
               userData['adherent_id'] is int
                   ? userData['adherent_id']
@@ -97,8 +96,6 @@ class _AuthPageState extends State<AuthPage> {
             'nomPrenom': userData['nom_prenom'],
             'whatsapp': userData['whatsapp'],
             'email': userData['email'],
-            // 👇 Si le backend renvoie un vrai token, on le garde ; sinon fallback local
-            // pour que isAuthenticated() (qui exige un token non-vide) fonctionne.
             'token':
                 (userData['token']?.toString().isNotEmpty ?? false)
                     ? userData['token'].toString()
@@ -125,10 +122,8 @@ class _AuthPageState extends State<AuthPage> {
 
           // ✅ SI returnToPrevious EST TRUE, RETOURNER À LA PAGE PRÉCÉDENTE
           if (widget.returnToPrevious) {
-            // Retourner avec un résultat de succès
             Navigator.pop(context, true);
           } else {
-            // Sinon, rediriger vers le dashboard
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(
@@ -221,334 +216,338 @@ class _AuthPageState extends State<AuthPage> {
           backgroundColor: AppColors.surface,
           body: SafeArea(
             top: false,
-            child: Stack(
+            child: Column(
               children: [
-                Row(
-                  children: [
-                    if (!isMobile)
-                      Expanded(
-                        flex: 5,
-                        child: Container(
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [nafahatGreenDark, nafahatGreen],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                          ),
-                          child: Stack(
-                            children: [
-                              Positioned(
-                                top: -80,
-                                left: -80,
-                                child: CircleAvatar(
-                                  radius: 180,
-                                  backgroundColor: Colors.white.withOpacity(
-                                    0.02,
+                // Contenu principal
+                Expanded(
+                  child: Stack(
+                    children: [
+                      Row(
+                        children: [
+                          if (!isMobile)
+                            Expanded(
+                              flex: 5,
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [nafahatGreenDark, nafahatGreen],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
                                   ),
                                 ),
-                              ),
-                              Positioned(
-                                bottom: -50,
-                                right: -50,
-                                child: CircleAvatar(
-                                  radius: 130,
-                                  backgroundColor: nafahatGold.withOpacity(
-                                    0.04,
-                                  ),
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(60.0),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                child: Stack(
                                   children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: nafahatGold.withOpacity(0.15),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                          color: nafahatGold.withOpacity(0.3),
-                                        ),
-                                      ),
-                                      child: Text(
-                                        isArabic ? "مرحباً بكم" : "Bienvenue",
-                                        style: GoogleFonts.cairo(
-                                          color: nafahatGold,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
+                                    Positioned(
+                                      top: -80,
+                                      left: -80,
+                                      child: CircleAvatar(
+                                        radius: 180,
+                                        backgroundColor: Colors.white.withOpacity(
+                                          0.02,
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(height: 20),
-                                    Text(
-                                      isArabic
-                                          ? "منصة نفحات"
-                                          : "Plateforme Nafahat",
-                                      style: GoogleFonts.cairo(
-                                        color: Colors.white,
-                                        fontSize: 42,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 0.5,
+                                    Positioned(
+                                      bottom: -50,
+                                      right: -50,
+                                      child: CircleAvatar(
+                                        radius: 130,
+                                        backgroundColor: nafahatGold.withOpacity(
+                                          0.04,
+                                        ),
                                       ),
                                     ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      isArabic
-                                          ? "طريقك نحو التميز والتطوير المستمر من خلال دورات تدريبية متكاملة."
-                                          : "Votre chemin vers l'excellence et le développement continu à travers des cycles de formation complets.",
-                                      style: GoogleFonts.cairo(
-                                        color: Colors.white.withOpacity(0.75),
-                                        fontSize: 16,
-                                        height: 1.6,
+                                    Padding(
+                                      padding: const EdgeInsets.all(60.0),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 6,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: nafahatGold.withOpacity(0.15),
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(
+                                                color: nafahatGold.withOpacity(0.3),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              isArabic ? "مرحباً بكم" : "Bienvenue",
+                                              style: GoogleFonts.cairo(
+                                                color: nafahatGold,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 20),
+                                          Text(
+                                            isArabic
+                                                ? "منصة نفحات"
+                                                : "Plateforme Nafahat",
+                                            style: GoogleFonts.cairo(
+                                              color: Colors.white,
+                                              fontSize: 42,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 0.5,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            isArabic
+                                                ? "طريقك نحو التميز والتطوير المستمر من خلال دورات تدريبية متكاملة."
+                                                : "Votre chemin vers l'excellence et le développement continu à travers des cycles de formation complets.",
+                                            style: GoogleFonts.cairo(
+                                              color: Colors.white.withOpacity(0.75),
+                                              fontSize: 16,
+                                              height: 1.6,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                    Expanded(
-                      flex: 6,
-                      child: Container(
-                        color: AppColors.surface,
-                        child: Center(
-                          child: SingleChildScrollView(
-                            physics: const BouncingScrollPhysics(),
-                            padding: EdgeInsets.only(
-                              top: isMobile ? 140 : 100,
-                              bottom: 40,
-                              left: 24,
-                              right: 24,
                             ),
+
+                          Expanded(
+                            flex: 6,
                             child: Container(
-                              constraints: const BoxConstraints(maxWidth: 460),
-                              padding: const EdgeInsets.all(36),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(24),
-                                border: Border.all(
-                                  color: AppColors.primary.withOpacity(0.06),
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: nafahatGreenDark.withOpacity(0.02),
-                                    blurRadius: 30,
-                                    offset: const Offset(0, 10),
+                              color: AppColors.surface,
+                              child: Center(
+                                child: SingleChildScrollView(
+                                  physics: const BouncingScrollPhysics(),
+                                  padding: EdgeInsets.only(
+                                    top: isMobile ? 140 : 100,
+                                    bottom: 40,
+                                    left: 24,
+                                    right: 24,
                                   ),
-                                ],
-                              ),
-                              child: Form(
-                                key: _formKey,
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    Text(
-                                      isArabic
-                                          ? "تسجيل الدخول"
-                                          : "Bienvenue à nouveau",
-                                      style: GoogleFonts.cairo(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.textDark,
+                                  child: Container(
+                                    constraints: const BoxConstraints(maxWidth: 460),
+                                    padding: const EdgeInsets.all(36),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(24),
+                                      border: Border.all(
+                                        color: AppColors.primary.withOpacity(0.06),
                                       ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      isArabic
-                                          ? "أدخل بياناتك للدخول إلى حسابك"
-                                          : "Entrez vos identifiants pour accéder à votre compte",
-                                      style: GoogleFonts.cairo(
-                                        color: AppColors.textMuted,
-                                        fontSize: 14,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                    const SizedBox(height: 30),
-
-                                    _buildTextField(
-                                      controller: _whatsappController,
-                                      labelFr: "Numéro WhatsApp",
-                                      labelAr: "رقم الواتساب",
-                                      icon: Icons.phone_android_rounded,
-                                      isArabic: isArabic,
-                                      keyboardType: TextInputType.phone,
-                                      validator: (value) {
-                                        if (value == null || value.isEmpty) {
-                                          return isArabic
-                                              ? "يرجى إدخال رقم الواتساب"
-                                              : "Veuillez entrer votre numéro WhatsApp";
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                    const SizedBox(height: 18),
-
-                                    _buildPasswordField(
-                                      controller: _passwordController,
-                                      labelFr: "Mot de passe",
-                                      labelAr: "كلمة المرور",
-                                      isArabic: isArabic,
-                                      validator: (value) {
-                                        if (value == null || value.isEmpty) {
-                                          return isArabic
-                                              ? "يرجى إدخال كلمة المرور"
-                                              : "Veuillez entrer votre mot de passe";
-                                        }
-                                        if (value.length < 6) {
-                                          return isArabic
-                                              ? "كلمة المرور قصيرة جداً (6 أحرف على الأقل)"
-                                              : "6 caractères minimum";
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                    const SizedBox(height: 12),
-
-                                    Align(
-                                      alignment: Alignment.centerRight,
-                                      child: TextButton(
-                                        onPressed: _resetPassword,
-                                        style: TextButton.styleFrom(
-                                          foregroundColor: nafahatGreen,
-                                        ),
-                                        child: Text(
-                                          isArabic
-                                              ? "نسيت كلمة المرور؟"
-                                              : "Mot de passe oublié ?",
-                                          style: GoogleFonts.cairo(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 30),
-
-                                    ElevatedButton(
-                                      onPressed: _isLoading ? null : _login,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: nafahatGreen,
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 16,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            14,
-                                          ),
-                                        ),
-                                        elevation: 0,
-                                      ),
-                                      child:
-                                          _isLoading
-                                              ? const SizedBox(
-                                                height: 20,
-                                                width: 20,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                      color: Colors.white,
-                                                      strokeWidth: 2,
-                                                    ),
-                                              )
-                                              : Text(
-                                                isArabic
-                                                    ? "تسجيل الدخول"
-                                                    : "Se connecter",
-                                                style: GoogleFonts.cairo(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                    ),
-                                    const SizedBox(height: 20),
-
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          isArabic
-                                              ? "ليس لديك حساب؟"
-                                              : "Vous n'avez pas de compte ?",
-                                          style: GoogleFonts.cairo(
-                                            color: AppColors.textMuted,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                        TextButton(
-                                          onPressed: () async {
-                                            // ✅ FIX : on ATTEND le résultat de InscriptionAdherentPage,
-                                            // puis on relaie ce résultat en popant AuthPage elle-même.
-                                            // Sinon, quand fromFormationDetail est true, le pop de
-                                            // InscriptionAdherentPage ne fait que révéler AuthPage
-                                            // (jamais fermée) au lieu de remonter jusqu'à
-                                            // FormationDetailPage qui attend ce pop.
-                                            final result = await Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder:
-                                                    (
-                                                      context,
-                                                    ) => InscriptionAdherentPage(
-                                                      fromFormationDetail:
-                                                          widget
-                                                              .returnToPrevious, // ✅ PROPAGER LE PARAMÈTRE
-                                                    ),
-                                              ),
-                                            );
-
-                                            if (widget.returnToPrevious &&
-                                                mounted) {
-                                              Navigator.pop(context, result);
-                                            }
-                                          },
-                                          style: TextButton.styleFrom(
-                                            foregroundColor: nafahatGreen,
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            isArabic
-                                                ? "إنشاء حساب"
-                                                : "Créer un compte",
-                                            style: GoogleFonts.cairo(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: nafahatGreenDark.withOpacity(0.02),
+                                          blurRadius: 30,
+                                          offset: const Offset(0, 10),
                                         ),
                                       ],
                                     ),
-                                  ],
+                                    child: Form(
+                                      key: _formKey,
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: [
+                                          Text(
+                                            isArabic
+                                                ? "تسجيل الدخول"
+                                                : "Bienvenue à nouveau",
+                                            style: GoogleFonts.cairo(
+                                              fontSize: 24,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.textDark,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            isArabic
+                                                ? "أدخل بياناتك للدخول إلى حسابك"
+                                                : "Entrez vos identifiants pour accéder à votre compte",
+                                            style: GoogleFonts.cairo(
+                                              color: AppColors.textMuted,
+                                              fontSize: 14,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                          const SizedBox(height: 30),
+
+                                          _buildTextField(
+                                            controller: _whatsappController,
+                                            labelFr: "Numéro WhatsApp",
+                                            labelAr: "رقم الواتساب",
+                                            icon: Icons.phone_android_rounded,
+                                            isArabic: isArabic,
+                                            keyboardType: TextInputType.phone,
+                                            validator: (value) {
+                                              if (value == null || value.isEmpty) {
+                                                return isArabic
+                                                    ? "يرجى إدخال رقم الواتساب"
+                                                    : "Veuillez entrer votre numéro WhatsApp";
+                                              }
+                                              return null;
+                                            },
+                                          ),
+                                          const SizedBox(height: 18),
+
+                                          _buildPasswordField(
+                                            controller: _passwordController,
+                                            labelFr: "Mot de passe",
+                                            labelAr: "كلمة المرور",
+                                            isArabic: isArabic,
+                                            validator: (value) {
+                                              if (value == null || value.isEmpty) {
+                                                return isArabic
+                                                    ? "يرجى إدخال كلمة المرور"
+                                                    : "Veuillez entrer votre mot de passe";
+                                              }
+                                              if (value.length < 6) {
+                                                return isArabic
+                                                    ? "كلمة المرور قصيرة جداً (6 أحرف على الأقل)"
+                                                    : "6 caractères minimum";
+                                              }
+                                              return null;
+                                            },
+                                          ),
+                                          const SizedBox(height: 12),
+
+                                          Align(
+                                            alignment: Alignment.centerRight,
+                                            child: TextButton(
+                                              onPressed: _resetPassword,
+                                              style: TextButton.styleFrom(
+                                                foregroundColor: nafahatGreen,
+                                              ),
+                                              child: Text(
+                                                isArabic
+                                                    ? "نسيت كلمة المرور؟"
+                                                    : "Mot de passe oublié ?",
+                                                style: GoogleFonts.cairo(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 30),
+
+                                          ElevatedButton(
+                                            onPressed: _isLoading ? null : _login,
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: nafahatGreen,
+                                              foregroundColor: Colors.white,
+                                              padding: const EdgeInsets.symmetric(
+                                                vertical: 16,
+                                              ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(
+                                                  14,
+                                                ),
+                                              ),
+                                              elevation: 0,
+                                            ),
+                                            child:
+                                                _isLoading
+                                                    ? const SizedBox(
+                                                      height: 20,
+                                                      width: 20,
+                                                      child:
+                                                          CircularProgressIndicator(
+                                                            color: Colors.white,
+                                                            strokeWidth: 2,
+                                                          ),
+                                                    )
+                                                    : Text(
+                                                      isArabic
+                                                          ? "تسجيل الدخول"
+                                                          : "Se connecter",
+                                                      style: GoogleFonts.cairo(
+                                                        fontSize: 16,
+                                                        fontWeight: FontWeight.bold,
+                                                      ),
+                                                    ),
+                                          ),
+                                          const SizedBox(height: 20),
+
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                isArabic
+                                                    ? "ليس لديك حساب؟"
+                                                    : "Vous n'avez pas de compte ?",
+                                                style: GoogleFonts.cairo(
+                                                  color: AppColors.textMuted,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                              TextButton(
+                                                onPressed: () async {
+                                                  final result = await Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder:
+                                                          (
+                                                            context,
+                                                          ) => InscriptionAdherentPage(
+                                                            fromFormationDetail:
+                                                                widget
+                                                                    .returnToPrevious,
+                                                          ),
+                                                    ),
+                                                  );
+
+                                                  if (widget.returnToPrevious &&
+                                                      mounted) {
+                                                    Navigator.pop(context, result);
+                                                  }
+                                                },
+                                                style: TextButton.styleFrom(
+                                                  foregroundColor: nafahatGreen,
+                                                  padding: const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                  ),
+                                                ),
+                                                child: Text(
+                                                  isArabic
+                                                      ? "إنشاء حساب"
+                                                      : "Créer un compte",
+                                                  style: GoogleFonts.cairo(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
-                    ),
-                  ],
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: Navbar(isMobile: isMobile, scaffoldKey: _scaffoldKey),
+                      ),
+                    ],
+                  ),
                 ),
-
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: Navbar(isMobile: isMobile, scaffoldKey: _scaffoldKey),
-                ),
+                // ============================================================
+                // ✅ MOBILE BOTTOM NAVIGATION
+                // ============================================================
+                const MobileBottomNav(),
               ],
             ),
           ),

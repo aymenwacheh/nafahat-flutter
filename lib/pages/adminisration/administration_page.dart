@@ -14,6 +14,7 @@ import 'package:nafahat/pages/users/edit_profile_page.dart';
 import 'package:nafahat/pages/adminisration/add_duree.dart';
 import 'package:nafahat/pages/adminisration/apparence_card.dart';
 import 'package:nafahat/pages/adminisration/apparence_hero.dart';
+import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
 import 'package:nafahat/services/training_service.dart';
 import 'package:nafahat/services/video_service.dart';
 import 'package:nafahat/services/adherent_service.dart';
@@ -39,8 +40,7 @@ import 'package:nafahat/pages/users/inscription_adherent.dart';
 import '../../services/navigation_service.dart';
 import 'etat_paiement.dart';
 import 'adherents_list_page.dart';
-import 'apparence_bull.dart'; 
-
+import 'apparence_bull.dart';
 
 class AdministrationPage extends StatefulWidget {
   const AdministrationPage({super.key});
@@ -74,8 +74,8 @@ class _AdministrationPageState extends State<AdministrationPage> {
     const EtatPaiementPage(),
     const UsersListPage(),
     const ApparenceCardFormateurPage(),
-   const ApparitionBullPage(),
-   const ApparitionLandingPage(),
+    const ApparitionBullPage(),
+    const ApparitionLandingPage(),
   ];
 
   // Titres pour l'AppBar
@@ -120,8 +120,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     'قائمة المستعملين ',
     'مظهر المكونين ',
     'مظهر الوحدات ',
-    'ترتيب أقسام الصفحة', 
-
+    'ترتيب أقسام الصفحة',
   ];
 
   // Structure des menus avec groupes
@@ -171,7 +170,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
           'icon': Icons.video_library_outlined,
           'title': 'Vidéos',
           'titleAr': 'الفيديوهات',
-          'page': 13, // Nouvel index
+          'page': 13,
         },
       ],
     },
@@ -181,11 +180,11 @@ class _AdministrationPageState extends State<AdministrationPage> {
       'titleAr': 'المظهر',
       'children': [
         {
-  'icon': Icons.home_work_outlined,
-  'title': 'Apparence Landing',
-  'titleAr': 'مظهر الصفحة الرئيسية',
-  'page': 18,
-},
+          'icon': Icons.home_work_outlined,
+          'title': 'Apparence Landing',
+          'titleAr': 'مظهر الصفحة الرئيسية',
+          'page': 18,
+        },
         {
           'icon': Icons.slideshow_outlined,
           'title': 'Apparence Hero',
@@ -233,7 +232,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
           'icon': Icons.list_alt,
           'title': 'Liste des utilisateurs',
           'titleAr': 'قائمة المستعملين',
-          'page': 15, // Nouvel index
+          'page': 15,
         },
         {
           'icon': Icons.admin_panel_settings,
@@ -270,7 +269,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 768;
 
-    // Version mobile - inchangée (liste plate)
+    // Version mobile - avec MobileBottomNav
     if (isMobile) {
       return Scaffold(
         appBar: AppBar(
@@ -308,7 +307,15 @@ class _AdministrationPageState extends State<AdministrationPage> {
           ],
         ),
         drawer: _buildDrawerMobile(),
-        body: _pages[_selectedIndex],
+        body: Column(
+          children: [
+            Expanded(
+              child: _pages[_selectedIndex],
+            ),
+            // ✅ MOBILE BOTTOM NAVIGATION
+            const MobileBottomNav(),
+          ],
+        ),
       );
     }
 
@@ -330,16 +337,6 @@ class _AdministrationPageState extends State<AdministrationPage> {
       ),
     );
   }
-
-  // ============================================================
-  // DRAWER MOBILE - Version avec BackToLandingButton
-  // ============================================================
- // lib/pages/adminisration/administration_page.dart
-
-  // ============================================================
-  // DRAWER MOBILE - Version avec groupes et sous-menus
-  // ============================================================
-  // lib/pages/adminisration/administration_page.dart
 
   // ============================================================
   // DRAWER MOBILE - Version avec groupes et sous-menus
@@ -512,6 +509,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
       ),
     );
   }
+
   // ============================================================
   // SIDE MENU WEB - AVEC BackToLandingButton
   // ============================================================
@@ -586,7 +584,6 @@ class _AdministrationPageState extends State<AdministrationPage> {
                                 ),
                               ],
                             ),
-                            // ✅ Flèche de redirection vers landing page avec BackToLandingButton
                             const BackToLandingButton(),
                           ],
                         ),

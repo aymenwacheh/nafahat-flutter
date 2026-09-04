@@ -2,6 +2,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
 import 'package:provider/provider.dart';
 import '../landing/landing_page.dart' show AppColors;
 import 'package:nafahat/models/adherent.dart';
@@ -412,599 +413,677 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ).buildDrawer(context),
         body: SafeArea(
           top: false,
-          child: Stack(
+          child: Column(
             children: [
-              Center(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.only(top: topMargin),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Container(
-                      constraints: const BoxConstraints(maxWidth: 600),
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: AppColors.primary.withOpacity(0.08),
-                        ),
-                      ),
-                      child:
-                          _isDataLoading
-                              ? const Center(
-                                child: Padding(
-                                  padding: EdgeInsets.all(40.0),
-                                  child: CircularProgressIndicator(
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                              )
-                              : !hasData
-                              ? Center(
-                                child: Column(
-                                  children: [
-                                    Icon(
-                                      Icons.person_outline,
-                                      size: 80,
-                                      color: Colors.grey[300],
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      isArabic
-                                          ? "⚠️ Aucune donnée disponible"
-                                          : "⚠️ Aucune donnée disponible",
-                                      style: GoogleFonts.cairo(
-                                        color: Colors.grey[600],
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        Navigator.pop(context);
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.primary,
-                                        foregroundColor: Colors.white,
-                                      ),
-                                      child: Text(
-                                        isArabic ? "العودة" : "Retour",
-                                        style: GoogleFonts.cairo(),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              )
-                              : Form(
-                                key: _formKey,
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    // ---- Avatar ----
-                                    Center(
-                                      child: Stack(
-                                        children: [
-                                          CircleAvatar(
-                                            radius: 50,
-                                            backgroundColor: AppColors.primary
-                                                .withOpacity(0.1),
-                                            child:
-                                                userProvider.isLoggedIn
-                                                    ? Text(
-                                                      userProvider.initials,
-                                                      style: GoogleFonts.cairo(
-                                                        fontSize: 32,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        color:
-                                                            AppColors.primary,
-                                                      ),
-                                                    )
-                                                    : const Icon(
-                                                      Icons.person_rounded,
-                                                      size: 55,
-                                                      color: AppColors.primary,
-                                                    ),
-                                          ),
-                                          Positioned(
-                                            bottom: 0,
-                                            right: isArabic ? null : 0,
-                                            left: isArabic ? 0 : null,
-                                            child: CircleAvatar(
-                                              radius: 16,
-                                              backgroundColor:
-                                                  AppColors.primary,
-                                              child: const Icon(
-                                                Icons.camera_alt_rounded,
-                                                size: 16,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    if (userProvider.isLoggedIn &&
-                                        userProvider.userRole != null)
-                                      Center(
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.primary
-                                                .withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            userProvider.userRole!.libelle,
-                                            style: GoogleFonts.cairo(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600,
-                                              color: AppColors.primary,
-                                            ),
-                                          ),
+              // Contenu principal
+              Expanded(
+                child: Stack(
+                  children: [
+                    Center(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.only(top: topMargin),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Container(
+                            constraints: const BoxConstraints(maxWidth: 600),
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                color: AppColors.primary.withOpacity(0.08),
+                              ),
+                            ),
+                            child:
+                                _isDataLoading
+                                    ? const Center(
+                                      child: Padding(
+                                        padding: EdgeInsets.all(40.0),
+                                        child: CircularProgressIndicator(
+                                          color: AppColors.primary,
                                         ),
                                       ),
-                                    const SizedBox(height: 35),
-
-                                    // ---- Champs du formulaire ----
-                                    _buildEditField(
-                                      controller: _nameController,
-                                      labelFr: "Nom et Prénom",
-                                      labelAr: "الاسم واللقب",
-                                      icon: Icons.person_outline_rounded,
-                                      validator:
-                                          (v) =>
-                                              v!.isEmpty
-                                                  ? "Champ requis"
-                                                  : null,
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    _buildEditField(
-                                      controller: _phoneController,
-                                      labelFr: "WhatsApp (avec indicatif)",
-                                      labelAr: "رقم الواتساب (مع رمز البلد)",
-                                      icon: Icons.phone_android_rounded,
-                                      keyboardType: TextInputType.phone,
-                                      validator:
-                                          (v) =>
-                                              v!.isEmpty
-                                                  ? "Champ requis"
-                                                  : null,
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    _buildEditField(
-                                      controller: _emailController,
-                                      labelFr: "Adresse E-mail",
-                                      labelAr: "البريد الإلكتروني",
-                                      icon: Icons.alternate_email_rounded,
-                                      keyboardType: TextInputType.emailAddress,
-                                      validator:
-                                          (v) =>
-                                              !v!.contains('@')
-                                                  ? "E-mail invalide"
-                                                  : null,
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    _buildEditField(
-                                      controller: _paysController,
-                                      labelFr: "Pays",
-                                      labelAr: "بلد الإقامة",
-                                      icon: Icons.location_on_outlined,
-                                      validator:
-                                          (v) =>
-                                              v!.isEmpty
-                                                  ? "Champ requis"
-                                                  : null,
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    _buildEditField(
-                                      controller: _villeController,
-                                      labelFr: "Ville",
-                                      labelAr: "المدينة",
-                                      icon: Icons.location_city_outlined,
-                                      validator:
-                                          (v) =>
-                                              v!.isEmpty
-                                                  ? "Champ requis"
-                                                  : null,
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    _buildEditField(
-                                      controller: _dateNaissanceController,
-                                      labelFr: "Date de naissance",
-                                      labelAr: "تاريخ الولادة",
-                                      icon: Icons.calendar_today_outlined,
-                                      readOnly: true,
-                                      onTap: () async {
-                                        final DateTime? picked =
-                                            await showDatePicker(
-                                              context: context,
-                                              initialDate: DateTime.now(),
-                                              firstDate: DateTime(1900),
-                                              lastDate: DateTime.now(),
-                                            );
-                                        if (picked != null) {
-                                          setState(() {
-                                            _dateNaissanceController.text =
-                                                '${picked.day}/${picked.month}/${picked.year}';
-                                          });
-                                        }
-                                      },
-                                      validator:
-                                          (v) =>
-                                              v!.isEmpty
-                                                  ? "Champ requis"
-                                                  : null,
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    // ---- Genre (Dropdown) ----
-                                    _buildDropdown(
-                                      labelFr: "Genre",
-                                      labelAr: "الجنس",
-                                      value: _selectedGenre,
-                                      items: const [
-                                        DropdownMenuItem<String>(
-                                          key: ValueKey('genre_homme'),
-                                          value: 'homme',
-                                          child: Text('Homme'),
-                                        ),
-                                        DropdownMenuItem<String>(
-                                          key: ValueKey('genre_femme'),
-                                          value: 'femme',
-                                          child: Text('Femme'),
-                                        ),
-                                      ],
-                                      onChanged: (value) {
-                                        if (value != null) {
-                                          setState(
-                                            () => _selectedGenre = value,
-                                          );
-                                        }
-                                      },
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    // ---- Source (Dropdown) ----
-                                    _buildDropdown(
-                                      labelFr: "Source de connaissance",
-                                      labelAr: "كيف تعرفت على الأكاديمية؟",
-                                      value: _selectedSourceConnaissance,
-                                      items: const [
-                                        DropdownMenuItem<String>(
-                                          key: ValueKey('source_instagram'),
-                                          value: 'instagram',
-                                          child: Text('Instagram'),
-                                        ),
-                                        DropdownMenuItem<String>(
-                                          key: ValueKey('source_facebook'),
-                                          value: 'facebook',
-                                          child: Text('Facebook'),
-                                        ),
-                                        DropdownMenuItem<String>(
-                                          key: ValueKey('source_ami'),
-                                          value: 'ami',
-                                          child: Text('Ami(e)'),
-                                        ),
-                                        DropdownMenuItem<String>(
-                                          key: ValueKey('source_annonce'),
-                                          value: 'annonce',
-                                          child: Text('Annonce'),
-                                        ),
-                                        DropdownMenuItem<String>(
-                                          key: ValueKey('source_autre'),
-                                          value: 'autre',
-                                          child: Text('Autre'),
-                                        ),
-                                      ],
-                                      onChanged: (value) {
-                                        if (value != null) {
-                                          setState(
-                                            () =>
-                                                _selectedSourceConnaissance =
-                                                    value,
-                                          );
-                                        }
-                                      },
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    _buildEditField(
-                                      controller: _objectifController,
-                                      labelFr: "Objectif",
-                                      labelAr:
-                                          "ما هو هدفك من الالتحاق بهذه الدورات ؟",
-                                      icon: Icons.flag_outlined,
-                                      maxLines: 3,
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    _buildEditField(
-                                      controller: _suggestionsController,
-                                      labelFr: "Suggestions",
-                                      labelAr: "اقتراحات دورات و مواضيع دروس",
-                                      icon: Icons.lightbulb_outline,
-                                      maxLines: 2,
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    _buildCheckbox(
-                                      labelFr:
-                                          "J'accepte la publication du contenu",
-                                      labelAr: "أوافق على نشر محتوى الدورات",
-                                      value: _accordPublication,
-                                      onChanged: (value) {
-                                        setState(
-                                          () => _accordPublication = value!,
-                                        );
-                                      },
-                                    ),
-
-                                    const SizedBox(height: 24),
-
-                                    // ---- SECTION CHANGEMENT DE MOT DE PASSE ----
-                                    Container(
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey.shade50,
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: Colors.grey.shade200,
-                                        ),
-                                      ),
+                                    )
+                                    : !hasData
+                                    ? Center(
                                       child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
                                         children: [
-                                          Text(
-                                            isArabic
-                                                ? "🔒 تغيير كلمة المرور"
-                                                : "🔒 Changer le mot de passe",
-                                            style: GoogleFonts.cairo(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                              color: AppColors.textDark,
-                                            ),
+                                          Icon(
+                                            Icons.person_outline,
+                                            size: 80,
+                                            color: Colors.grey[300],
                                           ),
-                                          const SizedBox(height: 8),
+                                          const SizedBox(height: 16),
                                           Text(
                                             isArabic
-                                                ? "Laissez vide si vous ne souhaitez pas le modifier"
-                                                : "Laissez vide si vous ne souhaitez pas le modifier",
+                                                ? "⚠️ Aucune donnée disponible"
+                                                : "⚠️ Aucune donnée disponible",
                                             style: GoogleFonts.cairo(
-                                              fontSize: 12,
-                                              color: Colors.grey.shade600,
+                                              color: Colors.grey[600],
+                                              fontSize: 16,
                                             ),
                                           ),
                                           const SizedBox(height: 16),
-
-                                          // 👈 MOT DE PASSE ACTUEL (pré-rempli)
-                                          _buildPasswordField(
-                                            controller:
-                                                _currentPasswordController,
-                                            labelFr: "Mot de passe actuel",
-                                            labelAr: "كلمة المرور الحالية",
-                                            isArabic: isArabic,
-                                            obscureText:
-                                                _obscureCurrentPassword,
-                                            onToggle: () {
-                                              setState(() {
-                                                _obscureCurrentPassword =
-                                                    !_obscureCurrentPassword;
-                                              });
+                                          ElevatedButton(
+                                            onPressed: () {
+                                              Navigator.pop(context);
                                             },
-                                            validator: (value) {
-                                              // Validation seulement si l'utilisateur change le mot de passe
-                                              if (_newPasswordController.text
-                                                      .trim()
-                                                      .isNotEmpty &&
-                                                  (value == null ||
-                                                      value.isEmpty)) {
-                                                return isArabic
-                                                    ? "يرجى إدخال كلمة المرور الحالية"
-                                                    : "Veuillez entrer votre mot de passe actuel";
-                                              }
-                                              return null;
-                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: AppColors.primary,
+                                              foregroundColor: Colors.white,
+                                            ),
+                                            child: Text(
+                                              isArabic ? "العودة" : "Retour",
+                                              style: GoogleFonts.cairo(),
+                                            ),
                                           ),
-                                          const SizedBox(height: 12),
-
-                                          // 👈 NOUVEAU MOT DE PASSE
-                                          _buildPasswordField(
-                                            controller: _newPasswordController,
-                                            labelFr: "Nouveau mot de passe",
-                                            labelAr: "كلمة المرور الجديدة",
-                                            isArabic: isArabic,
-                                            obscureText: _obscureNewPassword,
-                                            onToggle: () {
-                                              setState(() {
-                                                _obscureNewPassword =
-                                                    !_obscureNewPassword;
-                                              });
-                                            },
-                                            validator: (value) {
-                                              if (value != null &&
-                                                  value.isNotEmpty &&
-                                                  value.length < 6) {
-                                                return isArabic
-                                                    ? "كلمة المرور قصيرة جداً (6 أحرف على الأقل)"
-                                                    : "6 caractères minimum";
-                                              }
-                                              return null;
-                                            },
+                                        ],
+                                      ),
+                                    )
+                                    : Form(
+                                      key: _formKey,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: [
+                                          // ---- Avatar ----
+                                          Center(
+                                            child: Stack(
+                                              children: [
+                                                CircleAvatar(
+                                                  radius: 50,
+                                                  backgroundColor: AppColors
+                                                      .primary
+                                                      .withOpacity(0.1),
+                                                  child:
+                                                      userProvider.isLoggedIn
+                                                          ? Text(
+                                                            userProvider
+                                                                .initials,
+                                                            style: GoogleFonts
+                                                                .cairo(
+                                                              fontSize: 32,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                              color:
+                                                                  AppColors
+                                                                      .primary,
+                                                            ),
+                                                          )
+                                                          : const Icon(
+                                                            Icons
+                                                                .person_rounded,
+                                                            size: 55,
+                                                            color: AppColors
+                                                                .primary,
+                                                          ),
+                                                ),
+                                                Positioned(
+                                                  bottom: 0,
+                                                  right: isArabic ? null : 0,
+                                                  left: isArabic ? 0 : null,
+                                                  child: CircleAvatar(
+                                                    radius: 16,
+                                                    backgroundColor:
+                                                        AppColors.primary,
+                                                    child: const Icon(
+                                                      Icons.camera_alt_rounded,
+                                                      size: 16,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
-                                          const SizedBox(height: 12),
+                                          const SizedBox(height: 8),
+                                          if (userProvider.isLoggedIn &&
+                                              userProvider.userRole != null)
+                                            Center(
+                                              child: Container(
+                                                padding: const EdgeInsets
+                                                    .symmetric(
+                                                  horizontal: 12,
+                                                  vertical: 4,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.primary
+                                                      .withOpacity(0.1),
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                        12,
+                                                      ),
+                                                ),
+                                                child: Text(
+                                                  userProvider.userRole!
+                                                      .libelle,
+                                                  style: GoogleFonts.cairo(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: AppColors.primary,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          const SizedBox(height: 35),
 
-                                          // 👈 CONFIRMER NOUVEAU MOT DE PASSE
-                                          _buildPasswordField(
-                                            controller:
-                                                _confirmPasswordController,
+                                          // ---- Champs du formulaire ----
+                                          _buildEditField(
+                                            controller: _nameController,
+                                            labelFr: "Nom et Prénom",
+                                            labelAr: "الاسم واللقب",
+                                            icon:
+                                                Icons.person_outline_rounded,
+                                            validator:
+                                                (v) =>
+                                                    v!.isEmpty
+                                                        ? "Champ requis"
+                                                        : null,
+                                          ),
+                                          const SizedBox(height: 16),
+
+                                          _buildEditField(
+                                            controller: _phoneController,
                                             labelFr:
-                                                "Confirmer le mot de passe",
-                                            labelAr: "تأكيد كلمة المرور",
-                                            isArabic: isArabic,
-                                            obscureText:
-                                                _obscureConfirmPassword,
-                                            onToggle: () {
-                                              setState(() {
-                                                _obscureConfirmPassword =
-                                                    !_obscureConfirmPassword;
-                                              });
-                                            },
-                                            validator: (value) {
-                                              if (_newPasswordController.text
-                                                  .trim()
-                                                  .isNotEmpty) {
-                                                if (value == null ||
-                                                    value.isEmpty) {
-                                                  return isArabic
-                                                      ? "يرجى تأكيد كلمة المرور"
-                                                      : "Veuillez confirmer le mot de passe";
-                                                }
-                                                if (value !=
-                                                    _newPasswordController.text
-                                                        .trim()) {
-                                                  return isArabic
-                                                      ? "كلمات المرور غير متطابقة"
-                                                      : "Les mots de passe ne correspondent pas";
-                                                }
+                                                "WhatsApp (avec indicatif)",
+                                            labelAr:
+                                                "رقم الواتساب (مع رمز البلد)",
+                                            icon: Icons.phone_android_rounded,
+                                            keyboardType: TextInputType.phone,
+                                            validator:
+                                                (v) =>
+                                                    v!.isEmpty
+                                                        ? "Champ requis"
+                                                        : null,
+                                          ),
+                                          const SizedBox(height: 16),
+
+                                          _buildEditField(
+                                            controller: _emailController,
+                                            labelFr: "Adresse E-mail",
+                                            labelAr: "البريد الإلكتروني",
+                                            icon:
+                                                Icons.alternate_email_rounded,
+                                            keyboardType:
+                                                TextInputType.emailAddress,
+                                            validator:
+                                                (v) =>
+                                                    !v!.contains('@')
+                                                        ? "E-mail invalide"
+                                                        : null,
+                                          ),
+                                          const SizedBox(height: 16),
+
+                                          _buildEditField(
+                                            controller: _paysController,
+                                            labelFr: "Pays",
+                                            labelAr: "بلد الإقامة",
+                                            icon: Icons.location_on_outlined,
+                                            validator:
+                                                (v) =>
+                                                    v!.isEmpty
+                                                        ? "Champ requis"
+                                                        : null,
+                                          ),
+                                          const SizedBox(height: 16),
+
+                                          _buildEditField(
+                                            controller: _villeController,
+                                            labelFr: "Ville",
+                                            labelAr: "المدينة",
+                                            icon:
+                                                Icons.location_city_outlined,
+                                            validator:
+                                                (v) =>
+                                                    v!.isEmpty
+                                                        ? "Champ requis"
+                                                        : null,
+                                          ),
+                                          const SizedBox(height: 16),
+
+                                          _buildEditField(
+                                            controller:
+                                                _dateNaissanceController,
+                                            labelFr: "Date de naissance",
+                                            labelAr: "تاريخ الولادة",
+                                            icon:
+                                                Icons.calendar_today_outlined,
+                                            readOnly: true,
+                                            onTap: () async {
+                                              final DateTime? picked =
+                                                  await showDatePicker(
+                                                    context: context,
+                                                    initialDate: DateTime.now(),
+                                                    firstDate: DateTime(1900),
+                                                    lastDate: DateTime.now(),
+                                                  );
+                                              if (picked != null) {
+                                                setState(() {
+                                                  _dateNaissanceController
+                                                      .text =
+                                                      '${picked.day}/${picked.month}/${picked.year}';
+                                                });
                                               }
-                                              return null;
                                             },
+                                            validator:
+                                                (v) =>
+                                                    v!.isEmpty
+                                                        ? "Champ requis"
+                                                        : null,
+                                          ),
+                                          const SizedBox(height: 16),
+
+                                          // ---- Genre (Dropdown) ----
+                                          _buildDropdown(
+                                            labelFr: "Genre",
+                                            labelAr: "الجنس",
+                                            value: _selectedGenre,
+                                            items: const [
+                                              DropdownMenuItem<String>(
+                                                key: ValueKey('genre_homme'),
+                                                value: 'homme',
+                                                child: Text('Homme'),
+                                              ),
+                                              DropdownMenuItem<String>(
+                                                key: ValueKey('genre_femme'),
+                                                value: 'femme',
+                                                child: Text('Femme'),
+                                              ),
+                                            ],
+                                            onChanged: (value) {
+                                              if (value != null) {
+                                                setState(
+                                                  () => _selectedGenre = value,
+                                                );
+                                              }
+                                            },
+                                          ),
+                                          const SizedBox(height: 16),
+
+                                          // ---- Source (Dropdown) ----
+                                          _buildDropdown(
+                                            labelFr: "Source de connaissance",
+                                            labelAr:
+                                                "كيف تعرفت على الأكاديمية؟",
+                                            value: _selectedSourceConnaissance,
+                                            items: const [
+                                              DropdownMenuItem<String>(
+                                                key: ValueKey(
+                                                  'source_instagram',
+                                                ),
+                                                value: 'instagram',
+                                                child: Text('Instagram'),
+                                              ),
+                                              DropdownMenuItem<String>(
+                                                key: ValueKey(
+                                                  'source_facebook',
+                                                ),
+                                                value: 'facebook',
+                                                child: Text('Facebook'),
+                                              ),
+                                              DropdownMenuItem<String>(
+                                                key: ValueKey('source_ami'),
+                                                value: 'ami',
+                                                child: Text('Ami(e)'),
+                                              ),
+                                              DropdownMenuItem<String>(
+                                                key: ValueKey(
+                                                  'source_annonce',
+                                                ),
+                                                value: 'annonce',
+                                                child: Text('Annonce'),
+                                              ),
+                                              DropdownMenuItem<String>(
+                                                key: ValueKey('source_autre'),
+                                                value: 'autre',
+                                                child: Text('Autre'),
+                                              ),
+                                            ],
+                                            onChanged: (value) {
+                                              if (value != null) {
+                                                setState(
+                                                  () =>
+                                                      _selectedSourceConnaissance =
+                                                          value,
+                                                );
+                                              }
+                                            },
+                                          ),
+                                          const SizedBox(height: 16),
+
+                                          _buildEditField(
+                                            controller: _objectifController,
+                                            labelFr: "Objectif",
+                                            labelAr:
+                                                "ما هو هدفك من الالتحاق بهذه الدورات ؟",
+                                            icon: Icons.flag_outlined,
+                                            maxLines: 3,
+                                          ),
+                                          const SizedBox(height: 16),
+
+                                          _buildEditField(
+                                            controller: _suggestionsController,
+                                            labelFr: "Suggestions",
+                                            labelAr:
+                                                "اقتراحات دورات و مواضيع دروس",
+                                            icon: Icons.lightbulb_outline,
+                                            maxLines: 2,
+                                          ),
+                                          const SizedBox(height: 16),
+
+                                          _buildCheckbox(
+                                            labelFr:
+                                                "J'accepte la publication du contenu",
+                                            labelAr:
+                                                "أوافق على نشر محتوى الدورات",
+                                            value: _accordPublication,
+                                            onChanged: (value) {
+                                              setState(
+                                                () =>
+                                                    _accordPublication =
+                                                        value!,
+                                              );
+                                            },
+                                          ),
+
+                                          const SizedBox(height: 24),
+
+                                          // ---- SECTION CHANGEMENT DE MOT DE PASSE ----
+                                          Container(
+                                            padding: const EdgeInsets.all(16),
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey.shade50,
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              border: Border.all(
+                                                color: Colors.grey.shade200,
+                                              ),
+                                            ),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  isArabic
+                                                      ? "🔒 تغيير كلمة المرور"
+                                                      : "🔒 Changer le mot de passe",
+                                                  style: GoogleFonts.cairo(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: AppColors.textDark,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 8),
+                                                Text(
+                                                  isArabic
+                                                      ? "Laissez vide si vous ne souhaitez pas le modifier"
+                                                      : "Laissez vide si vous ne souhaitez pas le modifier",
+                                                  style: GoogleFonts.cairo(
+                                                    fontSize: 12,
+                                                    color: Colors.grey.shade600,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 16),
+
+                                                // 👈 MOT DE PASSE ACTUEL (pré-rempli)
+                                                _buildPasswordField(
+                                                  controller:
+                                                      _currentPasswordController,
+                                                  labelFr:
+                                                      "Mot de passe actuel",
+                                                  labelAr:
+                                                      "كلمة المرور الحالية",
+                                                  isArabic: isArabic,
+                                                  obscureText:
+                                                      _obscureCurrentPassword,
+                                                  onToggle: () {
+                                                    setState(() {
+                                                      _obscureCurrentPassword =
+                                                          !_obscureCurrentPassword;
+                                                    });
+                                                  },
+                                                  validator: (value) {
+                                                    // Validation seulement si l'utilisateur change le mot de passe
+                                                    if (_newPasswordController
+                                                            .text
+                                                            .trim()
+                                                            .isNotEmpty &&
+                                                        (value == null ||
+                                                            value.isEmpty)) {
+                                                      return isArabic
+                                                          ? "يرجى إدخال كلمة المرور الحالية"
+                                                          : "Veuillez entrer votre mot de passe actuel";
+                                                    }
+                                                    return null;
+                                                  },
+                                                ),
+                                                const SizedBox(height: 12),
+
+                                                // 👈 NOUVEAU MOT DE PASSE
+                                                _buildPasswordField(
+                                                  controller:
+                                                      _newPasswordController,
+                                                  labelFr:
+                                                      "Nouveau mot de passe",
+                                                  labelAr:
+                                                      "كلمة المرور الجديدة",
+                                                  isArabic: isArabic,
+                                                  obscureText:
+                                                      _obscureNewPassword,
+                                                  onToggle: () {
+                                                    setState(() {
+                                                      _obscureNewPassword =
+                                                          !_obscureNewPassword;
+                                                    });
+                                                  },
+                                                  validator: (value) {
+                                                    if (value != null &&
+                                                        value.isNotEmpty &&
+                                                        value.length < 6) {
+                                                      return isArabic
+                                                          ? "كلمة المرور قصيرة جداً (6 أحرف على الأقل)"
+                                                          : "6 caractères minimum";
+                                                    }
+                                                    return null;
+                                                  },
+                                                ),
+                                                const SizedBox(height: 12),
+
+                                                // 👈 CONFIRMER NOUVEAU MOT DE PASSE
+                                                _buildPasswordField(
+                                                  controller:
+                                                      _confirmPasswordController,
+                                                  labelFr:
+                                                      "Confirmer le mot de passe",
+                                                  labelAr:
+                                                      "تأكيد كلمة المرور",
+                                                  isArabic: isArabic,
+                                                  obscureText:
+                                                      _obscureConfirmPassword,
+                                                  onToggle: () {
+                                                    setState(() {
+                                                      _obscureConfirmPassword =
+                                                          !_obscureConfirmPassword;
+                                                    });
+                                                  },
+                                                  validator: (value) {
+                                                    if (_newPasswordController
+                                                        .text
+                                                        .trim()
+                                                        .isNotEmpty) {
+                                                      if (value == null ||
+                                                          value.isEmpty) {
+                                                        return isArabic
+                                                            ? "يرجى تأكيد كلمة المرور"
+                                                            : "Veuillez confirmer le mot de passe";
+                                                      }
+                                                      if (value !=
+                                                          _newPasswordController
+                                                              .text
+                                                              .trim()) {
+                                                        return isArabic
+                                                            ? "كلمات المرور غير متطابقة"
+                                                            : "Les mots de passe ne correspondent pas";
+                                                      }
+                                                    }
+                                                    return null;
+                                                  },
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+
+                                          const SizedBox(height: 30),
+
+                                          // ---- Boutons ----
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: OutlinedButton(
+                                                  onPressed:
+                                                      _isLoading
+                                                          ? null
+                                                          : () {
+                                                            Navigator.pop(
+                                                              context,
+                                                            );
+                                                          },
+                                                  style: OutlinedButton
+                                                      .styleFrom(
+                                                    foregroundColor:
+                                                        Colors.grey[700],
+                                                    side: BorderSide(
+                                                      color: Colors.grey[300]!,
+                                                    ),
+                                                    padding:
+                                                        const EdgeInsets
+                                                            .symmetric(
+                                                          vertical: 16,
+                                                        ),
+                                                    shape:
+                                                        RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            14,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                  child: Text(
+                                                    isArabic
+                                                        ? "إلغاء"
+                                                        : "Annuler",
+                                                    style: GoogleFonts.cairo(
+                                                      fontSize: 16,
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: ElevatedButton(
+                                                  onPressed:
+                                                      _isLoading
+                                                          ? null
+                                                          : _saveProfile,
+                                                  style: ElevatedButton
+                                                      .styleFrom(
+                                                    backgroundColor:
+                                                        AppColors.primary,
+                                                    foregroundColor:
+                                                        Colors.white,
+                                                    padding:
+                                                        const EdgeInsets
+                                                            .symmetric(
+                                                          vertical: 16,
+                                                        ),
+                                                    shape:
+                                                        RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            14,
+                                                          ),
+                                                    ),
+                                                    elevation: 0,
+                                                  ),
+                                                  child:
+                                                      _isLoading
+                                                          ? const SizedBox(
+                                                            height: 20,
+                                                            width: 20,
+                                                            child:
+                                                                CircularProgressIndicator(
+                                                                  color: Colors
+                                                                      .white,
+                                                                  strokeWidth:
+                                                                      2,
+                                                                ),
+                                                          )
+                                                          : Text(
+                                                            isArabic
+                                                                ? "حفظ التغييرات"
+                                                                : "Enregistrer",
+                                                            style: GoogleFonts
+                                                                .cairo(
+                                                              fontSize: 16,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                            ),
+                                                          ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ],
                                       ),
                                     ),
-
-                                    const SizedBox(height: 30),
-
-                                    // ---- Boutons ----
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: OutlinedButton(
-                                            onPressed:
-                                                _isLoading
-                                                    ? null
-                                                    : () {
-                                                      Navigator.pop(context);
-                                                    },
-                                            style: OutlinedButton.styleFrom(
-                                              foregroundColor: Colors.grey[700],
-                                              side: BorderSide(
-                                                color: Colors.grey[300]!,
-                                              ),
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    vertical: 16,
-                                                  ),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(14),
-                                              ),
-                                            ),
-                                            child: Text(
-                                              isArabic ? "إلغاء" : "Annuler",
-                                              style: GoogleFonts.cairo(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: ElevatedButton(
-                                            onPressed:
-                                                _isLoading
-                                                    ? null
-                                                    : _saveProfile,
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor:
-                                                  AppColors.primary,
-                                              foregroundColor: Colors.white,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    vertical: 16,
-                                                  ),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(14),
-                                              ),
-                                              elevation: 0,
-                                            ),
-                                            child:
-                                                _isLoading
-                                                    ? const SizedBox(
-                                                      height: 20,
-                                                      width: 20,
-                                                      child:
-                                                          CircularProgressIndicator(
-                                                            color: Colors.white,
-                                                            strokeWidth: 2,
-                                                          ),
-                                                    )
-                                                    : Text(
-                                                      isArabic
-                                                          ? "حفظ التغييرات"
-                                                          : "Enregistrer",
-                                                      style: GoogleFonts.cairo(
-                                                        fontSize: 16,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                    ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                    ),
-                  ),
-                ),
-              ),
-
-              // ---- NAVBAR ----
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  height: 85,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.02),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
+                          ),
+                        ),
                       ),
-                    ],
-                  ),
-                  child: Navbar(isMobile: isMobile, scaffoldKey: _scaffoldKey),
+                    ),
+
+                    // ---- NAVBAR ----
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        height: 85,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.02),
+                              blurRadius: 10,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Navbar(
+                          isMobile: isMobile,
+                          scaffoldKey: _scaffoldKey,
+                        ),
+                      ),
+                    ),
+
+                    // ---- Overlay chargement ----
+                    if (_isLoading)
+                      const Opacity(
+                        opacity: 0.5,
+                        child: ModalBarrier(
+                          dismissible: false,
+                          color: Colors.black,
+                        ),
+                      ),
+                  ],
                 ),
               ),
-
-              // ---- Overlay chargement ----
-              if (_isLoading)
-                const Opacity(
-                  opacity: 0.5,
-                  child: ModalBarrier(dismissible: false, color: Colors.black),
-                ),
+              // ============================================================
+              // ✅ MOBILE BOTTOM NAVIGATION
+              // ============================================================
+              const MobileBottomNav(),
             ],
           ),
         ),
@@ -1013,6 +1092,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   // ---- WIDGETS PRIVÉS ----
+  // (tous les widgets restent inchangés)
 
   Widget _buildEditField({
     required TextEditingController controller,

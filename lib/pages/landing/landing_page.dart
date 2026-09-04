@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/models/bull_model.dart';
+import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
 
 import 'package:provider/provider.dart';
 
@@ -82,77 +83,75 @@ class _LandingPageState extends State<LandingPage> {
   // ============================================================
   // GESTIONNAIRE DE CLIC SUR BULL - NAVIGATION INTELLIGENTE
   // ============================================================
-// lib/pages/landing/landing_page.dart - _handleBullTap
-
-void _handleBullTap(BuildContext context, BullModel bull) {
-  print('🔗 [BULL] Clic sur: ${bull.title}');
-  print('   📍 Lien: ${bull.link}');
-  
-  final link = bull.link;
-  
-  // ✅ Si c'est un lien vers une catégorie
-  if (link.startsWith('/categorie/')) {
-    final categorieId = link.replaceAll('/categorie/', '');
-    print('   🏷️ Navigation vers catégorie: $categorieId');
+  void _handleBullTap(BuildContext context, BullModel bull) {
+    print('🔗 [BULL] Clic sur: ${bull.title}');
+    print('   📍 Lien: ${bull.link}');
     
-    Navigator.pushNamed(
-      context,
-      '/formations',
-      arguments: {'categorieId': categorieId},
-    );
-    return;
-  }
-  
-  // ✅ Si c'est un lien vers un formateur
-  if (link.startsWith('/formateur/')) {
-    final formateurId = link.replaceAll('/formateur/', '');
-    print('   👤 Navigation vers formateur: $formateurId');
+    final link = bull.link;
     
-    Navigator.pushNamed(
-      context,
-      '/formations',
-      arguments: {'formateurId': formateurId},
-    );
-    return;
-  }
-  
-  // ✅ Si c'est un lien vers une formation
-  if (link.startsWith('/formation/')) {
-    final formationId = link.replaceAll('/formation/', '');
-    print('   📚 Navigation vers formation: $formationId');
+    // ✅ Si c'est un lien vers une catégorie
+    if (link.startsWith('/categorie/')) {
+      final categorieId = link.replaceAll('/categorie/', '');
+      print('   🏷️ Navigation vers catégorie: $categorieId');
+      
+      Navigator.pushNamed(
+        context,
+        '/formations',
+        arguments: {'categorieId': categorieId},
+      );
+      return;
+    }
     
-    Navigator.pushNamed(
-      context,
-      '/formation/$formationId',
-    );
-    return;
-  }
-  
-  // ✅ Si c'est un lien vers une vidéo
-  if (link.startsWith('/video/')) {
-    final videoId = link.replaceAll('/video/', '');
-    print('   🎬 Navigation vers vidéo: $videoId');
+    // ✅ Si c'est un lien vers un formateur
+    if (link.startsWith('/formateur/')) {
+      final formateurId = link.replaceAll('/formateur/', '');
+      print('   👤 Navigation vers formateur: $formateurId');
+      
+      Navigator.pushNamed(
+        context,
+        '/formations',
+        arguments: {'formateurId': formateurId},
+      );
+      return;
+    }
     
-    Navigator.pushNamed(
-      context,
-      '/video/$videoId',
-    );
-    return;
-  }
-  
-  // ✅ Si c'est un lien vers une section (scroll)
-  if (link.startsWith('/section/')) {
-    final sectionKey = link.replaceAll('/section/', '');
-    print('   📑 Navigation vers section: $sectionKey');
+    // ✅ Si c'est un lien vers une formation
+    if (link.startsWith('/formation/')) {
+      final formationId = link.replaceAll('/formation/', '');
+      print('   📚 Navigation vers formation: $formationId');
+      
+      Navigator.pushNamed(
+        context,
+        '/formation/$formationId',
+      );
+      return;
+    }
     
-    _scrollToSection(sectionKey);
-    return;
+    // ✅ Si c'est un lien vers une vidéo
+    if (link.startsWith('/video/')) {
+      final videoId = link.replaceAll('/video/', '');
+      print('   🎬 Navigation vers vidéo: $videoId');
+      
+      Navigator.pushNamed(
+        context,
+        '/video/$videoId',
+      );
+      return;
+    }
+    
+    // ✅ Si c'est un lien vers une section (scroll)
+    if (link.startsWith('/section/')) {
+      final sectionKey = link.replaceAll('/section/', '');
+      print('   📑 Navigation vers section: $sectionKey');
+      
+      _scrollToSection(sectionKey);
+      return;
+    }
+    
+    // ✅ Navigation normale (page)
+    print('   🔗 Navigation normale vers: $link');
+    Navigator.pushNamed(context, link);
   }
-  
-  // ✅ Navigation normale (page)
-  print('   🔗 Navigation normale vers: $link');
-  Navigator.pushNamed(context, link);
-}
 
   // ============================================================
   // SCROLL VERS UNE SECTION
@@ -308,29 +307,40 @@ void _handleBullTap(BuildContext context, BullModel bull) {
             : null,
         body: SafeArea(
           top: false,
-          child: Stack(
+          child: Column(
             children: [
-              SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Column(
+              // Contenu principal
+              Expanded(
+                child: Stack(
                   children: [
-                    const SizedBox(height: 90),
+                    SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 90),
 
-                    // ✅ SECTIONS DYNAMIQUES (selon l'ordre défini dans l'admin)
-                    ..._sections.map((section) {
-                      return _buildSection(section, isMobile, isArabic);
-                    }).toList(),
+                          // ✅ SECTIONS DYNAMIQUES (selon l'ordre défini dans l'admin)
+                          ..._sections.map((section) {
+                            return _buildSection(section, isMobile, isArabic);
+                          }).toList(),
 
-                    const SizedBox(height: 40),
+                          const SizedBox(height: 40),
+                        ],
+                      ),
+                    ),
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: Navbar(isMobile: isMobile, scaffoldKey: _scaffoldKey),
+                    ),
                   ],
                 ),
               ),
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: Navbar(isMobile: isMobile, scaffoldKey: _scaffoldKey),
-              ),
+              // ============================================================
+              // ✅ MOBILE BOTTOM NAVIGATION
+              // ============================================================
+              const MobileBottomNav(),
             ],
           ),
         ),
@@ -1088,52 +1098,61 @@ class _AllTrainingsPageState extends State<AllTrainingsPage> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _trainings.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.school_outlined,
-                        size: 80,
-                        color: AppColors.primary.withOpacity(0.3),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        isArabic
-                            ? 'لا توجد تكوينات حالياً'
-                            : 'Aucune formation disponible',
-                        style: GoogleFonts.cairo(
-                          color: AppColors.textMuted,
-                          fontSize: 16,
+      body: Column(
+        children: [
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _trainings.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.school_outlined,
+                              size: 80,
+                              color: AppColors.primary.withOpacity(0.3),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              isArabic
+                                  ? 'لا توجد تكوينات حالياً'
+                                  : 'Aucune formation disponible',
+                              style: GoogleFonts.cairo(
+                                color: AppColors.textMuted,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : Padding(
+                        padding: EdgeInsets.all(isMobile ? 12 : 24),
+                        child: GridView.builder(
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: isMobile ? 2 : 3,
+                            childAspectRatio: isMobile ? 9 / 16 : 0.85,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                          ),
+                          itemCount: _trainings.length,
+                          itemBuilder: (context, index) {
+                            return TrainingCard(
+                              training: _trainings[index],
+                              isArabic: isArabic,
+                              onRefresh: _loadAllTrainings,
+                              isMobile: isMobile,
+                            );
+                          },
                         ),
                       ),
-                    ],
-                  ),
-                )
-              : Padding(
-                  padding: EdgeInsets.all(isMobile ? 12 : 24),
-                  child: GridView.builder(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: isMobile ? 2 : 3,
-                      // ✅ Ratio Reel Facebook/Instagram = 9:16 sur mobile
-                      childAspectRatio: isMobile ? 9 / 16 : 0.85,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                    ),
-                    itemCount: _trainings.length,
-                    itemBuilder: (context, index) {
-                      return TrainingCard(
-                        training: _trainings[index],
-                        isArabic: isArabic,
-                        onRefresh: _loadAllTrainings,
-                        isMobile: isMobile,
-                      );
-                    },
-                  ),
-                ),
+          ),
+          // ============================================================
+          // ✅ MOBILE BOTTOM NAVIGATION
+          // ============================================================
+          const MobileBottomNav(),
+        ],
+      ),
     );
   }
 }

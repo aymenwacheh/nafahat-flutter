@@ -1,5 +1,6 @@
 // lib/pages/users/profile_dashboard_page.dart
 import 'package:flutter/material.dart';
+import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/pages/users/edit_profile_page.dart';
@@ -116,89 +117,100 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
           ).buildDrawer(context),
           body: SafeArea(
             top: false,
-            child: Stack(
+            child: Column(
               children: [
-                SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.only(top: 100),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildProfileSection(isArabic, userProvider),
-                        const SizedBox(height: 32),
+                // Contenu principal
+                Expanded(
+                  child: Stack(
+                    children: [
+                      SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.only(top: 100),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildProfileSection(isArabic, userProvider),
+                              const SizedBox(height: 32),
 
-                        _buildSectionHeader(
-                          isArabic: isArabic,
-                          titleFr: 'Mes Formations en Cours',
-                          titleAr: 'تكويناتي الجارية',
-                          isExpanded: _showEnCours,
-                          onToggle: () {
-                            setState(() {
-                              _showEnCours = !_showEnCours;
-                              _showTerminees = false;
-                            });
-                          },
-                        ),
-                        if (_showEnCours) ...[
-                          const SizedBox(height: 16),
-                          _buildFormationsGrid(
-                            _formationsEnCours,
-                            isArabic,
-                            isMobile,
-                          ),
-                        ],
-                        const SizedBox(height: 24),
+                              _buildSectionHeader(
+                                isArabic: isArabic,
+                                titleFr: 'Mes Formations en Cours',
+                                titleAr: 'تكويناتي الجارية',
+                                isExpanded: _showEnCours,
+                                onToggle: () {
+                                  setState(() {
+                                    _showEnCours = !_showEnCours;
+                                    _showTerminees = false;
+                                  });
+                                },
+                              ),
+                              if (_showEnCours) ...[
+                                const SizedBox(height: 16),
+                                _buildFormationsGrid(
+                                  _formationsEnCours,
+                                  isArabic,
+                                  isMobile,
+                                ),
+                              ],
+                              const SizedBox(height: 24),
 
-                        _buildSectionHeader(
-                          isArabic: isArabic,
-                          titleFr: 'Mes Formations Terminées',
-                          titleAr: 'تكويناتي المنتهية',
-                          isExpanded: _showTerminees,
-                          onToggle: () {
-                            setState(() {
-                              _showTerminees = !_showTerminees;
-                              _showEnCours = false;
-                            });
-                          },
-                        ),
-                        if (_showTerminees) ...[
-                          const SizedBox(height: 16),
-                          _buildFormationsGrid(
-                            _formationsTerminees,
-                            isArabic,
-                            isMobile,
+                              _buildSectionHeader(
+                                isArabic: isArabic,
+                                titleFr: 'Mes Formations Terminées',
+                                titleAr: 'تكويناتي المنتهية',
+                                isExpanded: _showTerminees,
+                                onToggle: () {
+                                  setState(() {
+                                    _showTerminees = !_showTerminees;
+                                    _showEnCours = false;
+                                  });
+                                },
+                              ),
+                              if (_showTerminees) ...[
+                                const SizedBox(height: 16),
+                                _buildFormationsGrid(
+                                  _formationsTerminees,
+                                  isArabic,
+                                  isMobile,
+                                ),
+                              ],
+                              const SizedBox(height: 60),
+                            ],
                           ),
-                        ],
-                        const SizedBox(height: 60),
-                      ],
-                    ),
+                        ),
+                      ),
+
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          height: 85,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.02),
+                                blurRadius: 10,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Navbar(
+                            isMobile: isMobile,
+                            scaffoldKey: _scaffoldKey,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    height: 85,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.02),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Navbar(
-                      isMobile: isMobile,
-                      scaffoldKey: _scaffoldKey,
-                    ),
-                  ),
-                ),
+                // ============================================================
+                // ✅ MOBILE BOTTOM NAVIGATION
+                // ============================================================
+                const MobileBottomNav(),
               ],
             ),
           ),

@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/models/training_model.dart';
+import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
 import 'package:nafahat/services/training_service.dart';
 import 'package:nafahat/pages/widgets/training_card_section.dart';
 import 'package:nafahat/pages/widgets/navbar.dart';
@@ -221,6 +222,10 @@ class _FormationsPageState extends State<FormationsPage> {
                             ),
                           ),
           ),
+          // ============================================================
+          // ✅ MOBILE BOTTOM NAVIGATION
+          // ============================================================
+          const MobileBottomNav(),
         ],
       ),
     );

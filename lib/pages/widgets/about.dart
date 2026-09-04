@@ -1,6 +1,7 @@
 // lib/pages/landing/widgets/about.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:nafahat/providers/language_provider.dart';
@@ -73,6 +74,10 @@ class AboutPage extends StatelessWidget {
                       )
                     : _buildErrorState(context, isArabic, isMobile),
           ),
+          // ============================================================
+          // ✅ MOBILE BOTTOM NAVIGATION
+          // ============================================================
+          const MobileBottomNav(),
         ],
       ),
     );

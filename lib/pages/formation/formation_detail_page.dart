@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/models/training_model.dart';
 import 'package:nafahat/pages/widgets/cart_popup.dart';
+import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
 import 'package:nafahat/services/training_service.dart';
 import 'package:nafahat/services/auth_service.dart';
 import 'package:nafahat/services/geo_service.dart';
@@ -631,6 +632,10 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
                               ),
                             ),
             ),
+            // ============================================================
+            // ✅ MOBILE BOTTOM NAVIGATION
+            // ============================================================
+            const MobileBottomNav(),
           ],
         ),
         // Overlay de chargement

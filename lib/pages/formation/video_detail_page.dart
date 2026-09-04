@@ -71,6 +71,7 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
                       ),
                     ],
                   ),
+                  
                 ),
     );
   }
