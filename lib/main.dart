@@ -28,6 +28,9 @@ import 'services/cart_service.dart';
 import 'package:nafahat/pages/widgets/all_video_page.dart';
 import 'pages/formation/formation_detail_page.dart';
 
+import 'package:nafahat/pages/users/request_reset_password.dart';
+import 'package:nafahat/pages/users/reset_password_page.dart';
+
 void main() {
   // ✅ Initialiser le service du panier au démarrage
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,6 +59,18 @@ class MyApp extends StatelessWidget {
       return const ComingSoonPage();
     } else if (path == '/project') {
       return ChatbotGlobalWrapper(child: SplashScreen());
+    } else if (path == '/reset-password') {
+      // ✅ Lien reçu par email : /reset-password?token=XXX
+      final token = uri.queryParameters['token'] ?? '';
+      return ChatbotGlobalWrapper(
+        hideOnRoute: false,
+        child: ResetPasswordPage(token: token),
+      );
+    } else if (path == '/request-reset-password') {
+      return const ChatbotGlobalWrapper(
+        hideOnRoute: false,
+        child: RequestResetPasswordPage(),
+      );
     } else {
       // Par défaut, si l'URL est inconnue -> Coming Soon
       return const ComingSoonPage();
@@ -141,6 +156,11 @@ class MyApp extends StatelessWidget {
                     hideOnRoute: false,
                     child: CartPage(),
                   ),
+                  '/request-reset-password': (context) => const RequestResetPasswordPage(),
+  '/reset-password': (context) {
+    final token = ModalRoute.of(context)?.settings.arguments as String?;
+    return ResetPasswordPage(token: token ?? '');
+  },
             },
             // ✅ ROUTES DYNAMIQUES
             onGenerateRoute: (settings) {
