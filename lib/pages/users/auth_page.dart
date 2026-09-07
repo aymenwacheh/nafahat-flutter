@@ -1,6 +1,6 @@
 // lib/pages/users/auth_page.dart
 import 'package:flutter/material.dart';
-import 'package:nafahat/pages/users/request_reset_password.dart';
+import 'package:nafahat/pages/users/reset_password_page.dart';
 import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -425,7 +425,7 @@ class _AuthPageState extends State<AuthPage> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => const RequestResetPasswordPage(),
+          builder: (context) => const ResetPasswordPage(),
         ),
       );
     },

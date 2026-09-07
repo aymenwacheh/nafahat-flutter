@@ -12,87 +12,128 @@ import '/pages/landing/splash_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/pages/users/auth_page.dart';
 import 'package:nafahat/providers/language_provider.dart';
-import 'package:nafahat/providers/card_config_provider.dart';
 import 'package:nafahat/providers/chatbot_provider.dart';
 import 'package:nafahat/providers/user_provider.dart';
 import 'package:nafahat/providers/about_provider.dart';
+import 'package:nafahat/providers/hero_provider.dart';
 import 'pages/widgets/chatbot/chatbot_widget.dart';
 import 'package:nafahat/config/api_config.dart';
 import 'pages/landing/landing_page.dart';
-import 'package:nafahat/models/card_config_model.dart';
 import 'package:nafahat/pages/users/profile_dashboard_page.dart';
 import 'package:nafahat/pages/adminisration/administration_page.dart';
 import 'package:nafahat/pages/cart/cart_page.dart';
 import 'services/navigation_service.dart';
 import 'services/cart_service.dart';
+import 'services/card_config_manager.dart';
 import 'package:nafahat/pages/widgets/all_video_page.dart';
 import 'pages/formation/formation_detail_page.dart';
-
-import 'package:nafahat/pages/users/request_reset_password.dart';
 import 'package:nafahat/pages/users/reset_password_page.dart';
 
 void main() {
-  // ✅ Initialiser le service du panier au démarrage
   WidgetsFlutterBinding.ensureInitialized();
   CartService.init();
-  
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
-  // Fonction pour déterminer la page à afficher
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  bool _isInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    // Initialiser CardConfigManager
+    final cardConfigManager = CardConfigManager();
+    await cardConfigManager.init();
+    
+    // ✅ Initialiser HeroProvider
+    final heroProvider = HeroProvider();
+    await heroProvider.init();
+    
+    setState(() {
+      _isInitialized = true;
+    });
+  }
+
   Widget _getInitialPage() {
-    // Si ce n'est pas le web, on affiche le projet normalement
     if (!kIsWeb) {
-      return ChatbotGlobalWrapper(child: SplashScreen());
+      return ChatbotGlobalWrapper(child: const SplashScreen());
     }
 
-    // Récupération de l'URL complète
     final Uri uri = Uri.base;
     final String path = uri.path;
 
-    // Si le chemin est "/" ou vide -> Page Coming Soon
-    // Si le chemin est "/project" -> Projet normal (SplashScreen)
     if (path == '/' || path.isEmpty) {
       return const ComingSoonPage();
     } else if (path == '/project') {
-      return ChatbotGlobalWrapper(child: SplashScreen());
+      return ChatbotGlobalWrapper(child: const SplashScreen());
     } else if (path == '/reset-password') {
-      // ✅ Lien reçu par email : /reset-password?token=XXX
-      final token = uri.queryParameters['token'] ?? '';
-      return ChatbotGlobalWrapper(
-        hideOnRoute: false,
-        child: ResetPasswordPage(token: token),
-      );
-    } else if (path == '/request-reset-password') {
       return const ChatbotGlobalWrapper(
         hideOnRoute: false,
-        child: RequestResetPasswordPage(),
+        child: ResetPasswordPage(),
       );
     } else {
-      // Par défaut, si l'URL est inconnue -> Coming Soon
       return const ComingSoonPage();
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_isInitialized) {
+      return MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const CircularProgressIndicator(color: Color(0xffd57653)),
+                const SizedBox(height: 20),
+                Text(
+                  'Chargement...',
+                  style: GoogleFonts.cairo(
+                    color: Colors.grey[600],
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => LanguageProvider()),
         ChangeNotifierProvider(create: (_) => ChatbotProvider()),
-        ChangeNotifierProvider(
-          create: (_) => UserProvider(),
-        ),
+        ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => AboutProvider()),
-        // Ajouter d'autres providers si nécessaire
+        ChangeNotifierProvider(create: (_) => CardConfigManager()),
+        // ✅ AJOUT DU HeroProvider
+        ChangeNotifierProvider(create: (_) => HeroProvider()),
       ],
       child: Consumer<LanguageProvider>(
         builder: (context, languageProvider, child) {
           print('📍 Langue actuelle: ${languageProvider.languageCode}');
           print('📍 Locale: ${languageProvider.locale}');
+          
+          // Vérifier que la config est chargée
+          final cardConfigManager = Provider.of<CardConfigManager>(context);
+          print('📍 Config chargée: ${cardConfigManager.isInitialized}');
+          
+          final heroProvider = Provider.of<HeroProvider>(context);
+          print('📍 Hero chargé: ${heroProvider.isInitialized} - ${heroProvider.slides.length} slides');
+
           return MaterialApp(
             title: 'Nafahat Platform',
             debugShowCheckedModeBanner: false,
@@ -128,77 +169,72 @@ class MyApp extends StatelessWidget {
               return const Locale('ar');
             },
             navigatorObservers: [ChatbotRouteObserver()],
-            // 👈 ICI on utilise la fonction pour déterminer la page initiale
             home: _getInitialPage(),
             routes: {
-              '/landing':
-                  (context) => const ChatbotGlobalWrapper(
-                    hideOnRoute: true,
-                    child: LandingPage(),
-                  ),
-              '/splash':
-                  (context) => const ChatbotGlobalWrapper(
-                    hideOnRoute: true,
-                    child: SplashScreen(),
-                  ),
-              '/auth':
-                  (context) => const ChatbotGlobalWrapper(
-                    hideOnRoute: false,
-                    child: AuthPage(),
-                  ),
-              '/admin':
-                  (context) => const ChatbotGlobalWrapper(
-                    hideOnRoute: false,
-                    child: AdministrationPage(),
-                  ),
-              '/cart':
-                  (context) => const ChatbotGlobalWrapper(
-                    hideOnRoute: false,
-                    child: CartPage(),
-                  ),
-                  '/request-reset-password': (context) => const RequestResetPasswordPage(),
-  '/reset-password': (context) {
-    final token = ModalRoute.of(context)?.settings.arguments as String?;
-    return ResetPasswordPage(token: token ?? '');
-  },
+              '/landing': (context) => const ChatbotGlobalWrapper(
+                hideOnRoute: true,
+                child: LandingPage(),
+              ),
+              '/splash': (context) => const ChatbotGlobalWrapper(
+                hideOnRoute: true,
+                child: SplashScreen(),
+              ),
+              '/auth': (context) => const ChatbotGlobalWrapper(
+                hideOnRoute: false,
+                child: AuthPage(),
+              ),
+              '/admin': (context) => const ChatbotGlobalWrapper(
+                hideOnRoute: false,
+                child: AdministrationPage(),
+              ),
+              '/cart': (context) => const ChatbotGlobalWrapper(
+                hideOnRoute: false,
+                child: CartPage(),
+              ),
+              '/reset-password': (context) => const ChatbotGlobalWrapper(
+                hideOnRoute: false,
+                child: ResetPasswordPage(),
+              ),
             },
-            // ✅ ROUTES DYNAMIQUES
             onGenerateRoute: (settings) {
               print('📍 [ROUTE] Navigation vers: ${settings.name}');
               
-              // ✅ ROUTE /login
               if (settings.name == '/login') {
                 final args = settings.arguments as Map<String, dynamic>?;
-                final returnToPrevious =
-                    args?['returnToPrevious'] as bool? ?? false;
+                final returnToPrevious = args?['returnToPrevious'] as bool? ?? false;
                 return MaterialPageRoute(
                   settings: settings,
-                  builder:
-                      (context) => ChatbotGlobalWrapper(
-                        hideOnRoute: false,
-                        child: AuthPage(returnToPrevious: returnToPrevious),
-                      ),
+                  builder: (context) => ChatbotGlobalWrapper(
+                    hideOnRoute: false,
+                    child: AuthPage(returnToPrevious: returnToPrevious),
+                  ),
                 );
               }
 
-              // ✅ ROUTE /inscription
               if (settings.name == '/inscription') {
                 final args = settings.arguments as Map<String, dynamic>?;
-                final fromFormationDetail =
-                    args?['fromFormationDetail'] as bool? ?? false;
+                final fromFormationDetail = args?['fromFormationDetail'] as bool? ?? false;
                 return MaterialPageRoute(
                   settings: settings,
-                  builder:
-                      (context) => ChatbotGlobalWrapper(
-                        hideOnRoute: false,
-                        child: InscriptionAdherentPage(
-                          fromFormationDetail: fromFormationDetail,
-                        ),
-                      ),
+                  builder: (context) => ChatbotGlobalWrapper(
+                    hideOnRoute: false,
+                    child: InscriptionAdherentPage(
+                      fromFormationDetail: fromFormationDetail,
+                    ),
+                  ),
                 );
               }
 
-              // ✅ ROUTE /formations AVEC ARGUMENTS (catégorie ou formateur)
+              if (settings.name == '/reset-password') {
+                return MaterialPageRoute(
+                  settings: settings,
+                  builder: (context) => const ChatbotGlobalWrapper(
+                    hideOnRoute: false,
+                    child: ResetPasswordPage(),
+                  ),
+                );
+              }
+
               if (settings.name == '/formations') {
                 final args = settings.arguments as Map<String, String>?;
                 return MaterialPageRoute(
@@ -213,10 +249,8 @@ class MyApp extends StatelessWidget {
                 );
               }
 
-              // ✅ ROUTE /formation/:id POUR LES FORMATIONS
               if (settings.name != null && settings.name!.startsWith('/formation/')) {
                 final formationId = settings.name!.replaceAll('/formation/', '');
-                print('📍 [ROUTE] Navigation vers formation: $formationId');
                 return MaterialPageRoute(
                   settings: settings,
                   builder: (context) => ChatbotGlobalWrapper(
@@ -226,10 +260,7 @@ class MyApp extends StatelessWidget {
                 );
               }
 
-              // ✅ ROUTE /video/:id POUR LES VIDÉOS
               if (settings.name != null && settings.name!.startsWith('/video/')) {
-                final videoId = settings.name!.replaceAll('/video/', '');
-                print('📍 [ROUTE] Navigation vers vidéo: $videoId');
                 return MaterialPageRoute(
                   settings: settings,
                   builder: (context) => ChatbotGlobalWrapper(
@@ -239,105 +270,33 @@ class MyApp extends StatelessWidget {
                 );
               }
 
-              // ✅ ROUTE /cart
               if (settings.name == '/cart') {
                 return MaterialPageRoute(
                   settings: settings,
-                  builder:
-                      (context) => const ChatbotGlobalWrapper(
-                        hideOnRoute: false,
-                        child: CartPage(),
-                      ),
+                  builder: (context) => const ChatbotGlobalWrapper(
+                    hideOnRoute: false,
+                    child: CartPage(),
+                  ),
                 );
               }
 
-              // ✅ ROUTE /profile
               if (settings.name == '/profile') {
                 return MaterialPageRoute(
                   settings: settings,
-                  builder:
-                      (context) => ChatbotGlobalWrapper(
-                        hideOnRoute: false,
-                        child: ProfileDashboardPage(),
-                      ),
+                  builder: (context) => ChatbotGlobalWrapper(
+                    hideOnRoute: false,
+                    child: ProfileDashboardPage(),
+                  ),
                 );
               }
 
-              // ✅ ROUTE /about
-              if (settings.name == '/about') {
-                return MaterialPageRoute(
-                  settings: settings,
-                  builder:
-                      (context) => ChatbotGlobalWrapper(
-                        hideOnRoute: false,
-                        child: Container(
-                          child: Center(
-                            child: Text(
-                              'À propos',
-                              style: GoogleFonts.cairo(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                );
-              }
-
-              // ✅ ROUTE /contact
-              if (settings.name == '/contact') {
-                return MaterialPageRoute(
-                  settings: settings,
-                  builder:
-                      (context) => ChatbotGlobalWrapper(
-                        hideOnRoute: false,
-                        child: Container(
-                          child: Center(
-                            child: Text(
-                              'Contact',
-                              style: GoogleFonts.cairo(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                );
-              }
-
-              // ✅ ROUTE /formateurs
-              if (settings.name == '/formateurs') {
-                return MaterialPageRoute(
-                  settings: settings,
-                  builder:
-                      (context) => ChatbotGlobalWrapper(
-                        hideOnRoute: false,
-                        child: Container(
-                          child: Center(
-                            child: Text(
-                              'Formateurs',
-                              style: GoogleFonts.cairo(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                );
-              }
-
-              // ✅ ROUTE /videos
               if (settings.name == '/videos') {
                 return MaterialPageRoute(
                   settings: settings,
-                  builder:
-                      (context) => ChatbotGlobalWrapper(
-                        hideOnRoute: false,
-                        child: AllVideoPage(),
-                      ),
+                  builder: (context) => ChatbotGlobalWrapper(
+                    hideOnRoute: false,
+                    child: AllVideoPage(),
+                  ),
                 );
               }
 
@@ -346,11 +305,10 @@ class MyApp extends StatelessWidget {
             onUnknownRoute: (settings) {
               print('⚠️ [ROUTE] Route inconnue: ${settings.name}');
               return MaterialPageRoute(
-                builder:
-                    (context) => const ChatbotGlobalWrapper(
-                      hideOnRoute: false,
-                      child: AuthPage(),
-                    ),
+                builder: (context) => const ChatbotGlobalWrapper(
+                  hideOnRoute: false,
+                  child: AuthPage(),
+                ),
               );
             },
           );
@@ -360,7 +318,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// 👇 OBSERVATEUR DE ROUTE pour mettre à jour le ChatbotProvider
+// 👇 OBSERVATEUR DE ROUTE
 class ChatbotRouteObserver extends NavigatorObserver {
   static const List<String> _hideRoutes = ['/splash', '/landing'];
 
@@ -385,19 +343,12 @@ class ChatbotRouteObserver extends NavigatorObserver {
   void _updateChatbotVisibility(String? routeName) {
     final context = navigator?.context;
     if (context != null) {
-      final chatbotProvider = Provider.of<ChatbotProvider>(
-        context,
-        listen: false,
-      );
-
+      final chatbotProvider = Provider.of<ChatbotProvider>(context, listen: false);
       final shouldHide = _hideRoutes.contains(routeName);
-
       if (shouldHide) {
         chatbotProvider.hide();
-        print('🔍 Chatbot CACHÉ sur la route: $routeName');
       } else {
         chatbotProvider.show();
-        print('🔍 Chatbot VISIBLE sur la route: $routeName');
       }
     }
   }
@@ -423,7 +374,6 @@ class _ComingSoonPageState extends State<ComingSoonPage>
       duration: const Duration(milliseconds: 1200),
       vsync: this,
     )..repeat(reverse: true);
-
     _scaleAnimation = Tween<double>(begin: 1.0, end: 1.12).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
@@ -438,7 +388,6 @@ class _ComingSoonPageState extends State<ComingSoonPage>
   @override
   Widget build(BuildContext context) {
     const Color orangeColor = Color.fromARGB(255, 180, 5, 20);
-
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -463,7 +412,6 @@ class _ComingSoonPageState extends State<ComingSoonPage>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const SizedBox(height: 40),
-                const SizedBox(height: 40),
                 Padding(
                   padding: const EdgeInsets.only(top: 220.0),
                   child: AnimatedBuilder(
@@ -475,11 +423,7 @@ class _ComingSoonPageState extends State<ComingSoonPage>
                           absorbing: true,
                           child: ElevatedButton.icon(
                             onPressed: null,
-                            icon: Icon(
-                              Icons.hourglass_empty,
-                              size: 28,
-                              color: orangeColor,
-                            ),
+                            icon: Icon(Icons.hourglass_empty, size: 28, color: orangeColor),
                             label: Text(
                               'Coming Soon',
                               style: GoogleFonts.cairo(
@@ -490,16 +434,10 @@ class _ComingSoonPageState extends State<ComingSoonPage>
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 40,
-                                vertical: 16,
-                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(30),
-                                side: const BorderSide(
-                                  color: orangeColor,
-                                  width: 2,
-                                ),
+                                side: const BorderSide(color: orangeColor, width: 2),
                               ),
                             ),
                           ),
@@ -521,12 +459,7 @@ class _ComingSoonPageState extends State<ComingSoonPage>
 class ChatbotGlobalWrapper extends StatefulWidget {
   final Widget child;
   final bool hideOnRoute;
-
-  const ChatbotGlobalWrapper({
-    super.key,
-    required this.child,
-    this.hideOnRoute = false,
-  });
+  const ChatbotGlobalWrapper({super.key, required this.child, this.hideOnRoute = false});
 
   @override
   State<ChatbotGlobalWrapper> createState() => _ChatbotGlobalWrapperState();
@@ -540,7 +473,6 @@ class _ChatbotGlobalWrapperState extends State<ChatbotGlobalWrapper> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final provider = Provider.of<ChatbotProvider>(context, listen: false);
         provider.hide();
-        print('🔍 Chatbot caché sur cette page');
       });
     }
   }
@@ -549,7 +481,6 @@ class _ChatbotGlobalWrapperState extends State<ChatbotGlobalWrapper> {
   Widget build(BuildContext context) {
     final isArabic = Provider.of<LanguageProvider>(context).isArabic;
     final chatbotProvider = Provider.of<ChatbotProvider>(context);
-
     bool showChatbot = chatbotProvider.isVisible;
 
     if (widget.child is SplashScreen || widget.child is LandingPage) {
@@ -561,10 +492,6 @@ class _ChatbotGlobalWrapperState extends State<ChatbotGlobalWrapper> {
     if (routeName == '/splash' || routeName == '/landing') {
       showChatbot = false;
     }
-
-    print(
-      '🔍 Chatbot sur $routeName: ${showChatbot ? '✅ VISIBLE' : '❌ CACHÉ'}',
-    );
 
     return Stack(
       children: [

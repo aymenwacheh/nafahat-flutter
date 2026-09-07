@@ -14,7 +14,7 @@ import 'package:nafahat/models/SectionOrderModel.dart';
 // Services
 import 'package:nafahat/services/training_service.dart';
 import 'package:nafahat/services/bull_service.dart';
-import 'package:nafahat/services/card_config_service.dart';
+import 'package:nafahat/services/card_config_manager.dart';
 import 'package:nafahat/services/SectionOrderService.dart';
 
 // Providers
@@ -340,7 +340,7 @@ class _LandingPageState extends State<LandingPage> {
               // ============================================================
               // ✅ MOBILE BOTTOM NAVIGATION
               // ============================================================
-            //  const MobileBottomNav(),
+              // const MobileBottomNav(),
             ],
           ),
         ),
@@ -371,9 +371,6 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
   List<TrainingModel> _displayedTrainings = [];
   bool _isLoading = true;
 
-  CardConfig _config = CardConfig.defaultConfig();
-  bool _isConfigLoaded = false;
-
   String _selectedCategorie = 'Toutes';
   String _selectedTypeFormation = 'Tous';
   String _selectedFormateur = 'Tous';
@@ -384,34 +381,21 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
   @override
   void initState() {
     super.initState();
-    _loadConfig();
-  }
-
-  Future<void> _loadConfig() async {
-    try {
-      final config = await CardConfigService().loadConfig();
-      setState(() {
-        _config = config;
-        _isConfigLoaded = true;
-      });
-      await _loadTrainings();
-    } catch (e) {
-      setState(() {
-        _config = CardConfig.defaultConfig();
-        _isConfigLoaded = true;
-      });
-      await _loadTrainings();
-    }
+    _loadTrainings();
   }
 
   List<TrainingModel> _getTrainingsToDisplay() {
     final isMobile = MediaQuery.of(context).size.width < 600;
+    
+    // ✅ Récupérer la config depuis le provider
+    final cardConfigManager = Provider.of<CardConfigManager>(context, listen: false);
+    final config = cardConfigManager.config;
 
     if (_allTrainings.isEmpty) return [];
 
-    if (isMobile && _isConfigLoaded) {
-      final displayCount = _config.mobileDisplayCount;
-      final selectedIds = _config.mobileSelectedTrainings;
+    if (isMobile) {
+      final displayCount = config.mobileDisplayCount;
+      final selectedIds = config.mobileSelectedTrainings;
 
       if (selectedIds.isNotEmpty) {
         final selected = <TrainingModel>[];
@@ -419,7 +403,9 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
           try {
             final training = _allTrainings.firstWhere((t) => t.id == id);
             selected.add(training);
-          } catch (e) {}
+          } catch (e) {
+            // Ignorer si l'ID n'existe pas
+          }
         }
         if (selected.isNotEmpty) {
           return selected.take(displayCount).toList();
@@ -452,13 +438,7 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
   }
 
   void _updateDisplayedTrainings() {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-
-    if (isMobile) {
-      _displayedTrainings = _getTrainingsToDisplay();
-    } else {
-      _displayedTrainings = _allTrainings.take(6).toList();
-    }
+    _displayedTrainings = _getTrainingsToDisplay();
   }
 
   void _extractFilters() {
@@ -507,7 +487,7 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
 
   Future<void> refreshTrainings() async {
     setState(() => _isLoading = true);
-    await _loadConfig();
+    await _loadTrainings();
   }
 
   @override
@@ -517,6 +497,7 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
     final isTablet = screenWidth >= 600 && screenWidth < 900;
     final paddingHorizontal = isMobile ? 0.0 : (isTablet ? 32.0 : 50.0);
 
+    // ✅ Mettre à jour l'affichage à chaque build (pour réagir aux changements de config)
     _updateDisplayedTrainings();
 
     return Container(
@@ -580,7 +561,10 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
           ),
           const SizedBox(height: 12),
 
-         
+          // ✅ FILTRES (uniquement desktop)
+          if (!isMobile && _allTrainings.isNotEmpty)
+            _buildFilters(isMobile),
+
           if (_isLoading)
             const Center(child: CircularProgressIndicator())
           else if (_allTrainings.isEmpty)
@@ -648,6 +632,57 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
             )
           else
             _buildTrainingRow(isMobile, isTablet),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilters(bool isMobile) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 8,
+        children: [
+          _buildElegantFilter(
+            value: _selectedCategorie,
+            items: _categories,
+            label: widget.isArabic ? 'التصنيف' : 'Catégorie',
+            icon: Icons.category_outlined,
+            onChanged: (value) {
+              setState(() {
+                _selectedCategorie = value!;
+                _applyFilters();
+              });
+            },
+            isArabic: widget.isArabic,
+          ),
+          _buildElegantFilter(
+            value: _selectedTypeFormation,
+            items: _typesFormation,
+            label: widget.isArabic ? 'النوع' : 'Type',
+            icon: Icons.school_outlined,
+            onChanged: (value) {
+              setState(() {
+                _selectedTypeFormation = value!;
+                _applyFilters();
+              });
+            },
+            isArabic: widget.isArabic,
+          ),
+          _buildElegantFilter(
+            value: _selectedFormateur,
+            items: _formateurs,
+            label: widget.isArabic ? 'المكون' : 'Formateur',
+            icon: Icons.person_outline,
+            onChanged: (value) {
+              setState(() {
+                _selectedFormateur = value!;
+                _applyFilters();
+              });
+            },
+            isArabic: widget.isArabic,
+          ),
         ],
       ),
     );

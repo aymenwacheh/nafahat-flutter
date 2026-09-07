@@ -1,7 +1,6 @@
 // lib/pages/users/reset_password_page.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:nafahat/pages/users/request_reset_password.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -15,105 +14,364 @@ import 'auth_page.dart';
 import 'profile_dashboard_page.dart';
 
 class ResetPasswordPage extends StatefulWidget {
-  final String token;
-
-  const ResetPasswordPage({super.key, required this.token});
+  const ResetPasswordPage({super.key});
 
   @override
   State<ResetPasswordPage> createState() => _ResetPasswordPageState();
 }
 
 class _ResetPasswordPageState extends State<ResetPasswordPage> {
-  final TextEditingController _whatsappController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _newPasswordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
   
   bool _isLoading = false;
-  bool _isTokenValid = false;
-  bool _isTokenChecked = false;
   String? _errorMessage;
-  String? _email;
-  String? _whatsapp;
+  bool _resetSuccess = false;
   
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-  bool _resetSuccess = false;
 
   static const Color nafahatGreen = Color(0xff0D443E);
 
-  @override
-  void initState() {
-    super.initState();
-    _verifyToken();
+  // ✅ Méthode utilitaire pour les traductions
+  String _t(String ar, String fr) {
+    final isArabic = Provider.of<LanguageProvider>(context, listen: false).isArabic;
+    return isArabic ? ar : fr;
   }
 
-  Future<void> _verifyToken() async {
-    try {
-      final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}/adherents/verify-reset-token?token=${widget.token}'),
-        headers: {'Content-Type': 'application/json'},
-      ).timeout(const Duration(seconds: 30));
+  @override
+  Widget build(BuildContext context) {
+    final isArabic = Provider.of<LanguageProvider>(context).isArabic;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
 
-      final data = json.decode(response.body);
+    return Scaffold(
+      key: _scaffoldKey,
+      drawer: isMobile ? Navbar(isMobile: true, scaffoldKey: _scaffoldKey).buildDrawer(context) : null,
+      backgroundColor: Colors.grey.shade50,
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            Navbar(isMobile: isMobile, scaffoldKey: _scaffoldKey),
+            Expanded(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 450),
+                    padding: const EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 20,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Icône
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            color: nafahatGreen.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.password_rounded,
+                            size: 40,
+                            color: nafahatGreen,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          _t('🔑 إعادة تعيين كلمة المرور', '🔑 Réinitialiser le mot de passe'),
+                          style: GoogleFonts.cairo(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xff2c221e),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _t(
+                            'أدخل بريدك الإلكتروني وكلمة المرور الجديدة',
+                            'Entrez votre email et votre nouveau mot de passe'
+                          ),
+                          style: GoogleFonts.cairo(
+                            fontSize: 14,
+                            color: Colors.grey.shade600,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
 
-      if (response.statusCode == 200 && data['success'] == true && data['valid'] == true) {
-        setState(() {
-          _isTokenValid = true;
-          _isTokenChecked = true;
-          _whatsapp = data['whatsapp'];
-          _email = data['email'];
-          _whatsappController.text = data['whatsapp'] ?? '';
-        });
-      } else {
-        setState(() {
-          _isTokenValid = false;
-          _isTokenChecked = true;
-          _errorMessage = data['error'] ?? 'Token invalide ou expiré';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _isTokenValid = false;
-        _isTokenChecked = true;
-        _errorMessage = 'Erreur de connexion au serveur';
-      });
-    }
+                        // ✅ Email
+                        TextFormField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: InputDecoration(
+                            labelText: _t('📧 البريد الإلكتروني', '📧 Email'),
+                            hintText: _t('مثال@البريد.كوم', 'exemple@email.com'),
+                            prefixIcon: Icon(Icons.email_outlined, color: nafahatGreen),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: nafahatGreen, width: 2),
+                            ),
+                            errorText: _errorMessage != null && 
+                                (_errorMessage!.contains('Email') || 
+                                 _errorMessage!.contains('البريد') ||
+                                 _errorMessage!.contains('invalide') ||
+                                 _errorMessage!.contains('غير صالح')) ? _errorMessage : null,
+                            errorStyle: GoogleFonts.cairo(color: Colors.red.shade700),
+                          ),
+                          style: GoogleFonts.cairo(fontSize: 16),
+                          onChanged: (_) {
+                            if (_errorMessage != null && 
+                                (_errorMessage!.contains('Email') || 
+                                 _errorMessage!.contains('البريد') ||
+                                 _errorMessage!.contains('invalide') ||
+                                 _errorMessage!.contains('غير صالح'))) {
+                              setState(() => _errorMessage = null);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // ✅ Nouveau mot de passe
+                        TextFormField(
+                          controller: _newPasswordController,
+                          obscureText: _obscurePassword,
+                          decoration: InputDecoration(
+                            labelText: _t('🔒 كلمة المرور الجديدة', '🔒 Nouveau mot de passe'),
+                            hintText: _t('6 أحرف على الأقل', 'Au moins 6 caractères'),
+                            prefixIcon: Icon(Icons.lock_outline_rounded, color: nafahatGreen),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword 
+                                    ? Icons.visibility_outlined 
+                                    : Icons.visibility_off_outlined,
+                                color: Colors.grey.shade500,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: nafahatGreen, width: 2),
+                            ),
+                            errorText: _errorMessage != null && 
+                                (_errorMessage!.contains('mot de passe') || 
+                                 _errorMessage!.contains('كلمة المرور') ||
+                                 _errorMessage!.contains('6 caractères') ||
+                                 _errorMessage!.contains('6 أحرف')) ? _errorMessage : null,
+                            errorStyle: GoogleFonts.cairo(color: Colors.red.shade700),
+                          ),
+                          style: GoogleFonts.cairo(fontSize: 16),
+                          onChanged: (_) {
+                            if (_errorMessage != null && 
+                                (_errorMessage!.contains('mot de passe') || 
+                                 _errorMessage!.contains('كلمة المرور') ||
+                                 _errorMessage!.contains('6 caractères') ||
+                                 _errorMessage!.contains('6 أحرف'))) {
+                              setState(() => _errorMessage = null);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // ✅ Confirmation du mot de passe
+                        TextFormField(
+                          controller: _confirmPasswordController,
+                          obscureText: _obscureConfirmPassword,
+                          decoration: InputDecoration(
+                            labelText: _t('🔒 تأكيد كلمة المرور', '🔒 Confirmer le mot de passe'),
+                            prefixIcon: Icon(Icons.lock_outline_rounded, color: nafahatGreen),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscureConfirmPassword 
+                                    ? Icons.visibility_outlined 
+                                    : Icons.visibility_off_outlined,
+                                color: Colors.grey.shade500,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscureConfirmPassword = !_obscureConfirmPassword;
+                                });
+                              },
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: nafahatGreen, width: 2),
+                            ),
+                            errorText: _errorMessage != null && 
+                                (_errorMessage!.contains('correspondent') || 
+                                 _errorMessage!.contains('متطابقتين')) ? _errorMessage : null,
+                            errorStyle: GoogleFonts.cairo(color: Colors.red.shade700),
+                          ),
+                          style: GoogleFonts.cairo(fontSize: 16),
+                          onChanged: (_) {
+                            if (_errorMessage != null && 
+                                (_errorMessage!.contains('correspondent') || 
+                                 _errorMessage!.contains('متطابقتين'))) {
+                              setState(() => _errorMessage = null);
+                            }
+                          },
+                        ),
+
+                        // ✅ Message d'erreur général
+                        if (_errorMessage != null && 
+                            !_errorMessage!.contains('Email') && 
+                            !_errorMessage!.contains('البريد') &&
+                            !_errorMessage!.contains('mot de passe') &&
+                            !_errorMessage!.contains('كلمة المرور') &&
+                            !_errorMessage!.contains('6 caractères') &&
+                            !_errorMessage!.contains('6 أحرف') &&
+                            !_errorMessage!.contains('correspondent') &&
+                            !_errorMessage!.contains('متطابقتين'))
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              _errorMessage!,
+                              style: GoogleFonts.cairo(
+                                color: Colors.red.shade700,
+                                fontSize: 14,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+
+                        const SizedBox(height: 24),
+
+                        // ✅ Bouton de réinitialisation
+                        ElevatedButton(
+                          onPressed: _isLoading ? null : _resetPassword,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: nafahatGreen,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(
+                                  _t('✅ إعادة تعيين', '✅ Réinitialiser'),
+                                  style: GoogleFonts.cairo(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // ✅ Lien retour vers la connexion
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (context) => const AuthPage()),
+                            );
+                          },
+                          child: Text(
+                            _t('← العودة إلى تسجيل الدخول', '← Retour à la connexion'),
+                            style: GoogleFonts.cairo(
+                              color: Colors.grey.shade600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _resetPassword() async {
     final isArabic = Provider.of<LanguageProvider>(context, listen: false).isArabic;
-    final whatsapp = _whatsappController.text.trim();
+    final email = _emailController.text.trim();
     final newPassword = _newPasswordController.text.trim();
     final confirmPassword = _confirmPasswordController.text.trim();
 
+    // ✅ Traductions pour les messages d'erreur
+    String t(String ar, String fr) => isArabic ? ar : fr;
+
     // Validation
-    if (whatsapp.isEmpty) {
+    if (email.isEmpty) {
       setState(() {
-        _errorMessage = isArabic ? 'Veuillez entrer votre numéro WhatsApp' : 'Veuillez entrer votre numéro WhatsApp';
+        _errorMessage = t('الرجاء إدخال بريدك الإلكتروني', 'Veuillez entrer votre email');
+      });
+      return;
+    }
+
+    if (!email.contains('@') || !email.contains('.')) {
+      setState(() {
+        _errorMessage = t('البريد الإلكتروني غير صالح', 'Email invalide');
       });
       return;
     }
 
     if (newPassword.isEmpty) {
       setState(() {
-        _errorMessage = isArabic ? 'Veuillez entrer un mot de passe' : 'Veuillez entrer un mot de passe';
+        _errorMessage = t('الرجاء إدخال كلمة مرور', 'Veuillez entrer un mot de passe');
       });
       return;
     }
 
     if (newPassword.length < 6) {
       setState(() {
-        _errorMessage = isArabic 
-            ? 'Le mot de passe doit contenir au moins 6 caractères'
-            : 'Le mot de passe doit contenir au moins 6 caractères';
+        _errorMessage = t(
+          'يجب أن تحتوي كلمة المرور على 6 أحرف على الأقل',
+          'Le mot de passe doit contenir au moins 6 caractères'
+        );
       });
       return;
     }
 
     if (newPassword != confirmPassword) {
       setState(() {
-        _errorMessage = isArabic ? 'Les mots de passe ne correspondent pas' : 'Les mots de passe ne correspondent pas';
+        _errorMessage = t('كلمتا المرور غير متطابقتين', 'Les mots de passe ne correspondent pas');
       });
       return;
     }
@@ -124,12 +382,12 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     });
 
     try {
+      // ✅ Appel à l'API
       final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/adherents/reset-password-with-token'),
+        Uri.parse('${ApiConfig.baseUrl}/adherents/reset-password-direct'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'token': widget.token,
-          'whatsapp': whatsapp,
+          'email': email,
           'newPassword': newPassword,
         }),
       ).timeout(const Duration(seconds: 30));
@@ -147,7 +405,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              isArabic ? '✅ Mot de passe réinitialisé avec succès' : '✅ Mot de passe réinitialisé avec succès',
+              t('✅ تم إعادة تعيين كلمة المرور بنجاح', '✅ Mot de passe réinitialisé avec succès'),
               style: GoogleFonts.cairo(),
             ),
             backgroundColor: nafahatGreen,
@@ -160,9 +418,9 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
         // ✅ Récupérer l'utilisateur et le connecter automatiquement
         try {
-          // 1. Récupérer les données de l'utilisateur
+          // 1. Récupérer les données de l'utilisateur par email
           final userResponse = await http.get(
-            Uri.parse('${ApiConfig.baseUrl}/adherents/${data['userId']}'),
+            Uri.parse('${ApiConfig.baseUrl}/adherents/by-email?email=${Uri.encodeComponent(email)}'),
             headers: {'Content-Type': 'application/json'},
           );
 
@@ -239,404 +497,18 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
         }
       } else {
         setState(() {
-          _errorMessage = data['error'] ?? (isArabic ? 'Une erreur est survenue' : 'Une erreur est survenue');
+          _errorMessage = data['error'] ?? t('حدث خطأ ما', 'Une erreur est survenue');
           _isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = isArabic 
-            ? 'Erreur de connexion au serveur' 
-            : 'Erreur de connexion au serveur';
+        _errorMessage = t(
+          'خطأ في الاتصال بالخادم',
+          'Erreur de connexion au serveur'
+        );
         _isLoading = false;
       });
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isArabic = Provider.of<LanguageProvider>(context).isArabic;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 600;
-
-    // État : Vérification du token en cours
-    if (!_isTokenChecked) {
-      return Scaffold(
-        key: _scaffoldKey,
-        drawer: isMobile ? Navbar(isMobile: true, scaffoldKey: _scaffoldKey).buildDrawer(context) : null,
-        backgroundColor: Colors.grey.shade50,
-        body: SafeArea(
-          top: false,
-          child: Column(
-            children: [
-              Navbar(isMobile: isMobile, scaffoldKey: _scaffoldKey),
-              const Expanded(
-                child: Center(
-                  child: CircularProgressIndicator(
-                    color: nafahatGreen,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    // État : Token invalide ou expiré
-    if (!_isTokenValid) {
-      return Scaffold(
-        key: _scaffoldKey,
-        drawer: isMobile ? Navbar(isMobile: true, scaffoldKey: _scaffoldKey).buildDrawer(context) : null,
-        backgroundColor: Colors.grey.shade50,
-        body: SafeArea(
-          top: false,
-          child: Column(
-            children: [
-              Navbar(isMobile: isMobile, scaffoldKey: _scaffoldKey),
-              Expanded(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
-                        const SizedBox(height: 16),
-                        Text(
-                          isArabic ? 'Lien invalide ou expiré' : 'Lien invalide ou expiré',
-                          style: GoogleFonts.cairo(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xff2c221e),
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _errorMessage ?? (isArabic 
-                              ? 'Le lien de réinitialisation est invalide ou a expiré. Veuillez faire une nouvelle demande.'
-                              : 'Le lien de réinitialisation est invalide ou a expiré. Veuillez faire une nouvelle demande.'),
-                          style: GoogleFonts.cairo(
-                            fontSize: 14,
-                            color: Colors.grey.shade600,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 24),
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(builder: (context) => const RequestResetPasswordPage()),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: nafahatGreen,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: Text(
-                            isArabic ? 'Faire une nouvelle demande' : 'Faire une nouvelle demande',
-                            style: GoogleFonts.cairo(fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    // ✅ État : Token valide - Afficher le formulaire de réinitialisation
-    return Scaffold(
-      key: _scaffoldKey,
-      drawer: isMobile ? Navbar(isMobile: true, scaffoldKey: _scaffoldKey).buildDrawer(context) : null,
-      backgroundColor: Colors.grey.shade50,
-      body: SafeArea(
-        top: false,
-        child: Column(
-          children: [
-            Navbar(isMobile: isMobile, scaffoldKey: _scaffoldKey),
-            Expanded(
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: Container(
-                    constraints: const BoxConstraints(maxWidth: 450),
-                    padding: const EdgeInsets.all(32),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 20,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Icône
-                        Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            color: nafahatGreen.withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.password_rounded,
-                            size: 40,
-                            color: nafahatGreen,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          isArabic ? '🔑 Réinitialiser le mot de passe' : '🔑 Réinitialiser le mot de passe',
-                          style: GoogleFonts.cairo(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xff2c221e),
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          isArabic 
-                              ? 'Entrez votre identifiant et votre nouveau mot de passe'
-                              : 'Entrez votre identifiant et votre nouveau mot de passe',
-                          style: GoogleFonts.cairo(
-                            fontSize: 14,
-                            color: Colors.grey.shade600,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 24),
-
-                        // ✅ Email (non modifiable - pour information)
-                        if (_email != null && _email!.isNotEmpty)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: Colors.green.shade50,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: Colors.green.shade200),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.email_outlined, color: Colors.green.shade700, size: 20),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    _email!,
-                                    style: GoogleFonts.cairo(
-                                      fontSize: 14,
-                                      color: Colors.green.shade700,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                                Icon(Icons.check_circle, color: Colors.green.shade400, size: 16),
-                              ],
-                            ),
-                          ),
-                        const SizedBox(height: 16),
-
-                        // ✅ WhatsApp (login) - Champ modifiable
-                        TextFormField(
-                          controller: _whatsappController,
-                          keyboardType: TextInputType.phone,
-                          decoration: InputDecoration(
-                            labelText: isArabic ? '📱 Identifiant (WhatsApp)' : '📱 Identifiant (WhatsApp)',
-                            hintText: '+216 25357461',
-                            prefixIcon: Icon(Icons.phone_android_rounded, color: nafahatGreen),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey.shade300),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: nafahatGreen, width: 2),
-                            ),
-                            errorText: _errorMessage?.contains('WhatsApp') == true ? _errorMessage : null,
-                            errorStyle: GoogleFonts.cairo(color: Colors.red.shade700),
-                          ),
-                          style: GoogleFonts.cairo(fontSize: 16),
-                          onChanged: (_) {
-                            if (_errorMessage != null && _errorMessage!.contains('WhatsApp')) {
-                              setState(() => _errorMessage = null);
-                            }
-                          },
-                        ),
-                        const SizedBox(height: 16),
-
-                        // ✅ Nouveau mot de passe
-                        TextFormField(
-                          controller: _newPasswordController,
-                          obscureText: _obscurePassword,
-                          decoration: InputDecoration(
-                            labelText: isArabic ? '🔒 Nouveau mot de passe' : '🔒 Nouveau mot de passe',
-                            hintText: isArabic ? 'Au moins 6 caractères' : 'Au moins 6 caractères',
-                            prefixIcon: Icon(Icons.lock_outline_rounded, color: nafahatGreen),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword 
-                                    ? Icons.visibility_outlined 
-                                    : Icons.visibility_off_outlined,
-                                color: Colors.grey.shade500,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey.shade300),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: nafahatGreen, width: 2),
-                            ),
-                            errorText: _errorMessage?.contains('mot de passe') == true ? _errorMessage : null,
-                            errorStyle: GoogleFonts.cairo(color: Colors.red.shade700),
-                          ),
-                          style: GoogleFonts.cairo(fontSize: 16),
-                          onChanged: (_) {
-                            if (_errorMessage != null && _errorMessage!.contains('mot de passe')) {
-                              setState(() => _errorMessage = null);
-                            }
-                          },
-                        ),
-                        const SizedBox(height: 16),
-
-                        // ✅ Confirmation du mot de passe
-                        TextFormField(
-                          controller: _confirmPasswordController,
-                          obscureText: _obscureConfirmPassword,
-                          decoration: InputDecoration(
-                            labelText: isArabic ? '🔒 Confirmer le mot de passe' : '🔒 Confirmer le mot de passe',
-                            prefixIcon: Icon(Icons.lock_outline_rounded, color: nafahatGreen),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscureConfirmPassword 
-                                    ? Icons.visibility_outlined 
-                                    : Icons.visibility_off_outlined,
-                                color: Colors.grey.shade500,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscureConfirmPassword = !_obscureConfirmPassword;
-                                });
-                              },
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey.shade300),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: nafahatGreen, width: 2),
-                            ),
-                            errorText: _errorMessage?.contains('correspondent') == true ? _errorMessage : null,
-                            errorStyle: GoogleFonts.cairo(color: Colors.red.shade700),
-                          ),
-                          style: GoogleFonts.cairo(fontSize: 16),
-                          onChanged: (_) {
-                            if (_errorMessage != null && _errorMessage!.contains('correspondent')) {
-                              setState(() => _errorMessage = null);
-                            }
-                          },
-                        ),
-
-                        // ✅ Message d'erreur général
-                        if (_errorMessage != null && 
-                            !_errorMessage!.contains('WhatsApp') && 
-                            !_errorMessage!.contains('mot de passe') &&
-                            !_errorMessage!.contains('correspondent'))
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              _errorMessage!,
-                              style: GoogleFonts.cairo(
-                                color: Colors.red.shade700,
-                                fontSize: 14,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-
-                        const SizedBox(height: 24),
-
-                        // ✅ Bouton de réinitialisation
-                        ElevatedButton(
-                          onPressed: _isLoading ? null : _resetPassword,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: nafahatGreen,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: _isLoading
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Text(
-                                  isArabic ? '✅ Réinitialiser' : '✅ Réinitialiser',
-                                  style: GoogleFonts.cairo(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        // ✅ Lien retour vers la connexion
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(builder: (context) => const AuthPage()),
-                            );
-                          },
-                          child: Text(
-                            isArabic ? '← Retour à la connexion' : '← Retour à la connexion',
-                            style: GoogleFonts.cairo(
-                              color: Colors.grey.shade600,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

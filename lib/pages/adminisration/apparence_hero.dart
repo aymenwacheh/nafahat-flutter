@@ -1,16 +1,14 @@
 // lib/pages/adminisration/apparence_hero.dart
-
-import 'dart:html' as html; // ✅ Pour Web
+import 'dart:html' as html;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'dart:io';
 import 'package:nafahat/pages/adminisration/admin_page_wrapper.dart';
 import '../widgets/hero_section.dart';
 import '../widgets/slide_item.dart';
+import '../../providers/hero_provider.dart';
 
 // ============================================================================
 // CONSTANTES GLOBALES
@@ -49,8 +47,6 @@ class _ApparenceHeroState extends State<ApparenceHero> {
   @override
   void initState() {
     super.initState();
-    print('=== INIT STATE ===');
-    print('Plateforme: ${kIsWeb ? "Web" : "Mobile/Desktop"}');
     _loadAllData();
   }
 
@@ -69,14 +65,12 @@ class _ApparenceHeroState extends State<ApparenceHero> {
 
   Future<void> _loadConfig() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final heroProvider = Provider.of<HeroProvider>(context, listen: false);
       setState(() {
-        _animationType = prefs.getString('hero_animation_type') ?? 'scroll';
-        _animationDirection =
-            prefs.getString('hero_animation_direction') ?? 'leftToRight';
-        _slideDuration = prefs.getDouble('hero_slide_duration') ?? 5.0;
-        _transitionDuration =
-            prefs.getDouble('hero_transition_duration') ?? 0.8;
+        _animationType = heroProvider.animationType;
+        _animationDirection = heroProvider.animationDirection;
+        _slideDuration = heroProvider.slideDuration;
+        _transitionDuration = heroProvider.transitionDuration;
         _durationController.text = _slideDuration.toString();
         _transitionController.text = _transitionDuration.toString();
       });
@@ -88,63 +82,30 @@ class _ApparenceHeroState extends State<ApparenceHero> {
 
   Future<void> _loadSlides() async {
     try {
-      print('=== CHARGEMENT DES SLIDES ===');
-      final prefs = await SharedPreferences.getInstance();
-      final String? slidesJson = prefs.getString('hero_slides');
-
-      print('slidesJson: ${slidesJson != null ? "Présent" : "Null"}');
-
-      if (slidesJson != null && slidesJson.isNotEmpty) {
-        print('JSON reçu: ${slidesJson.length} caractères');
-        final List<dynamic> decoded = json.decode(slidesJson);
-        print('Nombre de slides dans le JSON: ${decoded.length}');
-
-        final List<SlideItem> loadedSlides = [];
-
-        for (var i = 0; i < decoded.length; i++) {
-          final item = decoded[i];
-          SlideItem slide = SlideItem.fromJson(item);
-          slide = await SlideItem.resolveImageBytes(slide, prefs);
-          print(
-            'Slide $i: ${slide.titleFr} - imageBytes: ${slide.imageBytes != null ? "OK" : "Null"}',
-          );
-          loadedSlides.add(slide);
-        }
-
-        print('=== FIN CHARGEMENT ===');
-        print('Total slides chargés: ${loadedSlides.length}');
-
-        if (mounted) {
-          setState(() {
-            _slides = loadedSlides;
-          });
-          print('État mis à jour avec ${_slides.length} slides');
-        }
-      } else {
-        print('Aucun slide trouvé dans SharedPreferences');
-        if (mounted) {
-          setState(() {
-            _slides = [];
-          });
-        }
-      }
+      final heroProvider = Provider.of<HeroProvider>(context, listen: false);
+      setState(() {
+        _slides = List.from(heroProvider.slides);
+      });
+      print('Total slides chargés: ${_slides.length}');
     } catch (e) {
       print('ERREUR chargement slides: $e');
-      if (mounted) {
-        setState(() {
-          _slides = [];
-        });
-      }
+      setState(() {
+        _slides = [];
+      });
     }
   }
 
   Future<void> _saveConfig() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('hero_animation_type', _animationType);
-      await prefs.setString('hero_animation_direction', _animationDirection);
-      await prefs.setDouble('hero_slide_duration', _slideDuration);
-      await prefs.setDouble('hero_transition_duration', _transitionDuration);
+      final heroProvider = Provider.of<HeroProvider>(context, listen: false);
+      
+      heroProvider.updateConfig(
+        animationType: _animationType,
+        animationDirection: _animationDirection,
+        slideDuration: _slideDuration,
+        transitionDuration: _transitionDuration,
+      );
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -166,51 +127,38 @@ class _ApparenceHeroState extends State<ApparenceHero> {
 
   Future<void> _saveSlides() async {
     try {
-      print('=== SAUVEGARDE DES SLIDES ===');
-      final prefs = await SharedPreferences.getInstance();
-
-      final List<Map<String, dynamic>> jsonList =
-          _slides.map((slide) => slide.toJson()).toList();
-      final String jsonString = json.encode(jsonList);
-      await prefs.setString('hero_slides', jsonString);
-      print('Métadonnées sauvegardées: ${_slides.length} slides');
-
-      int imagesSauvegardees = 0;
-      for (var slide in _slides) {
-        if (!slide.isAsset &&
-            slide.imageBytes != null &&
-            slide.imagePath.startsWith('hero_image_')) {
-          try {
-            final String base64Image = base64Encode(slide.imageBytes!);
-            await prefs.setString(slide.imagePath, base64Image);
-            imagesSauvegardees++;
-          } catch (e) {
-            print('Erreur sauvegarde image: $e');
-          }
-        }
+      final heroProvider = Provider.of<HeroProvider>(context, listen: false);
+      heroProvider.updateSlides(_slides);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              widget.isArabic ? 'تم حفظ الشرائح' : 'Slides sauvegardés',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
-
-      print('=== FIN SAUVEGARDE ===');
-      print('$imagesSauvegardees images sauvegardées');
     } catch (e) {
-      print('ERREUR sauvegarde slides: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
   // ============================================================
-  // ✅ UPLOAD IMAGE - VERSION WEB UNIQUEMENT (dart:html)
+  // ✅ UPLOAD IMAGE - VERSION WEB UNIQUEMENT
   // ============================================================
-
   Future<void> _uploadImage() async {
     try {
       print('=== UPLOAD IMAGE (Web) ===');
 
-      // ✅ Utiliser l'input HTML natif
-      final input = html.FileUploadInputElement()
-        ..accept = 'image/*'; // Accepte toutes les images
+      final input = html.FileUploadInputElement()..accept = 'image/*';
       input.click();
 
-      // Attendre la sélection
       await input.onChange.first;
       if (input.files == null || input.files!.isEmpty) {
         print('Aucun fichier sélectionné');
@@ -222,32 +170,26 @@ class _ApparenceHeroState extends State<ApparenceHero> {
       print('Taille: ${file.size} bytes');
       print('Type: ${file.type}');
 
-      // Vérifier que c'est bien une image
       if (!file.type.startsWith('image/')) {
         throw Exception('Le fichier doit être une image');
       }
 
-      // Vérifier la taille (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         throw Exception('L\'image est trop volumineuse (max 5MB)');
       }
 
-      // Lire le fichier en bytes
       final reader = html.FileReader();
       reader.readAsArrayBuffer(file);
       await reader.onLoad.first;
       final bytes = reader.result as Uint8List;
 
-      // Stocker dans SharedPreferences
       final String base64Image = base64Encode(bytes);
-      final String imageKey =
-          'hero_image_${DateTime.now().millisecondsSinceEpoch}';
+      final String imageKey = 'hero_image_${DateTime.now().millisecondsSinceEpoch}';
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(imageKey, base64Image);
       print('Image stockée dans SharedPreferences avec clé: $imageKey');
 
-      // Ajouter le slide
       setState(() {
         _slides.add(
           SlideItem(
@@ -289,16 +231,13 @@ class _ApparenceHeroState extends State<ApparenceHero> {
   }
 
   // ============================================================
-  // ✅ IMAGE DEPUIS LA GALERIE - VERSION WEB UNIQUEMENT
+  // ✅ IMAGE DEPUIS LA GALERIE
   // ============================================================
-
   Future<void> _pickImageFromGallery() async {
     try {
       print('=== PICK IMAGE FROM GALLERY (Web) ===');
 
-      // ✅ Utiliser l'input HTML natif
-      final input = html.FileUploadInputElement()
-        ..accept = 'image/*';
+      final input = html.FileUploadInputElement()..accept = 'image/*';
       input.click();
 
       await input.onChange.first;
@@ -325,8 +264,7 @@ class _ApparenceHeroState extends State<ApparenceHero> {
       final bytes = reader.result as Uint8List;
 
       final String base64Image = base64Encode(bytes);
-      final String imageKey =
-          'hero_image_${DateTime.now().millisecondsSinceEpoch}';
+      final String imageKey = 'hero_image_${DateTime.now().millisecondsSinceEpoch}';
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(imageKey, base64Image);
@@ -424,132 +362,126 @@ class _ApparenceHeroState extends State<ApparenceHero> {
 
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text(
-              widget.isArabic ? 'تعديل الشريحة' : 'Modifier le slide',
-            ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: titleFrController,
-                    decoration: const InputDecoration(
-                      labelText: 'Titre FR',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: titleArController,
-                    decoration: const InputDecoration(
-                      labelText: 'Titre AR',
-                      border: OutlineInputBorder(),
-                    ),
-                    textDirection: TextDirection.rtl,
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: subtitleFrController,
-                    decoration: const InputDecoration(
-                      labelText: 'Sous-titre FR',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: subtitleArController,
-                    decoration: const InputDecoration(
-                      labelText: 'Sous-titre AR',
-                      border: OutlineInputBorder(),
-                    ),
-                    textDirection: TextDirection.rtl,
-                  ),
-                ],
+      builder: (context) => AlertDialog(
+        title: Text(
+          widget.isArabic ? 'تعديل الشريحة' : 'Modifier le slide',
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleFrController,
+                decoration: const InputDecoration(
+                  labelText: 'Titre FR',
+                  border: OutlineInputBorder(),
+                ),
               ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(widget.isArabic ? 'إلغاء' : 'Annuler'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: titleArController,
+                decoration: const InputDecoration(
+                  labelText: 'Titre AR',
+                  border: OutlineInputBorder(),
+                ),
+                textDirection: TextDirection.rtl,
               ),
-              TextButton(
-                onPressed: () async {
-                  setState(() {
-                    _slides[index] = slide.copyWith(
-                      titleFr: titleFrController.text,
-                      titleAr: titleArController.text,
-                      subtitleFr: subtitleFrController.text,
-                      subtitleAr: subtitleArController.text,
-                    );
-                  });
-                  await _saveSlides();
-                  if (mounted) Navigator.pop(context);
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          widget.isArabic ? 'تم التحديث' : 'Mis à jour',
-                        ),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
-                },
-                child: Text(widget.isArabic ? 'حفظ' : 'Enregistrer'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: subtitleFrController,
+                decoration: const InputDecoration(
+                  labelText: 'Sous-titre FR',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: subtitleArController,
+                decoration: const InputDecoration(
+                  labelText: 'Sous-titre AR',
+                  border: OutlineInputBorder(),
+                ),
+                textDirection: TextDirection.rtl,
               ),
             ],
           ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(widget.isArabic ? 'إلغاء' : 'Annuler'),
+          ),
+          TextButton(
+            onPressed: () async {
+              setState(() {
+                _slides[index] = slide.copyWith(
+                  titleFr: titleFrController.text,
+                  titleAr: titleArController.text,
+                  subtitleFr: subtitleFrController.text,
+                  subtitleAr: subtitleArController.text,
+                );
+              });
+              await _saveSlides();
+              if (mounted) Navigator.pop(context);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      widget.isArabic ? 'تم التحديث' : 'Mis à jour',
+                    ),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            },
+            child: Text(widget.isArabic ? 'حفظ' : 'Enregistrer'),
+          ),
+        ],
+      ),
     );
   }
 
   Future<void> _resetToDefault() async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text(widget.isArabic ? 'تأكيد' : 'Confirmation'),
-            content: Text(
-              widget.isArabic
-                  ? 'Voulez-vous vraiment réinitialiser tous les paramètres ?'
-                  : 'Voulez-vous vraiment réinitialiser tous les paramètres ?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: Text(widget.isArabic ? 'إلغاء' : 'Annuler'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: Text(
-                  widget.isArabic ? 'تأكيد' : 'Confirmer',
-                  style: const TextStyle(color: Colors.red),
-                ),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: Text(widget.isArabic ? 'تأكيد' : 'Confirmation'),
+        content: Text(
+          widget.isArabic
+              ? 'Voulez-vous vraiment réinitialiser tous les paramètres ?'
+              : 'Voulez-vous vraiment réinitialiser tous les paramètres ?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(widget.isArabic ? 'إلغاء' : 'Annuler'),
           ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              widget.isArabic ? 'تأكيد' : 'Confirmer',
+              style: const TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
     );
 
     if (confirm == true) {
       try {
-        print('=== RÉINITIALISATION ===');
-        final prefs = await SharedPreferences.getInstance();
-
-        for (var slide in _slides) {
-          if (!slide.isAsset && slide.imagePath.startsWith('hero_image_')) {
-            await prefs.remove(slide.imagePath);
-          }
-        }
-
-        await prefs.remove('hero_animation_type');
-        await prefs.remove('hero_animation_direction');
-        await prefs.remove('hero_slide_duration');
-        await prefs.remove('hero_transition_duration');
-        await prefs.remove('hero_slides');
-        print('Toutes les données supprimées');
-
-        await _loadAllData();
+        final heroProvider = Provider.of<HeroProvider>(context, listen: false);
+        await heroProvider.resetToDefault();
+        
+        setState(() {
+          _animationType = heroProvider.animationType;
+          _animationDirection = heroProvider.animationDirection;
+          _slideDuration = heroProvider.slideDuration;
+          _transitionDuration = heroProvider.transitionDuration;
+          _slides = List.from(heroProvider.slides);
+          _durationController.text = _slideDuration.toString();
+          _transitionController.text = _transitionDuration.toString();
+        });
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -574,51 +506,50 @@ class _ApparenceHeroState extends State<ApparenceHero> {
   void _showPreviewDialog() {
     showDialog(
       context: context,
-      builder:
-          (context) => Dialog(
-            child: Container(
-              width: MediaQuery.of(context).size.width * 0.9,
-              height: MediaQuery.of(context).size.height * 0.7,
-              padding: const EdgeInsets.all(16),
-              child: Column(
+      builder: (context) => Dialog(
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.9,
+          height: MediaQuery.of(context).size.height * 0.7,
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        widget.isArabic ? 'معاينة الهيرو' : 'Aperçu Hero',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                  const Divider(),
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: HeroSection(isArabic: widget.isArabic),
+                  Text(
+                    widget.isArabic ? 'معاينة الهيرو' : 'Aperçu Hero',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        '${widget.isArabic ? 'الانتقال' : 'Transition'}: $_animationType | ${widget.isArabic ? 'الاتجاه' : 'Direction'}: $_animationDirection',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                    ],
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
-            ),
+              const Divider(),
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: HeroSection(isArabic: widget.isArabic),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '${widget.isArabic ? 'الانتقال' : 'Transition'}: $_animationType | ${widget.isArabic ? 'الاتجاه' : 'Direction'}: $_animationDirection',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ],
           ),
+        ),
+      ),
     );
   }
 

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/models/training_model.dart';
 import 'package:nafahat/services/training_service.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nafahat/services/card_config_manager.dart';
 import 'package:nafahat/models/card_config_model.dart';
@@ -163,44 +164,50 @@ class _ApparenceCardPageState extends State<ApparenceCardPage> {
     }
   }
 
-  Future<void> _saveConfig() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        'card_config_apparence',
-        json.encode(_config.toJson()),
-      );
-      CardConfigManager().updateConfig(_config);
+Future<void> _saveConfig() async {
+  try {
+    // Sauvegarder dans SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      'card_config_apparence',
+      json.encode(_config.toJson()),
+    );
+    
+    // ✅ Mettre à jour le CardConfigManager (qui notifiera tous les widgets)
+    final cardConfigManager = Provider.of<CardConfigManager>(context, listen: false);
+    cardConfigManager.updateConfig(_config);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _isArabic ? '✅ تم حفظ الإعدادات' : '✅ Configuration sauvegardée',
-            style: GoogleFonts.cairo(),
-          ),
-          backgroundColor: const Color(0xff0D443E),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _isArabic ? '✅ تم حفظ الإعدادات' : '✅ Configuration sauvegardée',
+          style: GoogleFonts.cairo(),
         ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _isArabic
-                ? '❌ Erreur lors de la sauvegarde'
-                : '❌ Erreur lors de la sauvegarde',
-            style: GoogleFonts.cairo(),
-          ),
-          backgroundColor: Colors.red,
+        backgroundColor: const Color(0xff0D443E),
+      ),
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _isArabic ? '❌ Erreur lors de la sauvegarde' : '❌ Erreur lors de la sauvegarde',
+          style: GoogleFonts.cairo(),
         ),
-      );
-    }
+        backgroundColor: Colors.red,
+      ),
+    );
   }
+}
 
-  void _resetToDefault() {
-    setState(() {
-      _config = CardConfig.defaultConfig();
-    });
-  }
+
+void _resetToDefault() {
+  setState(() {
+    _config = CardConfig.defaultConfig();
+  });
+  // ✅ Mettre à jour le provider
+  final cardConfigManager = Provider.of<CardConfigManager>(context, listen: false);
+  cardConfigManager.resetToDefault();
+}
 
   @override
   Widget build(BuildContext context) {

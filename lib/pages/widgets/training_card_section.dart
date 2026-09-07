@@ -8,6 +8,7 @@ import 'package:nafahat/pages/formation/formation_detail_page.dart';
 import 'package:nafahat/services/card_config_manager.dart';
 import 'package:nafahat/services/geo_service.dart';
 import 'package:nafahat/models/card_config_model.dart';
+import 'package:provider/provider.dart';
 
 class TrainingCard extends StatefulWidget {
   final TrainingModel training;
@@ -29,8 +30,6 @@ class TrainingCard extends StatefulWidget {
 
 class _TrainingCardState extends State<TrainingCard> {
   bool isHovered = false;
-  CardConfig? _cardConfig;
-  late ValueNotifier<CardConfig?> _configNotifier;
   String _countryCode = 'TN';
   bool _isLoadingCountry = true;
 
@@ -40,25 +39,12 @@ class _TrainingCardState extends State<TrainingCard> {
   @override
   void initState() {
     super.initState();
-    _configNotifier = CardConfigManager().configNotifier;
-    _loadCardConfig();
-    _configNotifier.addListener(_onConfigChanged);
     _detectCountry();
   }
 
   @override
   void dispose() {
-    _configNotifier.removeListener(_onConfigChanged);
     super.dispose();
-  }
-
-  void _onConfigChanged() {
-    final newConfig = _configNotifier.value;
-    if (newConfig != null) {
-      setState(() {
-        _cardConfig = newConfig;
-      });
-    }
   }
 
   Future<void> _detectCountry() async {
@@ -84,33 +70,6 @@ class _TrainingCardState extends State<TrainingCard> {
         _countryCode = 'TN';
         _isLoadingCountry = false;
       });
-    }
-  }
-
-  Future<void> _loadCardConfig() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final configJson = prefs.getString('card_config_apparence');
-      if (configJson != null && configJson.isNotEmpty) {
-        final data = json.decode(configJson);
-        final config = CardConfig.fromJson(data);
-        setState(() {
-          _cardConfig = config;
-        });
-        CardConfigManager().updateConfig(config);
-      } else {
-        final defaultConfig = CardConfig.defaultConfig();
-        setState(() {
-          _cardConfig = defaultConfig;
-        });
-        CardConfigManager().updateConfig(defaultConfig);
-      }
-    } catch (e) {
-      final defaultConfig = CardConfig.defaultConfig();
-      setState(() {
-        _cardConfig = defaultConfig;
-      });
-      CardConfigManager().updateConfig(defaultConfig);
     }
   }
 
@@ -169,11 +128,14 @@ class _TrainingCardState extends State<TrainingCard> {
 
   @override
   Widget build(BuildContext context) {
-    if (_cardConfig == null || _isLoadingCountry) {
+    // ✅ Écouter les changements de configuration via Provider
+    final cardConfigManager = Provider.of<CardConfigManager>(context);
+    final config = cardConfigManager.config;
+
+    if (_isLoadingCountry) {
       return const SizedBox.shrink();
     }
 
-    final config = _cardConfig!;
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = widget.isMobile || screenWidth < 600;
 
@@ -192,11 +154,9 @@ class _TrainingCardState extends State<TrainingCard> {
         final cardWidth = isMobileDevice
             ? (constraints.maxWidth > 0 && constraints.maxWidth < 200
                 ? constraints.maxWidth
-                : 150.0) // largeur étroite type Reel
+                : 150.0)
             : (constraints.maxWidth > 0 ? constraints.maxWidth : 210.0);
 
-        // ✅ La hauteur est TOUJOURS dérivée de la largeur selon le ratio Reel
-        // (on ignore la hauteur imposée par le parent pour garantir le format 9:16)
         final cardHeight = isMobileDevice
             ? cardWidth / reelAspectRatio
             : (constraints.maxHeight > 0 ? constraints.maxHeight : 320.0);
@@ -325,49 +285,51 @@ class _TrainingCardState extends State<TrainingCard> {
                           const SizedBox(height: 4),
 
                           // Durée
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.access_time_rounded,
-                                size: 12,
-                                color: Colors.white.withOpacity(0.8),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                durationDisplay,
-                                style: GoogleFonts.cairo(
-                                  fontSize: 10,
+                          if (config.visibleFields.contains('duration'))
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.access_time_rounded,
+                                  size: 12,
                                   color: Colors.white.withOpacity(0.8),
                                 ),
-                              ),
-                            ],
-                          ),
-
-                          // Période
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.calendar_today_rounded,
-                                size: 12,
-                                color: Colors.white.withOpacity(0.8),
-                              ),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  periodDisplay,
+                                const SizedBox(width: 4),
+                                Text(
+                                  durationDisplay,
                                   style: GoogleFonts.cairo(
                                     fontSize: 10,
                                     color: Colors.white.withOpacity(0.8),
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                            ],
-                          ),
+                              ],
+                            ),
+
+                          // Période
+                          if (config.visibleFields.contains('period'))
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.calendar_today_rounded,
+                                  size: 12,
+                                  color: Colors.white.withOpacity(0.8),
+                                ),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    periodDisplay,
+                                    style: GoogleFonts.cairo(
+                                      fontSize: 10,
+                                      color: Colors.white.withOpacity(0.8),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
 
                           // Cible
-                          if (widget.training.target.isNotEmpty) ...[
+                          if (config.visibleFields.contains('target') && widget.training.target.isNotEmpty)
                             Row(
                               children: [
                                 Icon(
@@ -389,10 +351,9 @@ class _TrainingCardState extends State<TrainingCard> {
                                 ),
                               ],
                             ),
-                          ],
 
                           // Formateur
-                          if (widget.training.trainer.isNotEmpty) ...[
+                          if (config.visibleFields.contains('trainer') && widget.training.trainer.isNotEmpty)
                             Row(
                               children: [
                                 Icon(
@@ -414,12 +375,12 @@ class _TrainingCardState extends State<TrainingCard> {
                                 ),
                               ],
                             ),
-                          ],
 
                           // Catégorie
-                          if (widget.isArabic 
-                              ? widget.training.categorieAr.isNotEmpty 
-                              : widget.training.categorieFr.isNotEmpty) ...[
+                          if (config.visibleFields.contains('category') && 
+                              (widget.isArabic 
+                                  ? widget.training.categorieAr.isNotEmpty 
+                                  : widget.training.categorieFr.isNotEmpty))
                             Row(
                               children: [
                                 Icon(
@@ -443,7 +404,6 @@ class _TrainingCardState extends State<TrainingCard> {
                                 ),
                               ],
                             ),
-                          ],
 
                           const SizedBox(height: 6),
 
@@ -452,31 +412,35 @@ class _TrainingCardState extends State<TrainingCard> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               // Prix
-                              Row(
-                                children: [
-                                  if (hasDiscount && widget.training.discountValue != null)
-                                    Padding(
-                                      padding: const EdgeInsets.only(right: 4),
-                                      child: Text(
-                                        '${price.toInt()} $symbol',
-                                        style: GoogleFonts.cairo(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w400,
-                                          decoration: TextDecoration.lineThrough,
-                                          color: Colors.white.withOpacity(0.6),
+                              if (config.visibleFields.contains('price') || config.visibleFields.contains('discount'))
+                                Row(
+                                  children: [
+                                    if (hasDiscount && 
+                                        widget.training.discountValue != null &&
+                                        config.visibleFields.contains('discount'))
+                                      Padding(
+                                        padding: const EdgeInsets.only(right: 4),
+                                        child: Text(
+                                          '${price.toInt()} $symbol',
+                                          style: GoogleFonts.cairo(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w400,
+                                            decoration: TextDecoration.lineThrough,
+                                            color: Colors.white.withOpacity(0.6),
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  Text(
-                                    '${finalPrice.toInt()} $symbol',
-                                    style: GoogleFonts.cairo(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                    if (config.visibleFields.contains('price'))
+                                      Text(
+                                        '${finalPrice.toInt()} $symbol',
+                                        style: GoogleFonts.cairo(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                  ],
+                                ),
 
                               // Flèche circulaire
                               Container(
@@ -562,7 +526,9 @@ class _TrainingCardState extends State<TrainingCard> {
                         fit: StackFit.expand,
                         children: [
                           _buildImage(imageUrl),
-                          if (hasDiscount && widget.training.discountValue != null)
+                          if (hasDiscount && 
+                              widget.training.discountValue != null &&
+                              config.visibleFields.contains('discount'))
                             Positioned(
                               top: 8,
                               right: 8,
@@ -625,6 +591,7 @@ class _TrainingCardState extends State<TrainingCard> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            // ✅ TITRE avec style configurable
                             if (config.visibleFields.contains('title'))
                               Text(
                                 title,
@@ -638,6 +605,8 @@ class _TrainingCardState extends State<TrainingCard> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             const SizedBox(height: 3),
+
+                            // ✅ DURÉE
                             if (config.visibleFields.contains('duration'))
                               _buildInfoRowWithConfig(
                                 Icons.access_time_rounded,
@@ -645,6 +614,8 @@ class _TrainingCardState extends State<TrainingCard> {
                                 durationDisplay,
                                 config,
                               ),
+
+                            // ✅ PÉRIODE
                             if (config.visibleFields.contains('period'))
                               _buildInfoRowWithConfig(
                                 Icons.calendar_today_rounded,
@@ -652,21 +623,30 @@ class _TrainingCardState extends State<TrainingCard> {
                                 periodDisplay,
                                 config,
                               ),
-                            if (config.visibleFields.contains('target'))
+
+                            // ✅ CIBLE
+                            if (config.visibleFields.contains('target') && widget.training.target.isNotEmpty)
                               _buildInfoRowWithConfig(
                                 Icons.people_outline_rounded,
                                 widget.isArabic ? 'الجمهور : ' : 'Cible : ',
                                 widget.training.target,
                                 config,
                               ),
-                            if (config.visibleFields.contains('trainer'))
+
+                            // ✅ FORMATEUR
+                            if (config.visibleFields.contains('trainer') && widget.training.trainer.isNotEmpty)
                               _buildInfoRowWithConfig(
                                 Icons.person_outline_rounded,
                                 widget.isArabic ? 'المكون : ' : 'Formateur : ',
                                 widget.training.trainer,
                                 config,
                               ),
-                            if (config.visibleFields.contains('category'))
+
+                            // ✅ CATÉGORIE
+                            if (config.visibleFields.contains('category') && 
+                                (widget.isArabic 
+                                    ? widget.training.categorieAr.isNotEmpty 
+                                    : widget.training.categorieFr.isNotEmpty))
                               _buildInfoRowWithConfig(
                                 Icons.category_outlined,
                                 widget.isArabic ? 'التصنيف : ' : 'Catégorie : ',
@@ -675,7 +655,10 @@ class _TrainingCardState extends State<TrainingCard> {
                                     : widget.training.categorieFr,
                                 config,
                               ),
+
                             const SizedBox(height: 6),
+
+                            // ✅ PRIX ET RÉDUCTION
                             Padding(
                               padding: const EdgeInsets.only(top: 4, bottom: 2),
                               child: Row(
@@ -700,11 +683,12 @@ class _TrainingCardState extends State<TrainingCard> {
                                         ),
                                       ],
                                     ),
-                                  if (config.visibleFields.contains('price'))
+                                  if (config.visibleFields.contains('price') || config.visibleFields.contains('discount'))
                                     Row(
                                       children: [
                                         if (hasDiscount &&
-                                            widget.training.discountValue != null)
+                                            widget.training.discountValue != null &&
+                                            config.visibleFields.contains('discount'))
                                           Padding(
                                             padding: const EdgeInsets.only(right: 4),
                                             child: Text(
@@ -717,14 +701,15 @@ class _TrainingCardState extends State<TrainingCard> {
                                               ),
                                             ),
                                           ),
-                                        Text(
-                                          '${finalPrice.toInt()} $symbol',
-                                          style: GoogleFonts.cairo(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w800,
-                                            color: const Color(0xffd57653),
+                                        if (config.visibleFields.contains('price'))
+                                          Text(
+                                            '${finalPrice.toInt()} $symbol',
+                                            style: GoogleFonts.cairo(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w800,
+                                              color: const Color(0xffd57653),
+                                            ),
                                           ),
-                                        ),
                                       ],
                                     ),
                                   AnimatedContainer(
