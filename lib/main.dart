@@ -44,6 +44,8 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   bool _isInitialized = false;
+  CardConfigManager? _cardConfigManager;
+  HeroProvider? _heroProvider;
 
   @override
   void initState() {
@@ -52,17 +54,22 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _initializeApp() async {
-    // Initialiser CardConfigManager
-    final cardConfigManager = CardConfigManager();
-    await cardConfigManager.init();
+    print('🚀 Début initialisation...');
     
-    // ✅ Initialiser HeroProvider
-    final heroProvider = HeroProvider();
-    await heroProvider.init();
+    // Initialiser CardConfigManager
+    _cardConfigManager = CardConfigManager();
+    await _cardConfigManager!.init();
+    print('✅ CardConfigManager initialisé');
+    
+    // Initialiser HeroProvider
+    _heroProvider = HeroProvider();
+    await _heroProvider!.init();
+    print('✅ HeroProvider initialisé avec ${_heroProvider!.slides.length} slides');
     
     setState(() {
       _isInitialized = true;
     });
+    print('🚀 Initialisation terminée');
   }
 
   Widget _getInitialPage() {
@@ -118,20 +125,23 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => ChatbotProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => AboutProvider()),
-        ChangeNotifierProvider(create: (_) => CardConfigManager()),
-        // ✅ AJOUT DU HeroProvider
-        ChangeNotifierProvider(create: (_) => HeroProvider()),
+        // ✅ Utiliser les instances déjà initialisées
+        ChangeNotifierProvider<CardConfigManager>.value(
+          value: _cardConfigManager!,
+        ),
+        ChangeNotifierProvider<HeroProvider>.value(
+          value: _heroProvider!,
+        ),
       ],
       child: Consumer<LanguageProvider>(
         builder: (context, languageProvider, child) {
           print('📍 Langue actuelle: ${languageProvider.languageCode}');
-          print('📍 Locale: ${languageProvider.locale}');
           
-          // Vérifier que la config est chargée
+          // Vérifier les providers
           final cardConfigManager = Provider.of<CardConfigManager>(context);
-          print('📍 Config chargée: ${cardConfigManager.isInitialized}');
-          
           final heroProvider = Provider.of<HeroProvider>(context);
+          
+          print('📍 Config chargée: ${cardConfigManager.isInitialized}');
           print('📍 Hero chargé: ${heroProvider.isInitialized} - ${heroProvider.slides.length} slides');
 
           return MaterialApp(

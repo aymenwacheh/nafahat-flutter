@@ -5,17 +5,13 @@ import 'dart:convert';
 import '../pages/widgets/slide_item.dart';
 
 class HeroProvider extends ChangeNotifier {
-  // Configuration
   String _animationType = 'scroll';
   String _animationDirection = 'leftToRight';
   double _slideDuration = 5.0;
   double _transitionDuration = 0.8;
-  
-  // Slides
   List<SlideItem> _slides = [];
   bool _isInitialized = false;
 
-  // Getters
   String get animationType => _animationType;
   String get animationDirection => _animationDirection;
   double get slideDuration => _slideDuration;
@@ -23,7 +19,6 @@ class HeroProvider extends ChangeNotifier {
   List<SlideItem> get slides => _slides;
   bool get isInitialized => _isInitialized;
 
-  // Slides par défaut
   final List<SlideItem> _defaultSlides = [
     SlideItem(
       id: 'default_1',
@@ -54,18 +49,16 @@ class HeroProvider extends ChangeNotifier {
     ),
   ];
 
-  // Initialisation
   Future<void> init() async {
     try {
+      print('🔄 [HeroProvider] Début initialisation...');
       final prefs = await SharedPreferences.getInstance();
       
-      // Charger la configuration
       _animationType = prefs.getString('hero_animation_type') ?? 'scroll';
       _animationDirection = prefs.getString('hero_animation_direction') ?? 'leftToRight';
       _slideDuration = prefs.getDouble('hero_slide_duration') ?? 5.0;
       _transitionDuration = prefs.getDouble('hero_transition_duration') ?? 0.8;
 
-      // Charger les slides
       final String? slidesJson = prefs.getString('hero_slides');
       
       if (slidesJson != null && slidesJson.isNotEmpty) {
@@ -78,23 +71,24 @@ class HeroProvider extends ChangeNotifier {
           loadedSlides.add(slide);
         }
         _slides = loadedSlides;
+        print('✅ [HeroProvider] ${_slides.length} slides chargés depuis SharedPreferences');
       } else {
         _slides = List.from(_defaultSlides);
         await _saveSlidesToPrefs();
+        print('✅ [HeroProvider] Slides par défaut chargés');
       }
       
       _isInitialized = true;
+      print('✅ [HeroProvider] Initialisation terminée, notifyListeners()');
       notifyListeners();
-      print('✅ HeroProvider initialisé avec ${_slides.length} slides');
     } catch (e) {
-      print('❌ Erreur initialisation HeroProvider: $e');
+      print('❌ [HeroProvider] Erreur: $e');
       _slides = List.from(_defaultSlides);
       _isInitialized = true;
       notifyListeners();
     }
   }
 
-  // Mettre à jour la configuration
   void updateConfig({
     String? animationType,
     String? animationDirection,
@@ -122,25 +116,23 @@ class HeroProvider extends ChangeNotifier {
       }
       
       notifyListeners();
-      print('✅ Configuration Hero mise à jour');
+      print('✅ [HeroProvider] Config mise à jour');
     } catch (e) {
-      print('❌ Erreur mise à jour config Hero: $e');
+      print('❌ [HeroProvider] Erreur updateConfig: $e');
     }
   }
 
-  // Mettre à jour les slides
   void updateSlides(List<SlideItem> newSlides) async {
     try {
       _slides = newSlides;
       await _saveSlidesToPrefs();
       notifyListeners();
-      print('✅ Slides Hero mis à jour: ${_slides.length} slides');
+      print('✅ [HeroProvider] ${_slides.length} slides mis à jour');
     } catch (e) {
-      print('❌ Erreur mise à jour slides Hero: $e');
+      print('❌ [HeroProvider] Erreur updateSlides: $e');
     }
   }
 
-  // Sauvegarder les slides dans SharedPreferences
   Future<void> _saveSlidesToPrefs() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -148,7 +140,6 @@ class HeroProvider extends ChangeNotifier {
           _slides.map((slide) => slide.toJson()).toList();
       await prefs.setString('hero_slides', json.encode(jsonList));
       
-      // Sauvegarder les images
       for (var slide in _slides) {
         if (!slide.isAsset && 
             slide.imageBytes != null && 
@@ -158,30 +149,26 @@ class HeroProvider extends ChangeNotifier {
         }
       }
     } catch (e) {
-      print('❌ Erreur sauvegarde slides: $e');
+      print('❌ [HeroProvider] Erreur saveSlides: $e');
     }
   }
 
-  // Réinitialiser à la configuration par défaut
   Future<void> resetToDefault() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       
-      // Supprimer toutes les données
       await prefs.remove('hero_animation_type');
       await prefs.remove('hero_animation_direction');
       await prefs.remove('hero_slide_duration');
       await prefs.remove('hero_transition_duration');
       await prefs.remove('hero_slides');
       
-      // Supprimer les images stockées
       for (var slide in _slides) {
         if (!slide.isAsset && slide.imagePath.startsWith('hero_image_')) {
           await prefs.remove(slide.imagePath);
         }
       }
       
-      // Recharger les valeurs par défaut
       _animationType = 'scroll';
       _animationDirection = 'leftToRight';
       _slideDuration = 5.0;
@@ -190,9 +177,9 @@ class HeroProvider extends ChangeNotifier {
       
       await _saveSlidesToPrefs();
       notifyListeners();
-      print('✅ Hero réinitialisé aux valeurs par défaut');
+      print('✅ [HeroProvider] Réinitialisé');
     } catch (e) {
-      print('❌ Erreur réinitialisation Hero: $e');
+      print('❌ [HeroProvider] Erreur reset: $e');
     }
   }
 }

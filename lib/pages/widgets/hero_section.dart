@@ -320,29 +320,70 @@ class _HeroSectionState extends State<HeroSection>
     );
   }
 
-  Widget _buildBackgroundImage(SlideItem slide, int index) {
-    try {
-      if (slide.isAsset) {
-        return Image.asset(
-          slide.imagePath,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => _buildFallbackBackground(index),
-        );
-      }
-
-      if (slide.imageBytes != null) {
-        return Image.memory(
-          slide.imageBytes!,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => _buildFallbackBackground(index),
-        );
-      }
-
-      return _buildFallbackBackground(index);
-    } catch (e) {
-      return _buildFallbackBackground(index);
+Widget _buildBackgroundImage(SlideItem slide, int index) {
+  try {
+    print('🖼️ [Hero] Affichage slide $index: isAsset=${slide.isAsset}, imagePath=${slide.imagePath}, hasBytes=${slide.imageBytes != null}');
+    
+    if (slide.isAsset) {
+      print('📁 [Hero] Image asset: ${slide.imagePath}');
+      return Image.asset(
+        slide.imagePath,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        errorBuilder: (context, error, stackTrace) {
+          print('❌ [Hero] Erreur asset: $error');
+          return _buildFallbackBackground(index);
+        },
+      );
     }
+
+    if (slide.imageBytes != null && slide.imageBytes!.isNotEmpty) {
+      print('💾 [Hero] Image memory: ${slide.imageBytes!.length} bytes');
+      return Image.memory(
+        slide.imageBytes!,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        errorBuilder: (context, error, stackTrace) {
+          print('❌ [Hero] Erreur memory: $error');
+          return _buildFallbackBackground(index);
+        },
+      );
+    }
+
+    if (slide.imagePath.startsWith('http')) {
+      print('🌐 [Hero] Image network: ${slide.imagePath}');
+      return Image.network(
+        slide.imagePath,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            color: Colors.grey[900],
+            child: Center(
+              child: CircularProgressIndicator(
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                    : null,
+                color: const Color(0xffd57653),
+              ),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          print('❌ [Hero] Erreur network: $error');
+          return _buildFallbackBackground(index);
+        },
+      );
+    }
+
+    print('⚠️ [Hero] Aucune image valide, fallback');
+    return _buildFallbackBackground(index);
+  } catch (e) {
+    print('❌ [Hero] Exception: $e');
+    return _buildFallbackBackground(index);
   }
+}
 
   Widget _buildFallbackBackground(int index) {
     final List<List<Color>> gradients = [

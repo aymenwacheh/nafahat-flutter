@@ -8,6 +8,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:nafahat/pages/adminisration/admin_page_wrapper.dart';
 import '../../services/paiement_validation_service.dart';
 import '../../models/paiement_validation.dart';
+import '../../services/training_service.dart';
+import '../../models/training_model.dart';
 
 class EtatPaiementPage extends StatefulWidget {
   const EtatPaiementPage({super.key});
@@ -18,13 +20,16 @@ class EtatPaiementPage extends StatefulWidget {
 
 class _EtatPaiementPageState extends State<EtatPaiementPage> {
   final PaiementValidationService _service = PaiementValidationService();
+  
   List<PaiementValidation> _validations = [];
+  List<TrainingModel> _formations = [];
   bool _isLoading = true;
   bool _isProcessing = false;
 
   // Filtres
   String _searchQuery = '';
   String _selectedStatus = 'tous';
+  String _selectedFormation = 'toutes';
   String _selectedModalite = 'toutes';
 
   // Pagination
@@ -36,6 +41,7 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
   // Statistiques
   Map<String, dynamic> _stats = {};
   List<Map<String, dynamic>> _modaliteStats = [];
+  Map<String, int> _formationStats = {};
 
   // Responsive
   bool _isMobile = false;
@@ -50,7 +56,7 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      await Future.wait([_loadValidations(), _loadStats()]);
+      await Future.wait([_loadFormations(), _loadValidations(), _loadStats()]);
     } catch (e) {
       _showError('Erreur de chargement: $e');
     } finally {
@@ -58,8 +64,20 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
     }
   }
 
+  Future<void> _loadFormations() async {
+    try {
+      final formations = await TrainingService.getTrainings();
+      setState(() {
+        _formations = formations;
+      });
+    } catch (e) {
+      print('❌ Erreur chargement formations: $e');
+    }
+  }
+
   Future<void> _loadValidations() async {
     try {
+      // ✅ Récupérer toutes les validations
       final result = await _service.getPaginated(
         page: _currentPage + 1,
         perPage: _itemsPerPage,
@@ -67,10 +85,28 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
         search: _searchQuery.isNotEmpty ? _searchQuery : null,
       );
 
+      List<PaiementValidation> allValidations = result['data'] ?? [];
+      
+      // ✅ Filtrer par formation côté client si nécessaire
+      if (_selectedFormation != 'toutes') {
+        allValidations = allValidations.where((v) {
+          // Vérifier si l'ID de la formation correspond
+          // La formation est stockée dans formationTitreFr ou formationId
+          // On va essayer de faire correspondre par le titre
+          final formation = _formations.firstWhere(
+            (f) => f.id.toString() == _selectedFormation,
+            orElse: () => _formations.first,
+          );
+          // Filtrer par le titre de la formation
+          return v.formationTitreFr == formation.titleFr ||
+                 v.formationTitreAr == formation.titleAr;
+        }).toList();
+      }
+
       setState(() {
-        _validations = result['data'] ?? [];
-        _totalItems = result['pagination']['total'] ?? 0;
-        _totalPages = result['pagination']['totalPages'] ?? 1;
+        _validations = allValidations;
+        _totalItems = allValidations.length;
+        _totalPages = (_totalItems / _itemsPerPage).ceil();
       });
     } catch (e) {
       _showError('Erreur chargement validations: $e');
@@ -85,6 +121,9 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
         _modaliteStats = List<Map<String, dynamic>>.from(
           stats['data']['par_modalite'] ?? [],
         );
+        _formationStats = Map<String, int>.from(
+          stats['data']['par_formation'] ?? {},
+        );
       });
     } catch (e) {
       print('Erreur stats: $e');
@@ -98,13 +137,11 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
   }) async {
     setState(() => _isProcessing = true);
     try {
-      print('🔄 [updateStatus] Paiement $paiementId -> $statut');
       await _service.updateStatus(paiementId, statut, commentaire: commentaire);
       _showSuccess('✅ Statut mis à jour: ${_getStatusLabel(statut)}');
       await _loadValidations();
       await _loadStats();
     } catch (e) {
-      print('❌ [updateStatus] Erreur: $e');
       _showError('Erreur: $e');
     } finally {
       if (mounted) {
@@ -115,29 +152,34 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
 
   String _getStatusLabel(String status) {
     switch (status) {
-      case 'valide':
-        return 'Validé';
-      case 'refuse':
-        return 'Refusé';
-      case 'annule':
-        return 'Annulé';
-      case 'en_attente':
-        return 'En attente';
-      default:
-        return status;
+      case 'valide': return 'Validé';
+      case 'refuse': return 'Refusé';
+      case 'annule': return 'Annulé';
+      case 'en_attente': return 'En attente';
+      default: return status;
     }
   }
 
   Color _getStatusColor(String status) {
     switch (status) {
-      case 'valide':
-        return Colors.green;
-      case 'refuse':
-        return Colors.red;
-      case 'annule':
-        return Colors.grey;
-      default:
-        return Colors.orange;
+      case 'valide': return Colors.green;
+      case 'refuse': return Colors.red;
+      case 'annule': return Colors.grey;
+      default: return Colors.orange;
+    }
+  }
+
+  String _getFormationLabel(String formationId) {
+    if (formationId == 'toutes') return 'Toutes formations';
+    try {
+      final formation = _formations.firstWhere(
+        (f) => f.id.toString() == formationId,
+      );
+      return formation.titleFr.isNotEmpty 
+          ? formation.titleFr 
+          : (formation.titleAr.isNotEmpty ? formation.titleAr : 'Formation #${formation.id}');
+    } catch (e) {
+      return 'Formation inconnue';
     }
   }
 
@@ -152,200 +194,134 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
     showDialog(
       context: context,
       barrierDismissible: !_isProcessing,
-      builder:
-          (context) => StatefulBuilder(
-            builder: (context, setStateDialog) {
-              return AlertDialog(
-                title: Row(
-                  children: [
-                    Icon(Icons.gavel, color: const Color(0xFF0D443E)),
-                    const SizedBox(width: 10),
-                    const Text('Modification du statut'),
-                  ],
-                ),
-                content: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) {
+          return AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.gavel, color: const Color(0xFF0D443E)),
+                const SizedBox(width: 10),
+                const Text('Modification du statut'),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(validation.statutPaiement ?? 'en_attente').withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: _getStatusColor(validation.statutPaiement ?? 'en_attente'),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.info_outline, size: 16),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Statut actuel : ${_getStatusLabel(validation.statutPaiement ?? 'en_attente')}',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildInfoRow('👤 Adhérent', validation.adherentNomPrenom ?? 'N/A'),
+                  _buildInfoRow('📱 WhatsApp', validation.adherentWhatsapp ?? 'N/A'),
+                  _buildInfoRow('📚 Formation', validation.formationTitreFr ?? 'N/A'),
+                  _buildInfoRow('💰 Montant', '${validation.montantPaye?.toStringAsFixed(2) ?? '0'} ${validation.formationDevise ?? 'DT'}'),
+                  _buildInfoRow('💳 Modalité', validation.modalitePaiement ?? 'N/A'),
+                  _buildInfoRow('📝 Référence', validation.referencePaiement ?? 'N/A'),
+                  if (validation.numeroQuittance != null)
+                    _buildInfoRow('📄 Quittance', validation.numeroQuittance!),
+                  if (validation.urlQuittance != null)
+                    _buildInfoRow('🔗 Lien', validation.urlQuittance!),
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  const Text('Choisir une action :', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: _getStatusColor(
-                            validation.statutPaiement ?? 'en_attente',
-                          ).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: _getStatusColor(
-                              validation.statutPaiement ?? 'en_attente',
-                            ),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.info_outline, size: 16),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Statut actuel : ${_getStatusLabel(validation.statutPaiement ?? 'en_attente')}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
+                      _buildStatusButton(
+                        label: 'En attente',
+                        status: 'en_attente',
+                        icon: Icons.hourglass_empty,
+                        color: Colors.orange,
+                        isSelected: selectedStatus == 'en_attente',
+                        onPressed: () => setStateDialog(() => selectedStatus = 'en_attente'),
                       ),
-                      const SizedBox(height: 16),
-                      _buildInfoRow(
-                        '👤 Adhérent',
-                        validation.adherentNomPrenom ?? 'N/A',
+                      _buildStatusButton(
+                        label: 'Validé',
+                        status: 'valide',
+                        icon: Icons.check_circle,
+                        color: Colors.green,
+                        isSelected: selectedStatus == 'valide',
+                        onPressed: () => setStateDialog(() => selectedStatus = 'valide'),
                       ),
-                      _buildInfoRow(
-                        '📱 WhatsApp',
-                        validation.adherentWhatsapp ?? 'N/A',
+                      _buildStatusButton(
+                        label: 'Refusé',
+                        status: 'refuse',
+                        icon: Icons.cancel,
+                        color: Colors.red,
+                        isSelected: selectedStatus == 'refuse',
+                        onPressed: () => setStateDialog(() => selectedStatus = 'refuse'),
                       ),
-                      _buildInfoRow(
-                        '📚 Formation',
-                        validation.formationTitreFr ?? 'N/A',
-                      ),
-                      _buildInfoRow(
-                        '💰 Montant',
-                        '${validation.montantPaye?.toStringAsFixed(2) ?? '0'} ${validation.formationDevise ?? 'DT'}',
-                      ),
-                      _buildInfoRow(
-                        '💳 Modalité',
-                        validation.modalitePaiement ?? 'N/A',
-                      ),
-                      _buildInfoRow(
-                        '📝 Référence',
-                        validation.referencePaiement ?? 'N/A',
-                      ),
-                      if (validation.numeroQuittance != null)
-                        _buildInfoRow(
-                          '📄 Quittance',
-                          validation.numeroQuittance!,
-                        ),
-                      if (validation.urlQuittance != null)
-                        _buildInfoRow('🔗 Lien', validation.urlQuittance!),
-                      const SizedBox(height: 16),
-                      const Divider(),
-                      const Text(
-                        'Choisir une action :',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _buildStatusButton(
-                            label: 'En attente',
-                            status: 'en_attente',
-                            icon: Icons.hourglass_empty,
-                            color: Colors.orange,
-                            isSelected: selectedStatus == 'en_attente',
-                            onPressed: () {
-                              setStateDialog(() {
-                                selectedStatus = 'en_attente';
-                              });
-                            },
-                          ),
-                          _buildStatusButton(
-                            label: 'Validé',
-                            status: 'valide',
-                            icon: Icons.check_circle,
-                            color: Colors.green,
-                            isSelected: selectedStatus == 'valide',
-                            onPressed: () {
-                              setStateDialog(() {
-                                selectedStatus = 'valide';
-                              });
-                            },
-                          ),
-                          _buildStatusButton(
-                            label: 'Refusé',
-                            status: 'refuse',
-                            icon: Icons.cancel,
-                            color: Colors.red,
-                            isSelected: selectedStatus == 'refuse',
-                            onPressed: () {
-                              setStateDialog(() {
-                                selectedStatus = 'refuse';
-                              });
-                            },
-                          ),
-                          _buildStatusButton(
-                            label: 'Annulé',
-                            status: 'annule',
-                            icon: Icons.block,
-                            color: Colors.grey,
-                            isSelected: selectedStatus == 'annule',
-                            onPressed: () {
-                              setStateDialog(() {
-                                selectedStatus = 'annule';
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: commentaireController,
-                        maxLines: 2,
-                        decoration: const InputDecoration(
-                          hintText: 'Commentaire (optionnel)',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.comment_outlined),
-                        ),
+                      _buildStatusButton(
+                        label: 'Annulé',
+                        status: 'annule',
+                        icon: Icons.block,
+                        color: Colors.grey,
+                        isSelected: selectedStatus == 'annule',
+                        onPressed: () => setStateDialog(() => selectedStatus = 'annule'),
                       ),
                     ],
                   ),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed:
-                        _isProcessing ? null : () => Navigator.pop(context),
-                    child: const Text('ANNULER'),
-                  ),
-                  if (selectedStatus != validation.statutPaiement)
-                    ElevatedButton.icon(
-                      onPressed:
-                          _isProcessing
-                              ? null
-                              : () {
-                                Navigator.pop(context);
-                                _updateStatus(
-                                  validation.paiementId,
-                                  selectedStatus!,
-                                  commentaire:
-                                      commentaireController.text.isNotEmpty
-                                          ? commentaireController.text
-                                          : null,
-                                );
-                              },
-                      icon: Icon(
-                        selectedStatus == 'en_attente'
-                            ? Icons.refresh
-                            : Icons.save,
-                        size: 18,
-                      ),
-                      label: Text(
-                        selectedStatus == 'en_attente'
-                            ? 'RÉINITIALISER'
-                            : 'APPLIQUER',
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            selectedStatus == 'en_attente'
-                                ? Colors.orange
-                                : const Color(0xFF0D443E),
-                        foregroundColor: Colors.white,
-                      ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: commentaireController,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      hintText: 'Commentaire (optionnel)',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.comment_outlined),
                     ),
+                  ),
                 ],
-              );
-            },
-          ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: _isProcessing ? null : () => Navigator.pop(context),
+                child: const Text('ANNULER'),
+              ),
+              if (selectedStatus != validation.statutPaiement)
+                ElevatedButton.icon(
+                  onPressed: _isProcessing ? null : () {
+                    Navigator.pop(context);
+                    _updateStatus(
+                      validation.paiementId,
+                      selectedStatus!,
+                      commentaire: commentaireController.text.isNotEmpty ? commentaireController.text : null,
+                    );
+                  },
+                  icon: Icon(selectedStatus == 'en_attente' ? Icons.refresh : Icons.save, size: 18),
+                  label: Text(selectedStatus == 'en_attente' ? 'RÉINITIALISER' : 'APPLIQUER'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: selectedStatus == 'en_attente' ? Colors.orange : const Color(0xFF0D443E),
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -368,10 +344,7 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: BorderSide(
-            color: isSelected ? color : Colors.transparent,
-            width: 2,
-          ),
+          side: BorderSide(color: isSelected ? color : Colors.transparent, width: 2),
         ),
       ),
     );
@@ -385,14 +358,7 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
         children: [
           SizedBox(
             width: 100,
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontWeight: FontWeight.w500,
-                color: Colors.grey,
-                fontSize: 13,
-              ),
-            ),
+            child: Text(label, style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.grey, fontSize: 13)),
           ),
           Expanded(child: Text(value, style: const TextStyle(fontSize: 13))),
         ],
@@ -402,21 +368,13 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('❌ $message'),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 3),
-      ),
+      SnackBar(content: Text('❌ $message'), backgroundColor: Colors.red, duration: const Duration(seconds: 3)),
     );
   }
 
   void _showSuccess(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 2),
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.green, duration: const Duration(seconds: 2)),
     );
   }
 
@@ -426,107 +384,78 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
 
   void _viewQuittance(String url) {
     String cleanUrl = url.replaceAll('\\', '/');
-
     if (cleanUrl.startsWith('uploads/')) {
       cleanUrl = 'http://localhost:3000/$cleanUrl';
     }
-
     if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
       cleanUrl = 'http://localhost:3000/$cleanUrl';
     }
 
-    print('📄 [Quittance] URL: $cleanUrl');
-
     showDialog(
       context: context,
       barrierDismissible: true,
-      builder:
-          (context) => Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Container(
-              width: MediaQuery.of(context).size.width * 0.9,
-              height: MediaQuery.of(context).size.height * 0.85,
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.9,
+          height: MediaQuery.of(context).size.height * 0.85,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        '📄 Aperçu de la quittance',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Colors.grey),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                  const Divider(),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: Center(child: _buildQuittancePreview(cleanUrl)),
-                  ),
-                  const SizedBox(height: 16),
-                  const Divider(),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => _downloadQuittance(cleanUrl),
-                          icon: const Icon(Icons.download),
-                          label: const Text('Télécharger'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () => _openQuittanceInBrowser(cleanUrl),
-                          icon: const Icon(Icons.open_in_browser),
-                          label: const Text('Ouvrir'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF0D443E),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
+                  const Text('📄 Aperçu de la quittance', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  IconButton(icon: const Icon(Icons.close, color: Colors.grey), onPressed: () => Navigator.pop(context)),
                 ],
               ),
-            ),
+              const Divider(),
+              const SizedBox(height: 8),
+              Expanded(child: Center(child: _buildQuittancePreview(cleanUrl))),
+              const SizedBox(height: 16),
+              const Divider(),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _downloadQuittance(cleanUrl),
+                      icon: const Icon(Icons.download),
+                      label: const Text('Télécharger'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _openQuittanceInBrowser(cleanUrl),
+                      icon: const Icon(Icons.open_in_browser),
+                      label: const Text('Ouvrir'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0D443E),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
           ),
+        ),
+      ),
     );
   }
 
   Widget _buildQuittancePreview(String url) {
     final extension = url.split('.').last.toLowerCase();
-    final isImage = [
-      'jpg',
-      'jpeg',
-      'png',
-      'gif',
-      'webp',
-      'bmp',
-    ].contains(extension);
+    final isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].contains(extension);
     final isPdf = extension == 'pdf';
 
     if (isImage) {
@@ -543,18 +472,13 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   CircularProgressIndicator(
-                    value:
-                        loadingProgress.expectedTotalBytes != null
-                            ? loadingProgress.cumulativeBytesLoaded /
-                                loadingProgress.expectedTotalBytes!
-                            : null,
+                    value: loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                        : null,
                     color: const Color(0xFF0D443E),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    'Chargement de la quittance...',
-                    style: TextStyle(color: Colors.grey[600]),
-                  ),
+                  Text('Chargement de la quittance...', style: TextStyle(color: Colors.grey[600])),
                 ],
               ),
             );
@@ -565,15 +489,9 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
               children: [
                 Icon(Icons.broken_image, size: 64, color: Colors.grey[400]),
                 const SizedBox(height: 16),
-                Text(
-                  'Impossible de charger l\'image',
-                  style: TextStyle(color: Colors.grey[600]),
-                ),
+                Text('Impossible de charger l\'image', style: TextStyle(color: Colors.grey[600])),
                 const SizedBox(height: 8),
-                Text(
-                  'Vérifiez que le serveur est accessible',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[400]),
-                ),
+                Text('Vérifiez que le serveur est accessible', style: TextStyle(fontSize: 12, color: Colors.grey[400])),
               ],
             );
           },
@@ -585,16 +503,9 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
         children: [
           Icon(Icons.picture_as_pdf, size: 80, color: Colors.red.shade700),
           const SizedBox(height: 16),
-          const Text(
-            'Document PDF',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-          ),
+          const Text('Document PDF', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
           const SizedBox(height: 8),
-          Text(
-            url.split('/').last,
-            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-            textAlign: TextAlign.center,
-          ),
+          Text(url.split('/').last, style: TextStyle(fontSize: 12, color: Colors.grey[600]), textAlign: TextAlign.center),
           const SizedBox(height: 16),
           ElevatedButton.icon(
             onPressed: () => _openQuittanceInBrowser(url),
@@ -613,16 +524,9 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
         children: [
           Icon(Icons.insert_drive_file, size: 80, color: Colors.grey[400]),
           const SizedBox(height: 16),
-          Text(
-            'Type de fichier non pris en charge',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-          ),
+          Text('Type de fichier non pris en charge', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
           const SizedBox(height: 8),
-          Text(
-            url.split('/').last,
-            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-            textAlign: TextAlign.center,
-          ),
+          Text(url.split('/').last, style: TextStyle(fontSize: 12, color: Colors.grey[600]), textAlign: TextAlign.center),
           const SizedBox(height: 16),
           ElevatedButton.icon(
             onPressed: () => _downloadQuittance(url),
@@ -647,12 +551,8 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
         await launchUrl(uri, mode: LaunchMode.platformDefault);
       }
     } catch (e) {
-      print('❌ Erreur téléchargement: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('❌ Impossible de télécharger le fichier'),
-          backgroundColor: Colors.red,
-        ),
+        const SnackBar(content: Text('❌ Impossible de télécharger le fichier'), backgroundColor: Colors.red),
       );
     }
   }
@@ -666,12 +566,8 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
         throw Exception('Impossible d\'ouvrir le lien');
       }
     } catch (e) {
-      print('❌ Erreur ouverture: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('❌ Impossible d\'ouvrir le fichier'),
-          backgroundColor: Colors.red,
-        ),
+        const SnackBar(content: Text('❌ Impossible d\'ouvrir le fichier'), backgroundColor: Colors.red),
       );
     }
   }
@@ -683,60 +579,42 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
   void _showDetailsDialog(PaiementValidation v) {
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('📋 Détails du paiement'),
-            content: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildInfoRow('ID Paiement', '${v.paiementId}'),
-                  _buildInfoRow('ID Validation', '${v.id ?? '-'}'),
-                  const Divider(),
-                  _buildInfoRow('👤 Adhérent', v.adherentNomPrenom ?? 'N/A'),
-                  _buildInfoRow('📱 WhatsApp', v.adherentWhatsapp ?? 'N/A'),
-                  const Divider(),
-                  _buildInfoRow('📚 Formation', v.formationTitreFr ?? 'N/A'),
-                  _buildInfoRow(
-                    '💰 Montant',
-                    '${v.montantPaye?.toStringAsFixed(2) ?? '0'} ${v.formationDevise ?? 'DT'}',
-                  ),
-                  _buildInfoRow('💳 Modalité', v.modalitePaiement ?? 'N/A'),
-                  const Divider(),
-                  _buildInfoRow('📝 Référence', v.referencePaiement ?? 'N/A'),
-                  _buildInfoRow(
-                    '📄 Numéro quittance',
-                    v.numeroQuittance ?? '-',
-                  ),
-                  _buildInfoRow('📊 Statut', v.statutPaiement ?? 'en_attente'),
-                  _buildInfoRow('🔐 Validateur', v.validateurNom ?? '-'),
-                  _buildInfoRow(
-                    '📅 Date validation',
-                    v.dateValidation != null
-                        ? DateFormat(
-                          'dd/MM/yyyy HH:mm',
-                        ).format(v.dateValidation!)
-                        : '-',
-                  ),
-                  _buildInfoRow(
-                    '📅 Date création',
-                    DateFormat('dd/MM/yyyy HH:mm').format(v.createdAt),
-                  ),
-                  if (v.commentaire != null) ...[
-                    const Divider(),
-                    _buildInfoRow('💬 Commentaire', v.commentaire!),
-                  ],
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Fermer'),
-              ),
+      builder: (context) => AlertDialog(
+        title: const Text('📋 Détails du paiement'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildInfoRow('ID Paiement', '${v.paiementId}'),
+              _buildInfoRow('ID Validation', '${v.id ?? '-'}'),
+              const Divider(),
+              _buildInfoRow('👤 Adhérent', v.adherentNomPrenom ?? 'N/A'),
+              _buildInfoRow('📱 WhatsApp', v.adherentWhatsapp ?? 'N/A'),
+              const Divider(),
+              _buildInfoRow('📚 Formation', v.formationTitreFr ?? 'N/A'),
+              _buildInfoRow('💰 Montant', '${v.montantPaye?.toStringAsFixed(2) ?? '0'} ${v.formationDevise ?? 'DT'}'),
+              _buildInfoRow('💳 Modalité', v.modalitePaiement ?? 'N/A'),
+              const Divider(),
+              _buildInfoRow('📝 Référence', v.referencePaiement ?? 'N/A'),
+              _buildInfoRow('📄 Numéro quittance', v.numeroQuittance ?? '-'),
+              _buildInfoRow('📊 Statut', v.statutPaiement ?? 'en_attente'),
+              _buildInfoRow('🔐 Validateur', v.validateurNom ?? '-'),
+              _buildInfoRow('📅 Date validation', v.dateValidation != null
+                  ? DateFormat('dd/MM/yyyy HH:mm').format(v.dateValidation!)
+                  : '-'),
+              _buildInfoRow('📅 Date création', DateFormat('dd/MM/yyyy HH:mm').format(v.createdAt)),
+              if (v.commentaire != null) ...[
+                const Divider(),
+                _buildInfoRow('💬 Commentaire', v.commentaire!),
+              ],
             ],
           ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Fermer')),
+        ],
+      ),
     );
   }
 
@@ -753,7 +631,7 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
     return AdminPageWrapper(
       title: 'Gestion des paiements',
       titleAr: 'إدارة المدفوعات',
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: const Color(0xFFF8FAFC),
       actions: [
         IconButton(
           icon: const Icon(Icons.refresh),
@@ -766,24 +644,20 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
           _buildFilters(),
           _buildStats(),
           Expanded(
-            child:
-                _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _validations.isEmpty
-                    ? const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.inbox, size: 80, color: Colors.grey),
-                          SizedBox(height: 16),
-                          Text(
-                            'Aucune validation trouvée',
-                            style: TextStyle(fontSize: 18, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    )
-                    : _buildDataTable(),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _validations.isEmpty
+                ? const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.inbox, size: 80, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text('Aucune validation trouvée', style: TextStyle(fontSize: 18, color: Colors.grey)),
+                      ],
+                    ),
+                  )
+                : _buildDataTable(),
           ),
           _buildPagination(),
         ],
@@ -792,89 +666,238 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
   }
 
   // ============================================================
-  // FILTRES RESPONSIVE
+  // FILTRES RESPONSIVE MODERNES
   // ============================================================
 
   Widget _buildFilters() {
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: _isMobile ? 8 : 16,
-        vertical: _isMobile ? 8 : 10,
+      padding: EdgeInsets.symmetric(horizontal: _isMobile ? 12 : 20, vertical: _isMobile ? 12 : 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      color: Colors.grey[50],
-      child:
-          _isMobile
-              ? Column(
+      child: Column(
+        children: [
+          // Ligne de recherche
+          Row(
+            children: [
+              Expanded(
+                flex: _isMobile ? 1 : 3,
+                child: _buildSearchField(),
+              ),
+              if (!_isMobile) ...[
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 1,
+                  child: _buildFormationDropdown(),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 1,
+                  child: _buildStatusDropdown(),
+                ),
+              ],
+            ],
+          ),
+          if (_isMobile) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(child: _buildFormationDropdown()),
+                const SizedBox(width: 8),
+                Expanded(child: _buildStatusDropdown()),
+              ],
+            ),
+          ],
+          // Indicateur de filtres actifs
+          if (_searchQuery.isNotEmpty || _selectedStatus != 'tous' || _selectedFormation != 'toutes')
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 4,
                 children: [
-                  Row(children: [Expanded(child: _buildSearchField())]),
-                  const SizedBox(height: 8),
-                  Row(children: [Expanded(child: _buildStatusDropdown())]),
-                ],
-              )
-              : Row(
-                children: [
-                  Expanded(flex: 3, child: _buildSearchField()),
-                  const SizedBox(width: 10),
-                  Expanded(flex: 2, child: _buildStatusDropdown()),
+                  if (_selectedFormation != 'toutes')
+                    _buildFilterChip(
+                      label: _getFormationLabel(_selectedFormation),
+                      onDeleted: () {
+                        setState(() {
+                          _selectedFormation = 'toutes';
+                          _currentPage = 0;
+                          _loadValidations();
+                        });
+                      },
+                    ),
+                  if (_selectedStatus != 'tous')
+                    _buildFilterChip(
+                      label: _getStatusLabel(_selectedStatus),
+                      onDeleted: () {
+                        setState(() {
+                          _selectedStatus = 'tous';
+                          _currentPage = 0;
+                          _loadValidations();
+                        });
+                      },
+                    ),
+                  if (_searchQuery.isNotEmpty)
+                    _buildFilterChip(
+                      label: '🔍 $_searchQuery',
+                      onDeleted: () {
+                        setState(() {
+                          _searchQuery = '';
+                          _currentPage = 0;
+                          _loadValidations();
+                        });
+                      },
+                    ),
                 ],
               ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip({required String label, required VoidCallback onDeleted}) {
+    return Chip(
+      label: Text(label, style: const TextStyle(fontSize: 12)),
+      deleteIcon: const Icon(Icons.close, size: 16),
+      onDeleted: onDeleted,
+      backgroundColor: const Color(0xFF0D443E).withOpacity(0.1),
+      labelStyle: TextStyle(color: const Color(0xFF0D443E)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: const Color(0xFF0D443E).withOpacity(0.2)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
     );
   }
 
   Widget _buildSearchField() {
-    return TextField(
-      decoration: InputDecoration(
-        hintText: '🔍 Rechercher...',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-        isDense: true,
-        suffixIcon:
-            _searchQuery.isNotEmpty
-                ? IconButton(
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: TextField(
+        decoration: InputDecoration(
+          hintText: '🔍 Rechercher...',
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          isDense: true,
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
                   icon: const Icon(Icons.clear, size: 20),
                   onPressed: () {
                     setState(() {
                       _searchQuery = '';
+                      _currentPage = 0;
                       _loadValidations();
                     });
                   },
                 )
-                : null,
+              : null,
+        ),
+        onChanged: (value) {
+          setState(() => _searchQuery = value);
+          _loadValidations();
+        },
       ),
-      onChanged: (value) {
-        setState(() => _searchQuery = value);
-        _loadValidations();
-      },
+    );
+  }
+
+  Widget _buildFormationDropdown() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: DropdownButtonFormField<String>(
+        decoration: const InputDecoration(
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          isDense: true,
+        ),
+        value: _selectedFormation,
+        items: [
+          const DropdownMenuItem(value: 'toutes', child: Row(
+            children: [
+              Icon(Icons.school_outlined, size: 18, color: Colors.grey),
+              SizedBox(width: 8),
+              Text('📚 Toutes formations'),
+            ],
+          )),
+          ..._formations.map((f) => DropdownMenuItem(
+            value: f.id,
+            child: Text(f.titleFr.isNotEmpty ? f.titleFr : (f.titleAr.isNotEmpty ? f.titleAr : 'Formation #${f.id}')),
+          )),
+        ],
+        onChanged: (value) {
+          setState(() {
+            _selectedFormation = value!;
+            _currentPage = 0;
+            _loadValidations();
+          });
+        },
+        dropdownColor: Colors.white,
+        icon: Icon(Icons.arrow_drop_down, color: const Color(0xFF0D443E)),
+        style: const TextStyle(color: Colors.black87),
+      ),
     );
   }
 
   Widget _buildStatusDropdown() {
-    return DropdownButtonFormField<String>(
-      decoration: InputDecoration(
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-        isDense: true,
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
       ),
-      value: _selectedStatus,
-      items: const [
-        DropdownMenuItem(value: 'tous', child: Text('📊 Tous statuts')),
-        DropdownMenuItem(value: 'en_attente', child: Text('⏳ En attente')),
-        DropdownMenuItem(value: 'valide', child: Text('✅ Validé')),
-        DropdownMenuItem(value: 'refuse', child: Text('❌ Refusé')),
-        DropdownMenuItem(value: 'annule', child: Text('🚫 Annulé')),
-      ],
-      onChanged: (value) {
-        setState(() {
-          _selectedStatus = value!;
-          _currentPage = 0;
-          _loadValidations();
-        });
-      },
+      child: DropdownButtonFormField<String>(
+        decoration: const InputDecoration(
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          isDense: true,
+        ),
+        value: _selectedStatus,
+        items: const [
+          DropdownMenuItem(value: 'tous', child: Row(
+            children: [
+              Icon(Icons.list_alt, size: 18, color: Colors.grey),
+              SizedBox(width: 8),
+              Text('📊 Tous statuts'),
+            ],
+          )),
+          DropdownMenuItem(value: 'en_attente', child: Text('⏳ En attente')),
+          DropdownMenuItem(value: 'valide', child: Text('✅ Validé')),
+          DropdownMenuItem(value: 'refuse', child: Text('❌ Refusé')),
+          DropdownMenuItem(value: 'annule', child: Text('🚫 Annulé')),
+        ],
+        onChanged: (value) {
+          setState(() {
+            _selectedStatus = value!;
+            _currentPage = 0;
+            _loadValidations();
+          });
+        },
+        dropdownColor: Colors.white,
+        icon: Icon(Icons.arrow_drop_down, color: const Color(0xFF0D443E)),
+        style: const TextStyle(color: Colors.black87),
+      ),
     );
   }
 
   // ============================================================
-  // STATISTIQUES RESPONSIVE
+  // STATISTIQUES MODERNES
   // ============================================================
 
   Widget _buildStats() {
@@ -884,537 +907,476 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
     final refuses = _stats['refuses'] ?? 0;
 
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: _isMobile ? 8 : 16,
-        vertical: _isMobile ? 6 : 8,
+      padding: EdgeInsets.symmetric(horizontal: _isMobile ? 8 : 20, vertical: _isMobile ? 8 : 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
       ),
-      color: const Color(0xFFF5F5F5),
-      child:
-          _isMobile
-              ? Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 12,
-                runSpacing: 4,
-                children: [
-                  _buildStatItem('📋', '$total', Colors.grey[700], small: true),
-                  _buildStatItem('⏳', '$enAttente', Colors.orange, small: true),
-                  _buildStatItem('✅', '$valides', Colors.green, small: true),
-                  _buildStatItem('❌', '$refuses', Colors.red, small: true),
-                  if (_modaliteStats.isNotEmpty)
-                    ..._modaliteStats
-                        .map(
-                          (m) => _buildStatItem(
-                            _getModaliteIcon(m['modalite_paiement'] ?? ''),
-                            '${m['valides'] ?? 0}',
-                            Colors.blue,
-                            small: true,
-                          ),
-                        )
-                        .toList(),
-                ],
-              )
-              : Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildStatItem('📋 Total', '$total', Colors.grey[700]),
-                  _buildStatItem('⏳ En attente', '$enAttente', Colors.orange),
-                  _buildStatItem('✅ Validés', '$valides', Colors.green),
-                  _buildStatItem('❌ Refusés', '$refuses', Colors.red),
-                  if (_modaliteStats.isNotEmpty)
-                    ..._modaliteStats
-                        .map(
-                          (m) => _buildStatItem(
-                            _getModaliteIcon(m['modalite_paiement'] ?? ''),
-                            '${m['valides'] ?? 0}',
-                            Colors.blue,
-                          ),
-                        )
-                        .toList(),
-                ],
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildModernStatItem('📋', '$total', 'Total', Colors.grey[700]!),
+            _buildModernStatItem('⏳', '$enAttente', 'En attente', Colors.orange),
+            _buildModernStatItem('✅', '$valides', 'Validés', Colors.green),
+            _buildModernStatItem('❌', '$refuses', 'Refusés', Colors.red),
+            if (_selectedFormation == 'toutes' && _formationStats.isNotEmpty)
+              ..._formationStats.entries.take(_isMobile ? 3 : 5).map((e) =>
+                _buildModernStatItem('📚', '${e.value}', e.key, Colors.blue)
               ),
+          ],
+        ),
+      ),
     );
   }
 
-  String _getModaliteIcon(String modalite) {
-    switch (modalite) {
-      case 'bancaire':
-        return '🏦';
-      case 'postal':
-        return '📮';
-      case 'en_ligne':
-        return '🌐';
-      case 'especes':
-        return '💵';
-      default:
-        return '💳';
+  Widget _buildModernStatItem(String icon, String value, String label, Color color) {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: _isMobile ? 6 : 12),
+      padding: EdgeInsets.symmetric(horizontal: _isMobile ? 10 : 16, vertical: _isMobile ? 4 : 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.15)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(icon, style: TextStyle(fontSize: _isMobile ? 14 : 18)),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: _isMobile ? 16 : 20,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              Text(
+                label,
+                style: TextStyle(fontSize: _isMobile ? 9 : 11, color: Colors.grey[600]),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // TABLEAU MODERNE RESPONSIVE
+  // ============================================================
+
+  Widget _buildDataTable() {
+    if (_isMobile) {
+      return _buildModernMobileCards();
+    } else if (_isTablet) {
+      return _buildModernTabletCards();
+    } else {
+      return _buildModernDesktopTable();
     }
   }
 
-  Widget _buildStatItem(
-    String label,
-    String value,
-    Color? color, {
-    bool small = false,
-  }) {
-    return Column(
+  // ✅ VERSION MOBILE - Cartes modernes
+  Widget _buildModernMobileCards() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(12),
+      itemCount: _validations.length,
+      itemBuilder: (context, index) {
+        final v = _validations[index];
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                spreadRadius: 2,
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () => _showDetailsDialog(v),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0D443E).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '${_currentPage * _itemsPerPage + index + 1}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF0D443E),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                v.adherentNomPrenom ?? 'N/A',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        _buildStatusChip(v.statutPaiement ?? 'en_attente'),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildCompactInfo('📚', v.formationTitreFr ?? 'N/A'),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildModaliteChip(v.modalitePaiement ?? 'en_ligne'),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildCompactInfo(
+                          '💰',
+                          '${v.montantPaye?.toStringAsFixed(2) ?? '0'} ${v.formationDevise ?? 'DT'}',
+                        ),
+                        Text(
+                          _formatDate(v.createdAt),
+                          style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildActionButton(
+                          icon: Icons.gavel,
+                          color: Colors.orange.shade700,
+                          onPressed: () => _showValidationDialog(v),
+                          label: 'Statut',
+                        ),
+                        if (v.urlQuittance != null)
+                          _buildActionButton(
+                            icon: Icons.picture_as_pdf,
+                            color: Colors.blue.shade700,
+                            onPressed: () => _viewQuittance(v.urlQuittance!),
+                            label: 'Quittance',
+                          ),
+                        _buildActionButton(
+                          icon: Icons.more_vert,
+                          color: Colors.grey.shade600,
+                          onPressed: () => _showDetailsDialog(v),
+                          label: 'Détails',
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCompactInfo(String icon, String value) {
+    return Row(
       children: [
-        Text(
-          label,
-          style: TextStyle(fontSize: small ? 10 : 12, color: Colors.grey[600]),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: small ? 14 : 16,
-            fontWeight: FontWeight.bold,
-            color: color ?? Colors.black87,
+        Text(icon, style: const TextStyle(fontSize: 14)),
+        const SizedBox(width: 4),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(fontSize: 13),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
     );
   }
 
-  // ============================================================
-  // TABLEAU RESPONSIVE
-  // ============================================================
-
-  Widget _buildDataTable() {
-    if (_isMobile) {
-      return _buildMobileCards();
-    } else if (_isTablet) {
-      return _buildTabletCards();
-    } else {
-      return _buildDesktopTable();
-    }
-  }
-
-  // ✅ VERSION MOBILE - Cartes
-  Widget _buildMobileCards() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(8),
-      itemCount: _validations.length,
-      itemBuilder: (context, index) {
-        final v = _validations[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '#${_currentPage * _itemsPerPage + index + 1}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF0D443E),
-                      ),
-                    ),
-                    _buildStatusChip(v.statutPaiement ?? 'en_attente'),
-                  ],
-                ),
-                const Divider(),
-                _buildMobileInfoRow(
-                  '👤 Adhérent',
-                  v.adherentNomPrenom ?? 'N/A',
-                ),
-                _buildMobileInfoRow('📱 WhatsApp', v.adherentWhatsapp ?? 'N/A'),
-                _buildMobileInfoRow(
-                  '📚 Formation',
-                  v.formationTitreFr ?? 'N/A',
-                ),
-                _buildMobileInfoRow(
-                  '💰 Montant',
-                  '${v.montantPaye?.toStringAsFixed(2) ?? '0'} ${v.formationDevise ?? 'DT'}',
-                ),
-                _buildMobileInfoRow('💳 Modalité', v.modalitePaiement ?? 'N/A'),
-                _buildMobileInfoRow('📝 Réf.', v.referencePaiement ?? 'N/A'),
-                _buildMobileInfoRow('🔐 Validateur', v.validateurNom ?? '-'),
-                _buildMobileInfoRow('📅 Date', _formatDate(v.createdAt)),
-                const Divider(),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.gavel, color: Colors.orange.shade700),
-                      onPressed:
-                          _isProcessing ? null : () => _showValidationDialog(v),
-                      tooltip: 'Modifier le statut',
-                    ),
-                    if (v.urlQuittance != null)
-                      IconButton(
-                        icon: const Icon(
-                          Icons.picture_as_pdf,
-                          color: Colors.blue,
-                        ),
-                        onPressed: () => _viewQuittance(v.urlQuittance!),
-                        tooltip: 'Voir quittance',
-                      ),
-                    IconButton(
-                      icon: const Icon(Icons.info_outline, color: Colors.grey),
-                      onPressed: () => _showDetailsDialog(v),
-                      tooltip: 'Détails',
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildMobileInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 70,
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontSize: 12),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ✅ VERSION TABLETTE - Cartes légèrement plus grandes
-  Widget _buildTabletCards() {
-    return GridView.builder(
-      padding: const EdgeInsets.all(12),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 1.2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      itemCount: _validations.length,
-      itemBuilder: (context, index) {
-        final v = _validations[index];
-        return Card(
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '#${_currentPage * _itemsPerPage + index + 1}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF0D443E),
-                      ),
-                    ),
-                    _buildStatusChip(v.statutPaiement ?? 'en_attente'),
-                  ],
-                ),
-                const Divider(height: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildTabletInfoRow('👤', v.adherentNomPrenom ?? 'N/A'),
-                      _buildTabletInfoRow('📱', v.adherentWhatsapp ?? 'N/A'),
-                      _buildTabletInfoRow('📚', v.formationTitreFr ?? 'N/A'),
-                      _buildTabletInfoRow(
-                        '💰',
-                        '${v.montantPaye?.toStringAsFixed(2) ?? '0'} ${v.formationDevise ?? 'DT'}',
-                      ),
-                      _buildTabletInfoRow('💳', v.modalitePaiement ?? 'N/A'),
-                    ],
-                  ),
-                ),
-                const Divider(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        Icons.gavel,
-                        color: Colors.orange.shade700,
-                        size: 20,
-                      ),
-                      onPressed:
-                          _isProcessing ? null : () => _showValidationDialog(v),
-                      tooltip: 'Modifier le statut',
-                    ),
-                    if (v.urlQuittance != null)
-                      IconButton(
-                        icon: const Icon(
-                          Icons.picture_as_pdf,
-                          color: Colors.blue,
-                          size: 20,
-                        ),
-                        onPressed: () => _viewQuittance(v.urlQuittance!),
-                        tooltip: 'Voir quittance',
-                      ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.info_outline,
-                        color: Colors.grey,
-                        size: 20,
-                      ),
-                      onPressed: () => _showDetailsDialog(v),
-                      tooltip: 'Détails',
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildTabletInfoRow(String icon, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 1),
-      child: Row(
-        children: [
-          Text(icon, style: const TextStyle(fontSize: 12)),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontSize: 12),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ✅ VERSION DESKTOP - Tableau complet
-  Widget _buildDesktopTable() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: SingleChildScrollView(
-        child: DataTable(
-          columnSpacing: 12,
-          headingRowColor: WidgetStatePropertyAll(
-            const Color(0xFF0D443E).withOpacity(0.08),
-          ),
-          columns: const [
-            DataColumn(
-              label: Text('#', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-            DataColumn(
-              label: Text(
-                'Adhérent',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Formation',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Montant',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Modalité',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Statut',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Référence',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Validateur',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Date',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Actions',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
+  Widget _buildActionButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+    required String label,
+  }) {
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Column(
+          children: [
+            Icon(icon, size: 20, color: color),
+            Text(label, style: TextStyle(fontSize: 9, color: Colors.grey[600])),
           ],
-          rows:
-              _validations.asMap().entries.map((entry) {
-                final index = entry.key;
-                final v = entry.value;
-                return DataRow(
-                  cells: [
-                    DataCell(
-                      Text('${_currentPage * _itemsPerPage + index + 1}'),
-                    ),
-                    DataCell(
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            v.adherentNomPrenom ?? 'N/A',
-                            style: const TextStyle(fontWeight: FontWeight.w500),
+        ),
+      ),
+    );
+  }
+
+  // ✅ VERSION TABLETTE - Grille moderne
+  Widget _buildModernTabletCards() {
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: _isTablet ? 350 : 280,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 1.1,
+      ),
+      itemCount: _validations.length,
+      itemBuilder: (context, index) {
+        final v = _validations[index];
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.08),
+                spreadRadius: 2,
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () => _showDetailsDialog(v),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '#${_currentPage * _itemsPerPage + index + 1}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0D443E),
                           ),
-                          Text(
-                            v.adherentWhatsapp ?? '',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    DataCell(
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(v.formationTitreFr ?? 'N/A'),
-                          if (v.formationTitreAr != null)
-                            Text(
-                              v.formationTitreAr!,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    DataCell(
-                      Text(
-                        '${v.montantPaye?.toStringAsFixed(2) ?? '0'} ${v.formationDevise ?? 'DT'}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    DataCell(
-                      _buildModaliteChip(v.modalitePaiement ?? 'en_ligne'),
-                    ),
-                    DataCell(
-                      _buildStatusChip(v.statutPaiement ?? 'en_attente'),
-                    ),
-                    DataCell(
-                      Text(
-                        v.referencePaiement ?? '',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontFamily: 'monospace',
                         ),
-                      ),
+                        _buildStatusChip(v.statutPaiement ?? 'en_attente'),
+                      ],
                     ),
-                    DataCell(
-                      Text(
-                        v.validateurNom ?? '-',
-                        style: const TextStyle(fontSize: 12),
-                      ),
+                    const SizedBox(height: 4),
+                    Text(
+                      v.adherentNomPrenom ?? 'N/A',
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    DataCell(
-                      Text(
-                        _formatDate(v.createdAt),
-                        style: const TextStyle(fontSize: 12),
-                      ),
+                    Text(
+                      v.adherentWhatsapp ?? '',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
-                    DataCell(
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Tooltip(
-                            message: 'Modifier le statut',
-                            child: IconButton(
-                              icon: Icon(
-                                Icons.gavel,
-                                color: Colors.orange.shade700,
-                              ),
-                              onPressed:
-                                  _isProcessing
-                                      ? null
-                                      : () => _showValidationDialog(v),
-                              iconSize: 22,
-                            ),
+                    const SizedBox(height: 4),
+                    Text(
+                      v.formationTitreFr ?? 'N/A',
+                      style: const TextStyle(fontSize: 13),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${v.montantPaye?.toStringAsFixed(2) ?? '0'} ${v.formationDevise ?? 'DT'}',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                        _buildModaliteChip(v.modalitePaiement ?? 'en_ligne'),
+                      ],
+                    ),
+                    const Divider(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.gavel, color: Colors.orange.shade700, size: 22),
+                          onPressed: () => _showValidationDialog(v),
+                          tooltip: 'Modifier le statut',
+                        ),
+                        if (v.urlQuittance != null)
+                          IconButton(
+                            icon: const Icon(Icons.picture_as_pdf, color: Colors.blue, size: 22),
+                            onPressed: () => _viewQuittance(v.urlQuittance!),
+                            tooltip: 'Voir quittance',
                           ),
-                          if (v.urlQuittance != null)
-                            Tooltip(
-                              message: 'Voir quittance',
-                              child: IconButton(
-                                icon: const Icon(
-                                  Icons.picture_as_pdf,
-                                  color: Colors.blue,
-                                ),
-                                onPressed:
-                                    () => _viewQuittance(v.urlQuittance!),
-                                iconSize: 22,
-                              ),
-                            ),
-                          Tooltip(
-                            message: 'Détails',
-                            child: IconButton(
-                              icon: const Icon(
-                                Icons.info_outline,
-                                color: Colors.grey,
-                              ),
-                              onPressed: () => _showDetailsDialog(v),
-                              iconSize: 22,
-                            ),
-                          ),
-                        ],
-                      ),
+                        IconButton(
+                          icon: const Icon(Icons.info_outline, color: Colors.grey, size: 22),
+                          onPressed: () => _showDetailsDialog(v),
+                          tooltip: 'Détails',
+                        ),
+                      ],
                     ),
                   ],
-                );
-              }).toList(),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ✅ VERSION DESKTOP - Tableau moderne
+  Widget _buildModernDesktopTable() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.08),
+            spreadRadius: 2,
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: DataTable(
+            columnSpacing: 16,
+            headingRowColor: WidgetStatePropertyAll(
+              const Color(0xFF0D443E).withOpacity(0.05),
+            ),
+            headingTextStyle: const TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF0D443E),
+            ),
+            dataRowMinHeight: 56,
+            dataRowMaxHeight: 72,
+            columns: const [
+              DataColumn(label: Text('#', style: TextStyle(fontWeight: FontWeight.bold))),
+              DataColumn(label: Text('Adhérent', style: TextStyle(fontWeight: FontWeight.bold))),
+              DataColumn(label: Text('WhatsApp', style: TextStyle(fontWeight: FontWeight.bold))),
+              DataColumn(label: Text('Formation', style: TextStyle(fontWeight: FontWeight.bold))),
+              DataColumn(label: Text('Montant', style: TextStyle(fontWeight: FontWeight.bold))),
+              DataColumn(label: Text('Modalité', style: TextStyle(fontWeight: FontWeight.bold))),
+              DataColumn(label: Text('Statut', style: TextStyle(fontWeight: FontWeight.bold))),
+              DataColumn(label: Text('Référence', style: TextStyle(fontWeight: FontWeight.bold))),
+              DataColumn(label: Text('Validateur', style: TextStyle(fontWeight: FontWeight.bold))),
+              DataColumn(label: Text('Date', style: TextStyle(fontWeight: FontWeight.bold))),
+              DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
+            ],
+            rows: _validations.asMap().entries.map((entry) {
+              final index = entry.key;
+              final v = entry.value;
+              return DataRow(
+                cells: [
+                  DataCell(Text('${_currentPage * _itemsPerPage + index + 1}')),
+                  DataCell(
+                    Text(
+                      v.adherentNomPrenom ?? 'N/A',
+                      style: const TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                  DataCell(Text(v.adherentWhatsapp ?? '')),
+                  DataCell(
+                    Text(
+                      v.formationTitreFr ?? 'N/A',
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                  ),
+                  DataCell(
+                    Text(
+                      '${v.montantPaye?.toStringAsFixed(2) ?? '0'} ${v.formationDevise ?? 'DT'}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  DataCell(_buildModaliteChip(v.modalitePaiement ?? 'en_ligne')),
+                  DataCell(_buildStatusChip(v.statutPaiement ?? 'en_attente')),
+                  DataCell(
+                    Text(
+                      v.referencePaiement ?? '',
+                      style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+                    ),
+                  ),
+                  DataCell(Text(v.validateurNom ?? '-', style: const TextStyle(fontSize: 12))),
+                  DataCell(Text(_formatDate(v.createdAt), style: const TextStyle(fontSize: 12))),
+                  DataCell(
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.gavel, color: Colors.orange.shade700, size: 20),
+                          onPressed: () => _showValidationDialog(v),
+                          tooltip: 'Modifier le statut',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        if (v.urlQuittance != null)
+                          IconButton(
+                            icon: const Icon(Icons.picture_as_pdf, color: Colors.blue, size: 20),
+                            onPressed: () => _viewQuittance(v.urlQuittance!),
+                            tooltip: 'Voir quittance',
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        IconButton(
+                          icon: const Icon(Icons.info_outline, color: Colors.grey, size: 20),
+                          onPressed: () => _showDetailsDialog(v),
+                          tooltip: 'Détails',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            }).toList(),
+          ),
         ),
       ),
     );
   }
 
   // ============================================================
-  // COMPOSANTS COMMUNS
+  // COMPOSANTS COMMUNS MODERNES
   // ============================================================
 
   Widget _buildStatusChip(String status) {
@@ -1445,11 +1407,11 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.3)),
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1458,11 +1420,7 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
           const SizedBox(width: 4),
           Text(
             label,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.w600,
-              fontSize: 12,
-            ),
+            style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 12),
           ),
         ],
       ),
@@ -1480,7 +1438,7 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
     final c = config[modalite] ?? {'icon': '💳', 'color': Colors.grey};
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: (c['color'] as Color).withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
@@ -1490,7 +1448,7 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
         '${c['icon']} $modalite',
         style: TextStyle(
           color: c['color'] as Color,
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -1498,85 +1456,88 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
   }
 
   // ============================================================
-  // PAGINATION
+  // PAGINATION MODERNE
   // ============================================================
 
   Widget _buildPagination() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: Colors.grey[300]!)),
-        color: Colors.grey[50],
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Colors.grey[200]!)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.05),
+            spreadRadius: 1,
+            blurRadius: 4,
+            offset: const Offset(0, -2),
+          ),
+        ],
       ),
-      child:
-          _isMobile
-              ? Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.chevron_left),
-                    onPressed:
-                        _currentPage > 0 && !_isLoading
-                            ? () {
-                              setState(() => _currentPage--);
-                              _loadValidations();
-                            }
-                            : null,
+      child: Row(
+        mainAxisAlignment: _isMobile ? MainAxisAlignment.center : MainAxisAlignment.spaceBetween,
+        children: [
+          if (!_isMobile)
+            Text(
+              '${_totalItems} validation(s)',
+              style: TextStyle(color: Colors.grey[600], fontSize: 13),
+            ),
+          Row(
+            children: [
+              IconButton(
+                icon: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.grey[300]!),
                   ),
-                  Text(
-                    '${_currentPage + 1} / ${_totalPages > 0 ? _totalPages : 1}',
-                    style: const TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.chevron_right),
-                    onPressed:
-                        _currentPage < _totalPages - 1 && !_isLoading
-                            ? () {
-                              setState(() => _currentPage++);
-                              _loadValidations();
-                            }
-                            : null,
-                  ),
-                ],
-              )
-              : Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '${_totalItems} validation(s)',
-                    style: TextStyle(color: Colors.grey[600]),
-                  ),
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.chevron_left),
-                        onPressed:
-                            _currentPage > 0 && !_isLoading
-                                ? () {
-                                  setState(() => _currentPage--);
-                                  _loadValidations();
-                                }
-                                : null,
-                      ),
-                      Text(
-                        'Page ${_currentPage + 1} / ${_totalPages > 0 ? _totalPages : 1}',
-                        style: const TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.chevron_right),
-                        onPressed:
-                            _currentPage < _totalPages - 1 && !_isLoading
-                                ? () {
-                                  setState(() => _currentPage++);
-                                  _loadValidations();
-                                }
-                                : null,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 40),
-                ],
+                  child: Icon(Icons.chevron_left, size: 20, color: _currentPage > 0 ? const Color(0xFF0D443E) : Colors.grey[400]),
+                ),
+                onPressed: _currentPage > 0 && !_isLoading
+                    ? () {
+                        setState(() => _currentPage--);
+                        _loadValidations();
+                      }
+                    : null,
               ),
+              const SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0D443E).withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${_currentPage + 1} / ${_totalPages > 0 ? _totalPages : 1}',
+                  style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF0D443E), fontSize: 14),
+                ),
+              ),
+              const SizedBox(width: 12),
+              IconButton(
+                icon: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: Icon(Icons.chevron_right, size: 20, color: _currentPage < _totalPages - 1 ? const Color(0xFF0D443E) : Colors.grey[400]),
+                ),
+                onPressed: _currentPage < _totalPages - 1 && !_isLoading
+                    ? () {
+                        setState(() => _currentPage++);
+                        _loadValidations();
+                      }
+                    : null,
+              ),
+            ],
+          ),
+          if (!_isMobile)
+            Text(
+              '${_itemsPerPage} par page',
+              style: TextStyle(color: Colors.grey[500], fontSize: 12),
+            ),
+        ],
+      ),
     );
   }
 
