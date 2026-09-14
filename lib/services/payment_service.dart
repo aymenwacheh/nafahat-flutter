@@ -11,7 +11,6 @@ import 'package:nafahat/config/api_config.dart';
 import 'upload_service.dart';
 
 class PaymentService {
-  // ✅ Utiliser ApiConfig.apiUrl au lieu de baseUrl
   static String get baseUrl => ApiConfig.apiUrl;
 
   // ============================================================
@@ -60,30 +59,49 @@ class PaymentService {
   }
 
   // ============================================================
-  // CONFIRMATION DU PAIEMENT
+  // CONFIRMATION DU PAIEMENT (avec type de paiement)
   // ============================================================
 
   static Future<Map<String, dynamic>> confirmPayment({
     required String paymentId,
     required String modalite,
+    String? typePaiement,
+    double? montantAPayer,
+    int? nombreMois,
+    double? montantMensuel,
   }) async {
     try {
       print('🔵 [PaymentService] Confirmation paiement...');
       print('   📋 paymentId: $paymentId');
       print('   📋 modalite: $modalite');
+      print('   📋 typePaiement: $typePaiement');
+      print('   📋 montantAPayer: $montantAPayer');
+      print('   📋 nombreMois: $nombreMois');
+      print('   📋 montantMensuel: $montantMensuel');
 
       final url = '$baseUrl/payments/confirm';
       print('   📋 URL: $url');
 
+      final Map<String, dynamic> body = {
+        'paymentId': paymentId,
+        'modalite': modalite,
+      };
+
+      if (typePaiement != null) body['type_paiement'] = typePaiement;
+      if (montantAPayer != null) body['montant_a_payer'] = montantAPayer;
+      if (nombreMois != null) body['nombre_mois'] = nombreMois;
+      if (montantMensuel != null) body['montant_mensuel'] = montantMensuel;
+
+      print('   📋 Body: ${jsonEncode(body)}');
+
       final response = await http.post(
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'paymentId': paymentId, 'modalite': modalite}),
+        body: jsonEncode(body),
       );
 
-      print(
-        '🔵 [PaymentService] confirmPayment response: ${response.statusCode}',
-      );
+      print('🔵 [PaymentService] confirmPayment response: ${response.statusCode}');
+      print('🔵 [PaymentService] Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -98,7 +116,7 @@ class PaymentService {
   }
 
   // ============================================================
-  // UPLOAD DE LA QUITTANCE (UNIFIÉ)
+  // UPLOAD DE LA QUITTANCE (initiale)
   // ============================================================
 
   static Future<Map<String, dynamic>> uploadQuittance({
@@ -125,7 +143,6 @@ class PaymentService {
 
   // ============================================================
   // RÉCUPÉRATION DES PAIEMENTS D'UN UTILISATEUR
-  // ✅ RETOURNE UNE LISTE (pour utilisation dans profile_dashboard_page)
   // ============================================================
 
   static Future<List<Map<String, dynamic>>> getUserPayments(
@@ -141,7 +158,6 @@ class PaymentService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        // ✅ Extraire la liste des paiements
         final List<dynamic> payments = data['data'] ?? [];
         return payments.map((e) => Map<String, dynamic>.from(e)).toList();
       } else {
@@ -162,9 +178,7 @@ class PaymentService {
     String formationId,
   ) async {
     try {
-      print(
-        '🔵 [PaymentService] Récupération paiements formation: $formationId',
-      );
+      print('🔵 [PaymentService] Récupération paiements formation: $formationId');
 
       final url = '$baseUrl/payments/formation/$formationId';
       print('   📋 URL: $url');
@@ -261,6 +275,140 @@ class PaymentService {
     } catch (e) {
       print('❌ [PaymentService] Erreur getPaymentById: $e');
       return null;
+    }
+  }
+
+  // ============================================================
+  // ✅ NOUVELLE MÉTHODE : Soumettre une tranche mensuelle
+  // POST /api/payments/:paymentId/tranche
+  // ============================================================
+
+  static Future<Map<String, dynamic>> soumettreTranche({
+    required String paymentId,
+    required double montantTranche,
+    String? quittanceUrl,
+  }) async {
+    try {
+      print('🔵 [PaymentService] Soumission tranche...');
+      print('   📋 paymentId: $paymentId');
+      print('   📋 montantTranche: $montantTranche');
+      print('   📋 quittanceUrl: $quittanceUrl');
+
+      final url = '$baseUrl/payments/$paymentId/tranche';
+      print('   📋 URL: $url');
+
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'montant_tranche': montantTranche,
+          if (quittanceUrl != null && quittanceUrl.isNotEmpty)
+            'quittance_url': quittanceUrl,
+        }),
+      );
+
+      print('🔵 [PaymentService] Response: ${response.statusCode}');
+      print('🔵 [PaymentService] Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        final error = jsonDecode(response.body);
+        throw Exception(error['message'] ?? 'Erreur soumission tranche');
+      }
+    } catch (e) {
+      print('❌ [PaymentService] Erreur soumettreTranche: $e');
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  // ============================================================
+  // ✅ NOUVELLE MÉTHODE : Upload de la quittance de tranche
+  // POST /api/payments/:paymentId/upload-tranche
+  // ============================================================
+
+  static Future<Map<String, dynamic>> uploadTrancheQuittance({
+    required String paymentId,
+    required dynamic fileData,
+    required String fileName,
+  }) async {
+    try {
+      print('🔵 [PaymentService] Upload quittance tranche...');
+      print('   📋 paymentId: $paymentId');
+      print('   📋 fileName: $fileName');
+      print('   📋 Platform: ${kIsWeb ? "Web" : "Mobile"}');
+
+      final url = '$baseUrl/payments/$paymentId/upload-tranche';
+      print('   📋 URL: $url');
+
+      var request = http.MultipartRequest('POST', Uri.parse(url));
+
+      if (kIsWeb) {
+        final bytes = fileData as Uint8List;
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'quittance',
+            bytes,
+            filename: fileName,
+          ),
+        );
+      } else {
+        final file = fileData as File;
+        request.files.add(
+          await http.MultipartFile.fromPath('quittance', file.path),
+        );
+      }
+
+      request.fields['paymentId'] = paymentId;
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      print('🔵 [PaymentService] Response: ${response.statusCode}');
+      print('🔵 [PaymentService] Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        final error = jsonDecode(response.body);
+        throw Exception(error['message'] ?? 'Erreur upload quittance');
+      }
+    } catch (e) {
+      print('❌ [PaymentService] Erreur uploadTrancheQuittance: $e');
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  // ============================================================
+  // ✅ NOUVELLE MÉTHODE : Valider une tranche (admin)
+  // POST /api/payments/:paymentId/valider-tranche
+  // ============================================================
+
+  static Future<Map<String, dynamic>> validerTranche({
+    required String paymentId,
+  }) async {
+    try {
+      print('🔵 [PaymentService] Validation tranche: $paymentId');
+
+      final url = '$baseUrl/payments/$paymentId/valider-tranche';
+      print('   📋 URL: $url');
+
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      print('🔵 [PaymentService] Response: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        final error = jsonDecode(response.body);
+        throw Exception(error['message'] ?? 'Erreur validation tranche');
+      }
+    } catch (e) {
+      print('❌ [PaymentService] Erreur validerTranche: $e');
+      return {'success': false, 'message': e.toString()};
     }
   }
 }
