@@ -76,33 +76,33 @@ class PaiementValidation {
 
   factory PaiementValidation.fromJson(Map<String, dynamic> json) {
     return PaiementValidation(
-      id: json['id'],
-      paiementId: json['paiement_id'] ?? 0,
-      validePar: json['valide_par'],
-      statut: json['statut'] ?? 'en_attente',
+      id: _toIntOrNull(json['id']),
+      paiementId: _toInt(json['paiement_id'], defaultValue: 0),
+      validePar: _toIntOrNull(json['valide_par']),
+      statut: json['statut']?.toString() ?? 'en_attente',
       dateValidation: json['date_validation'] != null
-          ? DateTime.parse(json['date_validation'])
+          ? DateTime.tryParse(json['date_validation'].toString())
           : null,
       createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
+          ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
           : DateTime.now(),
-      commentaire: json['commentaire'],
-      validateurNom: json['validateur_nom'],
-      validateurWhatsapp: json['validateur_whatsapp'],
-      adherentNomPrenom: json['adherent_nom_prenom'],
-      adherentWhatsapp: json['adherent_whatsapp'],
-      formationTitreFr: json['formation_titre_fr'],
-      formationTitreAr: json['formation_titre_ar'],
+      commentaire: json['commentaire']?.toString(),
+      validateurNom: json['validateur_nom']?.toString(),
+      validateurWhatsapp: json['validateur_whatsapp']?.toString(),
+      adherentNomPrenom: json['adherent_nom_prenom']?.toString(),
+      adherentWhatsapp: json['adherent_whatsapp']?.toString(),
+      formationTitreFr: json['formation_titre_fr']?.toString(),
+      formationTitreAr: json['formation_titre_ar']?.toString(),
       formationPrix: _toDouble(json['formation_prix']),
-      formationDevise: json['formation_devise'] ?? 'TND',
-      modalitePaiement: json['modalite_paiement'],
+      formationDevise: json['formation_devise']?.toString() ?? 'TND',
+      modalitePaiement: json['modalite_paiement']?.toString(),
       montantPaye: _toDouble(json['montant_paye']),
-      referencePaiement: json['reference_paiement'],
-      statutPaiement: json['statut_paiement'],
-      numeroQuittance: json['numero_quittance'],
-      urlQuittance: json['url_quittance'],
+      referencePaiement: json['reference_paiement']?.toString(),
+      statutPaiement: json['statut_paiement']?.toString(),
+      numeroQuittance: json['numero_quittance']?.toString(),
+      urlQuittance: json['url_quittance']?.toString(),
       // ✅ Nouveaux champs
-      typePaiement: json['type_paiement'] ?? 'formation',
+      typePaiement: json['type_paiement']?.toString() ?? 'formation',
       montantAPayer: _toDouble(json['montant_a_payer']),
       nombreMois: _toInt(json['nombre_mois'], defaultValue: 1),
       montantMensuel: json['montant_mensuel'] != null
@@ -116,10 +116,14 @@ class PaiementValidation {
       trancheEnAttente: json['tranche_en_attente'] != null
           ? _toDouble(json['tranche_en_attente'])
           : null,
-      trancheQuittanceUrl: json['tranche_quittance_url'],
+      trancheQuittanceUrl: json['tranche_quittance_url']?.toString(),
       trancheNumero: _toInt(json['tranche_numero'], defaultValue: 0),
     );
   }
+
+  // ============================================================
+  // ✅ UTILITAIRES DE CONVERSION ROBUSTES
+  // ============================================================
 
   static double _toDouble(dynamic value) {
     if (value == null) return 0.0;
@@ -140,17 +144,32 @@ class PaiementValidation {
     return defaultValue;
   }
 
-  // ✅ Getters
+  static int? _toIntOrNull(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value.trim());
+    return null;
+  }
+
+  // ============================================================
+  // ✅ GETTERS SÉCURISÉS
+  // ============================================================
+
   bool get isMensuel => typePaiement == 'mois';
-  bool get aTrancheEnAttente =>
-      (trancheEnAttente != null && trancheEnAttente! > 0);
+
+  bool get aTrancheEnAttente {
+    final v = trancheEnAttente;
+    return v != null && v > 0;
+  }
+
   bool get estTermine => montantRestant <= 0;
 
   /// Libellé de la tranche : "2/4" ou "-"
   String get libelleTranche {
     if (!isMensuel) return '-';
     if (estTermine) return 'Payé';
-    return '${paiementsEffectues}/${nombreMois}';
+    return '$paiementsEffectues/$nombreMois';
   }
 
   /// Prochaine tranche à payer
@@ -158,9 +177,9 @@ class PaiementValidation {
     if (!isMensuel) return '-';
     if (estTermine) return 'Terminé';
     if (aTrancheEnAttente) {
-      return '⏳ ${trancheNumero}/${nombreMois}';
+      return '⏳ $trancheNumero/$nombreMois';
     }
-    return '${paiementsEffectues + 1}/${nombreMois}';
+    return '${paiementsEffectues + 1}/$nombreMois';
   }
 
   Map<String, dynamic> toJson() {
