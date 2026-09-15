@@ -2035,7 +2035,7 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
           if (!_isMobile)
             Text(
               '${_itemsPerPage} par page',
-              style: TextStyle(color: Colors.grey[500], fontSize: 12),
+              style: TextStyle(color: Colors.grey[500], fontSize: 12),  //
             ),
         ],
       ),
