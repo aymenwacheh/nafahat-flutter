@@ -37,6 +37,9 @@ class _EditFormationPageState extends State<EditFormationPage> {
   final _targetController = TextEditingController();
   final _imageUrlController = TextEditingController();
 
+  // ✅ NOUVEAU : Contrôleur du lien
+  final _lienController = TextEditingController();
+
   // Prix multi-devises
   final _priceDtController = TextEditingController();
   final _priceEurController = TextEditingController();
@@ -70,6 +73,17 @@ class _EditFormationPageState extends State<EditFormationPage> {
   int? _selectedFormateurId;
   int? _selectedCibleId;
   String? _currentActif;
+
+  // ✅ Types de paiement autorisés
+  final Map<String, bool> _typesPaiementAutorises = {
+    'formation': true,
+    'mois': false,
+    'semaine': false,
+    'trimestre': false,
+    'annee': false,
+    'seance': false,
+    'heure': false,
+  };
 
   // Jours de la semaine
   final Map<String, bool> _joursSemaine = {
@@ -130,6 +144,13 @@ class _EditFormationPageState extends State<EditFormationPage> {
   void initState() {
     super.initState();
     _loadData();
+    _nbrHeurController.addListener(_onFieldsChanged);
+    _nbrSeanceController.addListener(_onFieldsChanged);
+    _priceDtController.addListener(_onFieldsChanged);
+  }
+
+  void _onFieldsChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadData() async {
@@ -231,6 +252,9 @@ class _EditFormationPageState extends State<EditFormationPage> {
       _imageUrlController.text = formation['photo'];
     }
 
+    // ✅ NOUVEAU : Lien
+    _lienController.text = formation['lien']?.toString() ?? '';
+
     // Discount
     _hasDiscount = formation['discount'] == 'oui';
     if (_hasDiscount && formation['valeur_disc'] != null) {
@@ -270,16 +294,70 @@ class _EditFormationPageState extends State<EditFormationPage> {
     }
 
     _currentActif = formation['actif'] ?? 'oui';
+
+    // ✅ Charger les types de paiement autorisés
+    _loadTypesPaiementAutorises(formation);
+  }
+
+  void _loadTypesPaiementAutorises(Map<String, dynamic> formation) {
+    _typesPaiementAutorises.updateAll((k, v) => false);
+
+    final rawTypes = formation['types_paiement_autorises'];
+
+    if (rawTypes == null) {
+      _typesPaiementAutorises['formation'] = true;
+      return;
+    }
+
+    try {
+      if (rawTypes is List) {
+        for (var t in rawTypes) {
+          final type = t.toString().trim();
+          if (_typesPaiementAutorises.containsKey(type)) {
+            _typesPaiementAutorises[type] = true;
+          }
+        }
+      } else if (rawTypes is String && rawTypes.isNotEmpty) {
+        final decoded = json.decode(rawTypes);
+        if (decoded is List) {
+          for (var t in decoded) {
+            final type = t.toString().trim();
+            if (_typesPaiementAutorises.containsKey(type)) {
+              _typesPaiementAutorises[type] = true;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Erreur parsing types paiement: $e');
+      _typesPaiementAutorises['formation'] = true;
+    }
+
+    if (!_typesPaiementAutorises.values.any((v) => v)) {
+      _typesPaiementAutorises['formation'] = true;
+    }
+  }
+
+  List<String> _getTypesPaiementSelectionnes() {
+    return _typesPaiementAutorises.entries
+        .where((e) => e.value)
+        .map((e) => e.key)
+        .toList();
   }
 
   @override
   void dispose() {
+    _nbrHeurController.removeListener(_onFieldsChanged);
+    _nbrSeanceController.removeListener(_onFieldsChanged);
+    _priceDtController.removeListener(_onFieldsChanged);
+
     _titleFrController.dispose();
     _titleArController.dispose();
     _descriptionFrController.dispose();
     _descriptionArController.dispose();
     _targetController.dispose();
     _imageUrlController.dispose();
+    _lienController.dispose();   // ✅ NOUVEAU
     _priceDtController.dispose();
     _priceEurController.dispose();
     _priceUsdController.dispose();
@@ -292,7 +370,7 @@ class _EditFormationPageState extends State<EditFormationPage> {
     super.dispose();
   }
 
-  // ==================== MÉTHODES DE SÉLECTION D'IMAGE ====================
+  // ==================== SÉLECTION D'IMAGE ====================
 
   Future<void> _pickImageWeb() async {
     try {
@@ -360,7 +438,6 @@ class _EditFormationPageState extends State<EditFormationPage> {
     }
   }
 
-  // ✅ MÉTHODE UPLOAD WEB CORRIGÉE
   Future<void> _uploadImageWeb(html.File file) async {
     try {
       setState(() {
@@ -372,13 +449,11 @@ class _EditFormationPageState extends State<EditFormationPage> {
       print('   📋 Nom fichier: ${file.name}');
       print('   📋 Taille: ${file.size} bytes');
 
-      // ✅ Lire le fichier en bytes
       final reader = html.FileReader();
       reader.readAsArrayBuffer(file);
       await reader.onLoad.first;
       final bytes = reader.result as Uint8List;
 
-      // ✅ Utiliser uploadFile au lieu de uploadImageSmart
       final result = await UploadService.uploadFile(
         fileData: bytes,
         fileName: file.name.isNotEmpty ? file.name : 'image.jpg',
@@ -389,12 +464,11 @@ class _EditFormationPageState extends State<EditFormationPage> {
 
       print('🔵 [EditFormation] Résultat upload: $result');
 
-      // ✅ Extraire l'URL de l'image
-      final imageUrl = result['image_url'] ?? 
-                       result['data']?['image_url'] ?? 
-                       result['data']?['url'] ?? 
-                       result['url'] ?? 
-                       '';
+      final imageUrl = result['image_url'] ??
+          result['data']?['image_url'] ??
+          result['data']?['url'] ??
+          result['url'] ??
+          '';
 
       if (imageUrl.isEmpty) {
         throw Exception('URL de l\'image non trouvée dans la réponse');
@@ -409,7 +483,9 @@ class _EditFormationPageState extends State<EditFormationPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            _isArabic ? '✅ Image téléchargée avec succès' : '✅ Image téléchargée avec succès',
+            _isArabic
+                ? '✅ Image téléchargée avec succès'
+                : '✅ Image téléchargée avec succès',
             style: GoogleFonts.cairo(),
           ),
           backgroundColor: nafahatGreen,
@@ -424,12 +500,13 @@ class _EditFormationPageState extends State<EditFormationPage> {
       });
 
       _showErrorSnackBar(
-        _isArabic ? '❌ Erreur upload: ${e.toString()}' : '❌ Erreur upload: ${e.toString()}',
+        _isArabic
+            ? '❌ Erreur upload: ${e.toString()}'
+            : '❌ Erreur upload: ${e.toString()}',
       );
     }
   }
 
-  // ✅ MÉTHODE UPLOAD MOBILE CORRIGÉE
   Future<void> _uploadImageMobile(File imageFile) async {
     try {
       setState(() {
@@ -440,11 +517,9 @@ class _EditFormationPageState extends State<EditFormationPage> {
       print('📱 [EditFormation] Upload image Mobile...');
       print('   📋 Chemin: ${imageFile.path}');
 
-      // ✅ Lire le fichier en bytes
       final bytes = await imageFile.readAsBytes();
       final fileName = imageFile.path.split('/').last;
 
-      // ✅ Utiliser uploadFile
       final result = await UploadService.uploadFile(
         fileData: bytes,
         fileName: fileName.isNotEmpty ? fileName : 'image.jpg',
@@ -454,12 +529,11 @@ class _EditFormationPageState extends State<EditFormationPage> {
 
       print('📱 [EditFormation] Résultat upload: $result');
 
-      // ✅ Extraire l'URL
-      final imageUrl = result['image_url'] ?? 
-                       result['data']?['image_url'] ?? 
-                       result['data']?['url'] ?? 
-                       result['url'] ?? 
-                       '';
+      final imageUrl = result['image_url'] ??
+          result['data']?['image_url'] ??
+          result['data']?['url'] ??
+          result['url'] ??
+          '';
 
       if (imageUrl.isEmpty) {
         throw Exception('URL de l\'image non trouvée');
@@ -489,7 +563,9 @@ class _EditFormationPageState extends State<EditFormationPage> {
       });
 
       _showErrorSnackBar(
-        _isArabic ? '❌ Erreur upload: ${e.toString()}' : '❌ Erreur upload: ${e.toString()}',
+        _isArabic
+            ? '❌ Erreur upload: ${e.toString()}'
+            : '❌ Erreur upload: ${e.toString()}',
       );
     }
   }
@@ -517,8 +593,6 @@ class _EditFormationPageState extends State<EditFormationPage> {
       ),
     );
   }
-
-  // ==================== RESTE DU CODE (inchangé) ====================
 
   Future<void> _selectDate(TextEditingController controller) async {
     final locale =
@@ -559,6 +633,21 @@ class _EditFormationPageState extends State<EditFormationPage> {
 
   Future<void> _saveTraining() async {
     if (_formKey.currentState!.validate()) {
+      final typesSelectionnes = _getTypesPaiementSelectionnes();
+      if (typesSelectionnes.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _isArabic
+                  ? '⚠️ اختر نوع دفع واحد على الأقل'
+                  : '⚠️ Sélectionnez au moins un type de paiement',
+            ),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
       setState(() => _isSaving = true);
 
       final requestBody = {
@@ -569,43 +658,45 @@ class _EditFormationPageState extends State<EditFormationPage> {
         'cible_fr': null,
         'cible_ar': null,
         'id_duree': _selectedDureeId,
-        'date_debut':
-            _dateDebutController.text.isNotEmpty
-                ? _dateDebutController.text
-                : null,
-        'date_fin':
-            _dateFinController.text.isNotEmpty ? _dateFinController.text : null,
+        'date_debut': _dateDebutController.text.isNotEmpty
+            ? _dateDebutController.text
+            : null,
+        'date_fin': _dateFinController.text.isNotEmpty
+            ? _dateFinController.text
+            : null,
         'prix': double.parse(_priceDtController.text),
         'prix_dt': double.parse(_priceDtController.text),
         'prix_eur': double.parse(_priceEurController.text),
         'prix_usd': double.parse(_priceUsdController.text),
         'discount': _hasDiscount ? 'oui' : 'non',
-        'valeur_disc':
-            _hasDiscount ? double.parse(_discountValueController.text) : null,
+        'valeur_disc': _hasDiscount
+            ? double.parse(_discountValueController.text)
+            : null,
         'descri_fr': _descriptionFrController.text,
         'descri_ar': _descriptionArController.text,
         'id_categorie': _selectedCategorieId,
         'sous_categorie_id': _selectedSousCategorieId,
         'id_formateur': _selectedFormateurId,
-        'photo':
-            _imageUrlController.text.isNotEmpty
-                ? _imageUrlController.text
-                : null,
-        'nbr_heur':
-            _nbrHeurController.text.isNotEmpty
-                ? int.parse(_nbrHeurController.text)
-                : null,
-        'nbr_seance':
-            _nbrSeanceController.text.isNotEmpty
-                ? int.parse(_nbrSeanceController.text)
-                : null,
-        'nbr_jour':
-            _nbrJourController.text.isNotEmpty
-                ? int.parse(_nbrJourController.text)
-                : null,
+        'photo': _imageUrlController.text.isNotEmpty
+            ? _imageUrlController.text
+            : null,
+        'nbr_heur': _nbrHeurController.text.isNotEmpty
+            ? int.parse(_nbrHeurController.text)
+            : null,
+        'nbr_seance': _nbrSeanceController.text.isNotEmpty
+            ? int.parse(_nbrSeanceController.text)
+            : null,
+        'nbr_jour': _nbrJourController.text.isNotEmpty
+            ? int.parse(_nbrJourController.text)
+            : null,
         'repetitive': _isRepetitive ? 'oui' : 'non',
         'jour_semaine': _isRepetitive ? _getSelectedJours() : null,
         'actif': _currentActif,
+        'types_paiement_autorises': typesSelectionnes,
+        // ✅ NOUVEAU : Lien
+        'lien': _lienController.text.isNotEmpty
+            ? _lienController.text.trim()
+            : null,
       };
 
       try {
@@ -662,39 +753,38 @@ class _EditFormationPageState extends State<EditFormationPage> {
   Future<void> _deleteFormation() async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            title: Text(
-              _isArabic ? 'تأكيد الحذف' : 'Confirmer la suppression',
-              style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
-            ),
-            content: Text(
-              _isArabic
-                  ? 'Voulez-vous vraiment désactiver cette formation ?'
-                  : 'Voulez-vous vraiment désactiver cette formation ?',
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Text(
+          _isArabic ? 'تأكيد الحذف' : 'Confirmer la suppression',
+          style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          _isArabic
+              ? 'Voulez-vous vraiment désactiver cette formation ?'
+              : 'Voulez-vous vraiment désactiver cette formation ?',
+          style: GoogleFonts.cairo(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              _isArabic ? 'إلغاء' : 'Annuler',
               style: GoogleFonts.cairo(),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: Text(
-                  _isArabic ? 'إلغاء' : 'Annuler',
-                  style: GoogleFonts.cairo(),
-                ),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: TextButton.styleFrom(foregroundColor: Colors.red),
-                child: Text(
-                  _isArabic ? 'حذف' : 'Supprimer',
-                  style: GoogleFonts.cairo(),
-                ),
-              ),
-            ],
           ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text(
+              _isArabic ? 'حذف' : 'Supprimer',
+              style: GoogleFonts.cairo(),
+            ),
+          ),
+        ],
+      ),
     );
 
     if (confirm == true) {
@@ -735,6 +825,275 @@ class _EditFormationPageState extends State<EditFormationPage> {
       }
       setState(() => _isSaving = false);
     }
+  }
+
+  // ==================== SECTION TYPES DE PAIEMENT ====================
+
+  Widget _buildTypesPaiementSection() {
+    final configs = {
+      'formation': {
+        'icon': '🎓',
+        'labelFr': 'Paiement complet',
+        'labelAr': 'دفع كامل',
+        'descFr': 'Payer le montant total en une fois',
+        'descAr': 'دفع المبلغ الإجمالي مرة واحدة',
+      },
+      'mois': {
+        'icon': '📅',
+        'labelFr': 'Paiement mensuel',
+        'labelAr': 'دفع شهري',
+        'descFr': 'Réparti sur plusieurs mois',
+        'descAr': 'مقسم على عدة أشهر',
+      },
+      'semaine': {
+        'icon': '📆',
+        'labelFr': 'Paiement hebdomadaire',
+        'labelAr': 'دفع أسبوعي',
+        'descFr': 'Réparti sur plusieurs semaines',
+        'descAr': 'مقسم على عدة أسابيع',
+      },
+      'trimestre': {
+        'icon': '📊',
+        'labelFr': 'Paiement trimestriel',
+        'labelAr': 'دفع ربع سنوي',
+        'descFr': 'Réparti sur plusieurs trimestres',
+        'descAr': 'مقسم على عدة أرباع',
+      },
+      'annee': {
+        'icon': '🗓️',
+        'labelFr': 'Paiement annuel',
+        'labelAr': 'دفع سنوي',
+        'descFr': 'Réparti sur plusieurs années',
+        'descAr': 'مقسم على عدة سنوات',
+      },
+      'seance': {
+        'icon': '🎯',
+        'labelFr': 'Paiement par séance',
+        'labelAr': 'دفع بالحصة',
+        'descFr': 'Prix total ÷ nombre de séances',
+        'descAr': 'السعر الإجمالي ÷ عدد الحصص',
+      },
+      'heure': {
+        'icon': '⏰',
+        'labelFr': 'Paiement par heure',
+        'labelAr': 'دفع بالساعة',
+        'descFr': 'Prix total ÷ nombre d\'heures',
+        'descAr': 'السعر الإجمالي ÷ عدد الساعات',
+      },
+    };
+
+    final nbrHeur = int.tryParse(_nbrHeurController.text) ?? 0;
+    final nbrSeance = int.tryParse(_nbrSeanceController.text) ?? 0;
+    final prixDt = double.tryParse(_priceDtController.text) ?? 0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: nafahatGreen.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: nafahatGreen.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline,
+                    color: Colors.blue.shade700, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _isArabic
+                        ? 'اختر أنواع الدفع التي يمكن للطالب استخدامها لهذه الدورة'
+                        : 'Sélectionnez les types de paiement que l\'étudiant peut utiliser',
+                    style: GoogleFonts.cairo(
+                      fontSize: 12,
+                      color: Colors.blue.shade800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          ...configs.entries.map((entry) {
+            final type = entry.key;
+            final config = entry.value;
+            final isSelected = _typesPaiementAutorises[type] ?? false;
+
+            bool isAvailable = true;
+            String? unavailableReason;
+
+            if (type == 'seance' && nbrSeance <= 0) {
+              isAvailable = false;
+              unavailableReason = _isArabic
+                  ? 'املأ عدد الحصص أولاً'
+                  : 'Remplir le nombre de séances';
+            } else if (type == 'heure' && nbrHeur <= 0) {
+              isAvailable = false;
+              unavailableReason = _isArabic
+                  ? 'املأ عدد الساعات أولاً'
+                  : 'Remplir le nombre d\'heures';
+            }
+
+            String? montantAffiche;
+            if (isAvailable && prixDt > 0) {
+              switch (type) {
+                case 'seance':
+                  if (nbrSeance > 0) {
+                    final montant = prixDt / nbrSeance;
+                    montantAffiche =
+                        '${montant.toStringAsFixed(0)} DT × $nbrSeance';
+                  }
+                  break;
+                case 'heure':
+                  if (nbrHeur > 0) {
+                    final montant = prixDt / nbrHeur;
+                    montantAffiche =
+                        '${montant.toStringAsFixed(0)} DT × $nbrHeur';
+                  }
+                  break;
+              }
+            }
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Opacity(
+                opacity: isAvailable ? 1.0 : 0.5,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? nafahatGreen.withOpacity(0.08)
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected ? nafahatGreen : grey300,
+                      width: isSelected ? 2 : 1,
+                    ),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: isAvailable
+                          ? () {
+                              setState(() {
+                                _typesPaiementAutorises[type] = !isSelected;
+                              });
+                            }
+                          : null,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 24,
+                              height: 24,
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? nafahatGreen
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color:
+                                      isSelected ? nafahatGreen : grey400,
+                                  width: 2,
+                                ),
+                              ),
+                              child: isSelected
+                                  ? const Icon(
+                                      Icons.check,
+                                      color: Colors.white,
+                                      size: 16,
+                                    )
+                                  : null,
+                            ),
+                            const SizedBox(width: 12),
+
+                            Text(
+                              config['icon']!,
+                              style: const TextStyle(fontSize: 20),
+                            ),
+                            const SizedBox(width: 10),
+
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _isArabic
+                                        ? config['labelAr']!
+                                        : config['labelFr']!,
+                                    style: GoogleFonts.cairo(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: isAvailable
+                                          ? Colors.black87
+                                          : grey500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    isAvailable
+                                        ? (_isArabic
+                                            ? config['descAr']!
+                                            : config['descFr']!)
+                                        : unavailableReason!,
+                                    style: GoogleFonts.cairo(
+                                      fontSize: 11,
+                                      color: isAvailable
+                                          ? grey600
+                                          : Colors.orange.shade700,
+                                      fontStyle: isAvailable
+                                          ? FontStyle.normal
+                                          : FontStyle.italic,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            if (montantAffiche != null) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: nafahatOrange.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  montantAffiche,
+                                  style: GoogleFonts.cairo(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: nafahatOrange,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ],
+      ),
+    );
   }
 
   // ==================== WIDGETS ====================
@@ -886,14 +1245,13 @@ class _EditFormationPageState extends State<EditFormationPage> {
             hintStyle: GoogleFonts.cairo(color: grey400),
             filled: true,
             fillColor: readOnly ? grey100 : Colors.white,
-            prefixIcon:
-                prefixIcon != null
-                    ? Icon(
-                      prefixIcon,
-                      color: nafahatGreen.withOpacity(0.6),
-                      size: 20,
-                    )
-                    : null,
+            prefixIcon: prefixIcon != null
+                ? Icon(
+                    prefixIcon,
+                    color: nafahatGreen.withOpacity(0.6),
+                    size: 20,
+                  )
+                : null,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 14,
               vertical: 14,
@@ -1141,50 +1499,48 @@ class _EditFormationPageState extends State<EditFormationPage> {
               child: Wrap(
                 spacing: 10,
                 runSpacing: 10,
-                children:
-                    _joursSemaine.keys.map((key) {
-                      final label = _isArabic ? _joursAr[key] : _joursFr[key];
-                      final isSelected = _joursSemaine[key]!;
-                      return ChoiceChip(
-                        label: Text(
-                          label ?? key,
-                          style: GoogleFonts.cairo(
-                            fontSize: 13,
-                            fontWeight:
-                                isSelected ? FontWeight.w600 : FontWeight.w400,
-                            color: isSelected ? Colors.white : nafahatGreen,
-                          ),
-                        ),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          setState(() {
-                            _joursSemaine[key] = selected;
-                          });
-                        },
-                        selectedColor: nafahatGreen,
-                        backgroundColor: Colors.white,
-                        side: BorderSide(
-                          color: isSelected ? nafahatGreen : grey300,
-                          width: 1.5,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        labelStyle: GoogleFonts.cairo(),
-                        avatar:
-                            isSelected
-                                ? const Icon(
-                                  Icons.check_circle_rounded,
-                                  color: Colors.white,
-                                  size: 16,
-                                )
-                                : null,
-                      );
-                    }).toList(),
+                children: _joursSemaine.keys.map((key) {
+                  final label = _isArabic ? _joursAr[key] : _joursFr[key];
+                  final isSelected = _joursSemaine[key]!;
+                  return ChoiceChip(
+                    label: Text(
+                      label ?? key,
+                      style: GoogleFonts.cairo(
+                        fontSize: 13,
+                        fontWeight:
+                            isSelected ? FontWeight.w600 : FontWeight.w400,
+                        color: isSelected ? Colors.white : nafahatGreen,
+                      ),
+                    ),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      setState(() {
+                        _joursSemaine[key] = selected;
+                      });
+                    },
+                    selectedColor: nafahatGreen,
+                    backgroundColor: Colors.white,
+                    side: BorderSide(
+                      color: isSelected ? nafahatGreen : grey300,
+                      width: 1.5,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    labelStyle: GoogleFonts.cairo(),
+                    avatar: isSelected
+                        ? const Icon(
+                            Icons.check_circle_rounded,
+                            color: Colors.white,
+                            size: 16,
+                          )
+                        : null,
+                  );
+                }).toList(),
               ),
             ),
           ],
@@ -1251,17 +1607,15 @@ class _EditFormationPageState extends State<EditFormationPage> {
                       const SizedBox(height: 8),
                       SegmentedButton<bool>(
                         style: ButtonStyle(
-                          backgroundColor: WidgetStateProperty.resolveWith((
-                            states,
-                          ) {
+                          backgroundColor:
+                              WidgetStateProperty.resolveWith((states) {
                             if (states.contains(WidgetState.selected)) {
                               return nafahatOrange.withOpacity(0.15);
                             }
                             return grey100;
                           }),
-                          foregroundColor: WidgetStateProperty.resolveWith((
-                            states,
-                          ) {
+                          foregroundColor:
+                              WidgetStateProperty.resolveWith((states) {
                             if (states.contains(WidgetState.selected)) {
                               return nafahatOrange;
                             }
@@ -1299,18 +1653,16 @@ class _EditFormationPageState extends State<EditFormationPage> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: _buildField(
-                    label:
-                        _isPercentageDiscount
-                            ? (_isArabic ? 'نسبة الخصم (%)' : 'Valeur (%)')
-                            : (_isArabic ? 'قيمة الخصم (درهم)' : 'Valeur (DH)'),
+                    label: _isPercentageDiscount
+                        ? (_isArabic ? 'نسبة الخصم (%)' : 'Valeur (%)')
+                        : (_isArabic ? 'قيمة الخصم (درهم)' : 'Valeur (DH)'),
                     controller: _discountValueController,
                     hint: _isPercentageDiscount ? '15' : '2000',
                     required: _hasDiscount,
                     keyboardType: TextInputType.number,
-                    prefixIcon:
-                        _isPercentageDiscount
-                            ? Icons.percent_rounded
-                            : Icons.money_rounded,
+                    prefixIcon: _isPercentageDiscount
+                        ? Icons.percent_rounded
+                        : Icons.money_rounded,
                   ),
                 ),
               ],
@@ -1324,8 +1676,7 @@ class _EditFormationPageState extends State<EditFormationPage> {
   // ==================== SECTION IMAGE ====================
 
   Widget _buildImageSection() {
-    final bool hasImage =
-        _selectedImageFile != null ||
+    final bool hasImage = _selectedImageFile != null ||
         (_imageUrlController.text.isNotEmpty && _uploadedImageUrl != null);
 
     return _buildSection(
@@ -1340,10 +1691,9 @@ class _EditFormationPageState extends State<EditFormationPage> {
               child: _buildField(
                 label: _isArabic ? 'رابط الصورة' : 'URL de l\'image',
                 controller: _imageUrlController,
-                hint:
-                    _isArabic
-                        ? 'URL ou sélectionnez une image'
-                        : 'URL ou sélectionnez une image',
+                hint: _isArabic
+                    ? 'URL ou sélectionnez une image'
+                    : 'URL ou sélectionnez une image',
                 prefixIcon: Icons.link_rounded,
                 readOnly: true,
               ),
@@ -1368,17 +1718,16 @@ class _EditFormationPageState extends State<EditFormationPage> {
                       minimumSize: const Size(double.infinity, 40),
                       textStyle: GoogleFonts.cairo(fontSize: 12),
                     ),
-                    icon:
-                        _isUploadingImage
-                            ? const SizedBox(
-                              height: 16,
-                              width: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                            : const Icon(Icons.folder_open_rounded, size: 16),
+                    icon: _isUploadingImage
+                        ? const SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.folder_open_rounded, size: 16),
                     label: Text(
                       _isUploadingImage
                           ? (_isArabic ? 'جاري...' : 'Chargement...')
@@ -1457,11 +1806,10 @@ class _EditFormationPageState extends State<EditFormationPage> {
             color: grey100,
             child: Center(
               child: CircularProgressIndicator(
-                value:
-                    loadingProgress.expectedTotalBytes != null
-                        ? loadingProgress.cumulativeBytesLoaded /
-                            loadingProgress.expectedTotalBytes!
-                        : null,
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded /
+                        loadingProgress.expectedTotalBytes!
+                    : null,
                 color: nafahatGreen,
               ),
             ),
@@ -1502,11 +1850,10 @@ class _EditFormationPageState extends State<EditFormationPage> {
             color: grey100,
             child: Center(
               child: CircularProgressIndicator(
-                value:
-                    loadingProgress.expectedTotalBytes != null
-                        ? loadingProgress.cumulativeBytesLoaded /
-                            loadingProgress.expectedTotalBytes!
-                        : null,
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded /
+                        loadingProgress.expectedTotalBytes!
+                    : null,
                 color: nafahatGreen,
               ),
             ),
@@ -1569,625 +1916,619 @@ class _EditFormationPageState extends State<EditFormationPage> {
           ),
         ],
       ),
-      body:
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isMobile ? 12 : 24,
-                  vertical: 16,
-                ),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      _buildHeader(),
-                      const SizedBox(height: 24),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 12 : 24,
+                vertical: 16,
+              ),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    _buildHeader(),
+                    const SizedBox(height: 24),
 
-                      Card(
-                        elevation: 4,
-                        shadowColor: nafahatGreen.withOpacity(0.1),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Padding(
-                          padding: EdgeInsets.all(isMobile ? 16 : 24),
-                          child: Column(
-                            children: [
-                              // SECTION 1: Informations de base
-                              _buildSection(
-                                icon: Icons.info_outline,
-                                title:
-                                    _isArabic
-                                        ? 'معلومات أساسية'
-                                        : 'Informations de base',
-                                children: [
-                                  _buildField(
-                                    label:
-                                        _isArabic
-                                            ? 'العنوان (بالفرنسية) *'
-                                            : 'Titre (Français) *',
-                                    controller: _titleFrController,
-                                    hint:
-                                        _isArabic
-                                            ? 'مثال: Formation Flutter avancé'
-                                            : 'Ex: Formation Flutter avancé',
-                                    required: true,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  _buildField(
-                                    label:
-                                        _isArabic
-                                            ? 'العنوان (بالعربية) *'
-                                            : 'Titre (Arabe) *',
-                                    controller: _titleArController,
-                                    hint:
-                                        _isArabic
-                                            ? 'مثال: دورة فلاتر المتقدمة'
-                                            : 'Ex: دورة فلاتر المتقدمة',
-                                    required: true,
-                                    textDirection: TextDirection.rtl,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: _buildDropdownField(
-                                          label:
-                                              _isArabic
-                                                  ? 'نوع التكوين *'
-                                                  : 'Type de formation *',
-                                          value: _selectedTypeFormationId,
-                                          items:
-                                              _typesFormation.map((t) {
-                                                return DropdownMenuItem<int>(
-                                                  value: t['id'],
-                                                  child: Text(
-                                                    t['type_formation'] ?? '',
-                                                    style: GoogleFonts.cairo(),
-                                                  ),
-                                                );
-                                              }).toList(),
-                                          onChanged:
-                                              (value) => setState(
-                                                () =>
-                                                    _selectedTypeFormationId =
-                                                        value as int?,
-                                              ),
-                                          required: true,
-                                          isArabic: _isArabic,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: _buildDropdownField(
-                                          label:
-                                              _isArabic ? 'المدة *' : 'Durée *',
-                                          value: _selectedDureeId,
-                                          items:
-                                              _durees.map((d) {
-                                                return DropdownMenuItem<int>(
-                                                  value: d['id'],
-                                                  child: Text(
-                                                    d['type_duree'] ?? '',
-                                                    style: GoogleFonts.cairo(),
-                                                  ),
-                                                );
-                                              }).toList(),
-                                          onChanged:
-                                              (value) => setState(
-                                                () =>
-                                                    _selectedDureeId =
-                                                        value as int?,
-                                              ),
-                                          required: true,
-                                          isArabic: _isArabic,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-
-                              const Divider(height: 32, color: grey200),
-
-                              // SECTION 2: Catégories
-                              _buildSection(
-                                icon: Icons.category_outlined,
-                                title: _isArabic ? 'التصنيفات' : 'Catégories',
-                                children: [
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: _buildDropdownField(
-                                          label:
-                                              _isArabic
-                                                  ? 'التصنيف'
-                                                  : 'Catégorie',
-                                          value: _selectedCategorieId,
-                                          items: [
-                                            const DropdownMenuItem<int>(
-                                              value: null,
-                                              child: Text('---'),
-                                            ),
-                                            ..._categories.map((c) {
-                                              final label =
-                                                  _isArabic
-                                                      ? c['categorie_ar']
-                                                      : c['categorie_fr'];
-                                              return DropdownMenuItem<int>(
-                                                value: c['id'],
-                                                child: Text(
-                                                  label ?? '',
-                                                  style: GoogleFonts.cairo(),
-                                                ),
-                                              );
-                                            }),
-                                          ],
-                                          onChanged: _onCategorieChanged,
-                                          required: false,
-                                          isArabic: _isArabic,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: _buildDropdownField(
-                                          label:
-                                              _isArabic
-                                                  ? 'التصنيف الفرعي'
-                                                  : 'Sous-catégorie',
-                                          value: _selectedSousCategorieId,
-                                          items: [
-                                            const DropdownMenuItem<int>(
-                                              value: null,
-                                              child: Text('---'),
-                                            ),
-                                            ..._filteredSousCategories.map((
-                                              sc,
-                                            ) {
-                                              final label =
-                                                  _isArabic
-                                                      ? sc['nom_ar']
-                                                      : sc['nom_fr'];
-                                              return DropdownMenuItem<int>(
-                                                value: sc['id'],
-                                                child: Text(
-                                                  label ?? '',
-                                                  style: GoogleFonts.cairo(),
-                                                ),
-                                              );
-                                            }),
-                                          ],
-                                          onChanged:
-                                              (value) => setState(
-                                                () =>
-                                                    _selectedSousCategorieId =
-                                                        value as int?,
-                                              ),
-                                          required: false,
-                                          isArabic: _isArabic,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 16),
-                                  _buildDropdownField(
-                                    label: _isArabic ? 'المكون' : 'Formateur',
-                                    value: _selectedFormateurId,
-                                    items: [
-                                      const DropdownMenuItem<int>(
-                                        value: null,
-                                        child: Text('---'),
-                                      ),
-                                      ..._formateurs.map((f) {
-                                        final label =
-                                            _isArabic
-                                                ? f['nom_prenom_ar']
-                                                : f['nom_prenom_fr'];
-                                        return DropdownMenuItem<int>(
-                                          value: f['id'],
-                                          child: Text(
-                                            label ?? '',
-                                            style: GoogleFonts.cairo(),
-                                          ),
-                                        );
-                                      }),
-                                    ],
-                                    onChanged:
-                                        (value) => setState(
-                                          () =>
-                                              _selectedFormateurId =
-                                                  value as int?,
-                                        ),
-                                    required: false,
-                                    isArabic: _isArabic,
-                                  ),
-                                ],
-                              ),
-
-                              const Divider(height: 32, color: grey200),
-
-                              // SECTION 3: Détails de la durée
-                              _buildSection(
-                                icon: Icons.timer_outlined,
-                                title:
-                                    _isArabic
-                                        ? 'تفاصيل المدة'
-                                        : 'Détails de la durée',
-                                children: [
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: _buildField(
-                                          label:
-                                              _isArabic ? 'Heures' : 'Heures',
-                                          controller: _nbrHeurController,
-                                          hint:
-                                              _isArabic ? 'مثال: 20' : 'Ex: 20',
-                                          keyboardType: TextInputType.number,
-                                          prefixIcon: Icons.access_time_rounded,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: _buildField(
-                                          label:
-                                              _isArabic ? 'Séances' : 'Séances',
-                                          controller: _nbrSeanceController,
-                                          hint:
-                                              _isArabic ? 'مثال: 10' : 'Ex: 10',
-                                          keyboardType: TextInputType.number,
-                                          prefixIcon:
-                                              Icons.people_outline_rounded,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: _buildField(
-                                          label: _isArabic ? 'Jours' : 'Jours',
-                                          controller: _nbrJourController,
-                                          hint: _isArabic ? 'مثال: 5' : 'Ex: 5',
-                                          keyboardType: TextInputType.number,
-                                          prefixIcon:
-                                              Icons.calendar_today_rounded,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-
-                              const Divider(height: 32, color: grey200),
-
-                              // SECTION 4: Répétition
-                              _buildSection(
-                                icon: Icons.repeat_rounded,
-                                title: _isArabic ? 'التكرار' : 'Répétition',
-                                children: [_buildRepetitiveSection()],
-                              ),
-
-                              const Divider(height: 32, color: grey200),
-
-                              // SECTION 5: Période
-                              _buildSection(
-                                icon: Icons.calendar_month_rounded,
-                                title: _isArabic ? 'الفترة' : 'Période',
-                                children: [
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: _buildDateField(
-                                          label:
-                                              _isArabic
-                                                  ? 'تاريخ البداية *'
-                                                  : 'Date de début *',
-                                          controller: _dateDebutController,
-                                          onTap:
-                                              () => _selectDate(
-                                                _dateDebutController,
-                                              ),
-                                          required: true,
-                                          isArabic: _isArabic,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: _buildDateField(
-                                          label:
-                                              _isArabic
-                                                  ? 'تاريخ النهاية *'
-                                                  : 'Date de fin *',
-                                          controller: _dateFinController,
-                                          onTap:
-                                              () => _selectDate(
-                                                _dateFinController,
-                                              ),
-                                          required: true,
-                                          isArabic: _isArabic,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-
-                              const Divider(height: 32, color: grey200),
-
-                              // SECTION 6: Description
-                              _buildSection(
-                                icon: Icons.description_outlined,
-                                title: _isArabic ? 'الوصف' : 'Description',
-                                children: [
-                                  _buildField(
-                                    label:
-                                        _isArabic
-                                            ? 'الوصف (بالفرنسية) *'
-                                            : 'Description (Français) *',
-                                    controller: _descriptionFrController,
-                                    hint:
-                                        _isArabic
-                                            ? 'وصف تفصيلي'
-                                            : 'Description détaillée',
-                                    required: true,
-                                    maxLines: 3,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  _buildField(
-                                    label:
-                                        _isArabic
-                                            ? 'الوصف (بالعربية) *'
-                                            : 'Description (Arabe) *',
-                                    controller: _descriptionArController,
-                                    hint:
-                                        _isArabic
-                                            ? 'وصف تفصيلي'
-                                            : 'Description détaillée',
-                                    required: true,
-                                    maxLines: 3,
-                                    textDirection: TextDirection.rtl,
-                                  ),
-                                ],
-                              ),
-
-                              const Divider(height: 32, color: grey200),
-
-                              // SECTION 7: PRIX ET CIBLE
-                              _buildSection(
-                                icon: Icons.payments_outlined,
-                                title:
-                                    _isArabic
-                                        ? 'السعر والجمهور'
-                                        : 'Prix et Cible',
-                                children: [
-                                  _buildDropdownField(
-                                    label:
-                                        _isArabic
-                                            ? 'الجمهور المستهدف *'
-                                            : 'Cible *',
-                                    value: _selectedCibleId,
-                                    items: [
-                                      const DropdownMenuItem<int>(
-                                        value: null,
-                                        child: Text('---'),
-                                      ),
-                                      ..._cibles.map((cible) {
-                                        return DropdownMenuItem<int>(
-                                          value: cible.id,
-                                          child: Text(
-                                            cible.nomCible,
-                                            style: GoogleFonts.cairo(),
-                                          ),
-                                        );
-                                      }),
-                                    ],
-                                    onChanged:
-                                        (value) => setState(
-                                          () =>
-                                              _selectedCibleId = value as int?,
-                                        ),
-                                    required: true,
-                                    isArabic: _isArabic,
-                                  ),
-                                  const SizedBox(height: 16),
-
-                                  // PRIX DT
-                                  _buildField(
-                                    label:
-                                        _isArabic
-                                            ? 'السعر (DT) *'
-                                            : 'Prix (DT) *',
-                                    controller: _priceDtController,
-                                    hint:
-                                        _isArabic ? 'مثال: 15000' : 'Ex: 15000',
-                                    required: true,
-                                    keyboardType: TextInputType.number,
-                                    prefixIcon: Icons.money_rounded,
-                                  ),
-                                  const SizedBox(height: 12),
-
-                                  // PRIX EURO
-                                  _buildField(
-                                    label:
-                                        _isArabic
-                                            ? 'السعر (€) *'
-                                            : 'Prix (€) *',
-                                    controller: _priceEurController,
-                                    hint: _isArabic ? 'مثال: 450' : 'Ex: 450',
-                                    required: true,
-                                    keyboardType: TextInputType.number,
-                                    prefixIcon: Icons.euro_rounded,
-                                  ),
-                                  const SizedBox(height: 12),
-
-                                  // PRIX USD
-                                  _buildField(
-                                    label:
-                                        _isArabic
-                                            ? 'السعر (\$) *'
-                                            : 'Prix (\$) *',
-                                    controller: _priceUsdController,
-                                    hint: _isArabic ? 'مثال: 550' : 'Ex: 550',
-                                    required: true,
-                                    keyboardType: TextInputType.number,
-                                    prefixIcon: Icons.attach_money_rounded,
-                                  ),
-                                  const SizedBox(height: 16),
-
-                                  _buildDiscountSection(),
-                                ],
-                              ),
-
-                              const Divider(height: 32, color: grey200),
-
-                              // SECTION 8: IMAGE
-                              _buildImageSection(),
-
-                              const Divider(height: 32, color: grey200),
-
-                              // SECTION 9: STATUT
-                              _buildSection(
-                                icon: Icons.toggle_on_outlined,
-                                title: _isArabic ? 'الحالة' : 'Statut',
-                                children: [
-                                  _buildDropdownField(
-                                    label: _isArabic ? 'الحالة' : 'Statut',
-                                    value: _currentActif,
-                                    items: [
-                                      const DropdownMenuItem<String>(
-                                        value: 'oui',
-                                        child: Text('Actif'),
-                                      ),
-                                      const DropdownMenuItem<String>(
-                                        value: 'non',
-                                        child: Text('Inactif'),
-                                      ),
-                                    ],
-                                    onChanged:
-                                        (value) => setState(
-                                          () =>
-                                              _currentActif = value as String?,
-                                        ),
-                                    required: false,
-                                    isArabic: _isArabic,
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
+                    Card(
+                      elevation: 4,
+                      shadowColor: nafahatGreen.withOpacity(0.1),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
                       ),
-
-                      const SizedBox(height: 24),
-
-                      // BOUTONS
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed:
-                                  _isSaving
-                                      ? null
-                                      : () => Navigator.pop(context),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: nafahatGreen,
-                                side: BorderSide(color: nafahatGreen),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
+                      child: Padding(
+                        padding: EdgeInsets.all(isMobile ? 16 : 24),
+                        child: Column(
+                          children: [
+                            // SECTION 1: Informations de base
+                            _buildSection(
+                              icon: Icons.info_outline,
+                              title: _isArabic
+                                  ? 'معلومات أساسية'
+                                  : 'Informations de base',
+                              children: [
+                                _buildField(
+                                  label: _isArabic
+                                      ? 'العنوان (بالفرنسية) *'
+                                      : 'Titre (Français) *',
+                                  controller: _titleFrController,
+                                  hint: _isArabic
+                                      ? 'مثال: Formation Flutter avancé'
+                                      : 'Ex: Formation Flutter avancé',
+                                  required: true,
                                 ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
+                                const SizedBox(height: 16),
+                                _buildField(
+                                  label: _isArabic
+                                      ? 'العنوان (بالعربية) *'
+                                      : 'Titre (Arabe) *',
+                                  controller: _titleArController,
+                                  hint: _isArabic
+                                      ? 'مثال: دورة فلاتر المتقدمة'
+                                      : 'Ex: دورة فلاتر المتقدمة',
+                                  required: true,
+                                  textDirection: TextDirection.rtl,
                                 ),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.close_rounded,
-                                    size: 18,
-                                    color: nafahatGreen,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(_isArabic ? 'إلغاء' : 'Annuler'),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: _isSaving ? null : _saveTraining,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: nafahatGreen,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                elevation: 4,
-                                shadowColor: nafahatGreen.withOpacity(0.3),
-                              ),
-                              child:
-                                  _isSaving
-                                      ? const SizedBox(
-                                        height: 24,
-                                        width: 24,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Colors.white,
-                                        ),
-                                      )
-                                      : Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.check_circle_rounded,
-                                            size: 18,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            _isArabic
-                                                ? 'حفظ التغييرات'
-                                                : 'Enregistrer',
-                                            style: GoogleFonts.cairo(
-                                              fontWeight: FontWeight.w600,
+                                const SizedBox(height: 16),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _buildDropdownField(
+                                        label: _isArabic
+                                            ? 'نوع التكوين *'
+                                            : 'Type de formation *',
+                                        value: _selectedTypeFormationId,
+                                        items: _typesFormation.map((t) {
+                                          return DropdownMenuItem<int>(
+                                            value: t['id'],
+                                            child: Text(
+                                              t['type_formation'] ?? '',
+                                              style: GoogleFonts.cairo(),
                                             ),
+                                          );
+                                        }).toList(),
+                                        onChanged: (value) => setState(
+                                          () => _selectedTypeFormationId =
+                                              value as int?,
+                                        ),
+                                        required: true,
+                                        isArabic: _isArabic,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: _buildDropdownField(
+                                        label: _isArabic
+                                            ? 'المدة *'
+                                            : 'Durée *',
+                                        value: _selectedDureeId,
+                                        items: _durees.map((d) {
+                                          return DropdownMenuItem<int>(
+                                            value: d['id'],
+                                            child: Text(
+                                              d['type_duree'] ?? '',
+                                              style: GoogleFonts.cairo(),
+                                            ),
+                                          );
+                                        }).toList(),
+                                        onChanged: (value) => setState(
+                                          () => _selectedDureeId =
+                                              value as int?,
+                                        ),
+                                        required: true,
+                                        isArabic: _isArabic,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+
+                            const Divider(height: 32, color: grey200),
+
+                            // SECTION 2: Catégories
+                            _buildSection(
+                              icon: Icons.category_outlined,
+                              title: _isArabic ? 'التصنيفات' : 'Catégories',
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _buildDropdownField(
+                                        label: _isArabic
+                                            ? 'التصنيف'
+                                            : 'Catégorie',
+                                        value: _selectedCategorieId,
+                                        items: [
+                                          const DropdownMenuItem<int>(
+                                            value: null,
+                                            child: Text('---'),
                                           ),
+                                          ..._categories.map((c) {
+                                            final label = _isArabic
+                                                ? c['categorie_ar']
+                                                : c['categorie_fr'];
+                                            return DropdownMenuItem<int>(
+                                              value: c['id'],
+                                              child: Text(
+                                                label ?? '',
+                                                style: GoogleFonts.cairo(),
+                                              ),
+                                            );
+                                          }),
                                         ],
+                                        onChanged: _onCategorieChanged,
+                                        required: false,
+                                        isArabic: _isArabic,
                                       ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: _buildDropdownField(
+                                        label: _isArabic
+                                            ? 'التصنيف الفرعي'
+                                            : 'Sous-catégorie',
+                                        value: _selectedSousCategorieId,
+                                        items: [
+                                          const DropdownMenuItem<int>(
+                                            value: null,
+                                            child: Text('---'),
+                                          ),
+                                          ..._filteredSousCategories.map((sc) {
+                                            final label = _isArabic
+                                                ? sc['nom_ar']
+                                                : sc['nom_fr'];
+                                            return DropdownMenuItem<int>(
+                                              value: sc['id'],
+                                              child: Text(
+                                                label ?? '',
+                                                style: GoogleFonts.cairo(),
+                                              ),
+                                            );
+                                          }),
+                                        ],
+                                        onChanged: (value) => setState(
+                                          () => _selectedSousCategorieId =
+                                              value as int?,
+                                        ),
+                                        required: false,
+                                        isArabic: _isArabic,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                _buildDropdownField(
+                                  label: _isArabic ? 'المكون' : 'Formateur',
+                                  value: _selectedFormateurId,
+                                  items: [
+                                    const DropdownMenuItem<int>(
+                                      value: null,
+                                      child: Text('---'),
+                                    ),
+                                    ..._formateurs.map((f) {
+                                      final label = _isArabic
+                                          ? f['nom_prenom_ar']
+                                          : f['nom_prenom_fr'];
+                                      return DropdownMenuItem<int>(
+                                        value: f['id'],
+                                        child: Text(
+                                          label ?? '',
+                                          style: GoogleFonts.cairo(),
+                                        ),
+                                      );
+                                    }),
+                                  ],
+                                  onChanged: (value) => setState(
+                                    () => _selectedFormateurId = value as int?,
+                                  ),
+                                  required: false,
+                                  isArabic: _isArabic,
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
 
-                      // BOUTON SUPPRIMER
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: _isSaving ? null : _deleteFormation,
-                          icon: const Icon(Icons.delete_outline, size: 18),
-                          label: Text(
-                            _isArabic
-                                ? 'حذف هذا التكوين'
-                                : 'Supprimer cette formation',
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.red,
-                            side: BorderSide(color: Colors.red.shade300),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                            const Divider(height: 32, color: grey200),
+
+                            // SECTION 3: Détails de la durée
+                            _buildSection(
+                              icon: Icons.timer_outlined,
+                              title: _isArabic
+                                  ? 'تفاصيل المدة'
+                                  : 'Détails de la durée',
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _buildField(
+                                        label: _isArabic ? 'Heures' : 'Heures',
+                                        controller: _nbrHeurController,
+                                        hint:
+                                            _isArabic ? 'مثال: 20' : 'Ex: 20',
+                                        keyboardType: TextInputType.number,
+                                        prefixIcon: Icons.access_time_rounded,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: _buildField(
+                                        label:
+                                            _isArabic ? 'Séances' : 'Séances',
+                                        controller: _nbrSeanceController,
+                                        hint:
+                                            _isArabic ? 'مثال: 10' : 'Ex: 10',
+                                        keyboardType: TextInputType.number,
+                                        prefixIcon:
+                                            Icons.people_outline_rounded,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: _buildField(
+                                        label: _isArabic ? 'Jours' : 'Jours',
+                                        controller: _nbrJourController,
+                                        hint: _isArabic ? 'مثال: 5' : 'Ex: 5',
+                                        keyboardType: TextInputType.number,
+                                        prefixIcon:
+                                            Icons.calendar_today_rounded,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+
+                            const Divider(height: 32, color: grey200),
+
+                            // SECTION 4: Répétition
+                            _buildSection(
+                              icon: Icons.repeat_rounded,
+                              title: _isArabic ? 'التكرار' : 'Répétition',
+                              children: [_buildRepetitiveSection()],
+                            ),
+
+                            const Divider(height: 32, color: grey200),
+
+                            // SECTION 5: Période
+                            _buildSection(
+                              icon: Icons.calendar_month_rounded,
+                              title: _isArabic ? 'الفترة' : 'Période',
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _buildDateField(
+                                        label: _isArabic
+                                            ? 'تاريخ البداية *'
+                                            : 'Date de début *',
+                                        controller: _dateDebutController,
+                                        onTap: () =>
+                                            _selectDate(_dateDebutController),
+                                        required: true,
+                                        isArabic: _isArabic,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: _buildDateField(
+                                        label: _isArabic
+                                            ? 'تاريخ النهاية *'
+                                            : 'Date de fin *',
+                                        controller: _dateFinController,
+                                        onTap: () =>
+                                            _selectDate(_dateFinController),
+                                        required: true,
+                                        isArabic: _isArabic,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+
+                            const Divider(height: 32, color: grey200),
+
+                            // SECTION 6: Description
+                            _buildSection(
+                              icon: Icons.description_outlined,
+                              title: _isArabic ? 'الوصف' : 'Description',
+                              children: [
+                                _buildField(
+                                  label: _isArabic
+                                      ? 'الوصف (بالفرنسية) *'
+                                      : 'Description (Français) *',
+                                  controller: _descriptionFrController,
+                                  hint: _isArabic
+                                      ? 'وصف تفصيلي'
+                                      : 'Description détaillée',
+                                  required: true,
+                                  maxLines: 3,
+                                ),
+                                const SizedBox(height: 16),
+                                _buildField(
+                                  label: _isArabic
+                                      ? 'الوصف (بالعربية) *'
+                                      : 'Description (Arabe) *',
+                                  controller: _descriptionArController,
+                                  hint: _isArabic
+                                      ? 'وصف تفصيلي'
+                                      : 'Description détaillée',
+                                  required: true,
+                                  maxLines: 3,
+                                  textDirection: TextDirection.rtl,
+                                ),
+                              ],
+                            ),
+
+                            const Divider(height: 32, color: grey200),
+
+                            // SECTION 7: PRIX ET CIBLE
+                            _buildSection(
+                              icon: Icons.payments_outlined,
+                              title: _isArabic
+                                  ? 'السعر والجمهور'
+                                  : 'Prix et Cible',
+                              children: [
+                                _buildDropdownField(
+                                  label: _isArabic
+                                      ? 'الجمهور المستهدف *'
+                                      : 'Cible *',
+                                  value: _selectedCibleId,
+                                  items: [
+                                    const DropdownMenuItem<int>(
+                                      value: null,
+                                      child: Text('---'),
+                                    ),
+                                    ..._cibles.map((cible) {
+                                      return DropdownMenuItem<int>(
+                                        value: cible.id,
+                                        child: Text(
+                                          cible.nomCible,
+                                          style: GoogleFonts.cairo(),
+                                        ),
+                                      );
+                                    }),
+                                  ],
+                                  onChanged: (value) => setState(
+                                    () => _selectedCibleId = value as int?,
+                                  ),
+                                  required: true,
+                                  isArabic: _isArabic,
+                                ),
+                                const SizedBox(height: 16),
+
+                                _buildField(
+                                  label: _isArabic
+                                      ? 'السعر (DT) *'
+                                      : 'Prix (DT) *',
+                                  controller: _priceDtController,
+                                  hint:
+                                      _isArabic ? 'مثال: 15000' : 'Ex: 15000',
+                                  required: true,
+                                  keyboardType: TextInputType.number,
+                                  prefixIcon: Icons.money_rounded,
+                                ),
+                                const SizedBox(height: 12),
+
+                                _buildField(
+                                  label: _isArabic
+                                      ? 'السعر (€) *'
+                                      : 'Prix (€) *',
+                                  controller: _priceEurController,
+                                  hint: _isArabic ? 'مثال: 450' : 'Ex: 450',
+                                  required: true,
+                                  keyboardType: TextInputType.number,
+                                  prefixIcon: Icons.euro_rounded,
+                                ),
+                                const SizedBox(height: 12),
+
+                                _buildField(
+                                  label: _isArabic
+                                      ? 'السعر (\$) *'
+                                      : 'Prix (\$) *',
+                                  controller: _priceUsdController,
+                                  hint: _isArabic ? 'مثال: 550' : 'Ex: 550',
+                                  required: true,
+                                  keyboardType: TextInputType.number,
+                                  prefixIcon: Icons.attach_money_rounded,
+                                ),
+                                const SizedBox(height: 16),
+
+                                _buildDiscountSection(),
+                              ],
+                            ),
+
+                            const Divider(height: 32, color: grey200),
+
+                            // ✅ SECTION 8: TYPES DE PAIEMENT
+                            _buildSection(
+                              icon: Icons.payment_rounded,
+                              title: _isArabic
+                                  ? 'أنواع الدفع المسموحة'
+                                  : 'Types de paiement autorisés',
+                              children: [_buildTypesPaiementSection()],
+                            ),
+
+                            const Divider(height: 32, color: grey200),
+
+                            // ✅ SECTION 9: LIEN EXTERNE
+                            _buildSection(
+                              icon: Icons.link_rounded,
+                              title: _isArabic
+                                  ? 'الرابط الخارجي'
+                                  : 'Lien externe',
+                              children: [
+                                _buildField(
+                                  label: _isArabic
+                                      ? 'الرابط (اختياري)'
+                                      : 'Lien (optionnel)',
+                                  controller: _lienController,
+                                  hint: _isArabic
+                                      ? 'مثال: https://wa.me/21612345678'
+                                      : 'Ex: https://wa.me/21612345678',
+                                  prefixIcon: Icons.link_rounded,
+                                  textDirection: TextDirection.ltr,
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  _isArabic
+                                      ? '📌 يمكنك إضافة رابط لمجموعة WhatsApp أو Telegram أو أي رابط خارجي (حقل اختياري)'
+                                      : '📌 Vous pouvez ajouter un lien WhatsApp, Telegram ou autre (champ optionnel)',
+                                  style: GoogleFonts.cairo(
+                                    fontSize: 11,
+                                    color: grey500,
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            const Divider(height: 32, color: grey200),
+
+                            // SECTION 10: IMAGE
+                            _buildImageSection(),
+
+                            const Divider(height: 32, color: grey200),
+
+                            // SECTION 11: STATUT
+                            _buildSection(
+                              icon: Icons.toggle_on_outlined,
+                              title: _isArabic ? 'الحالة' : 'Statut',
+                              children: [
+                                _buildDropdownField(
+                                  label: _isArabic ? 'الحالة' : 'Statut',
+                                  value: _currentActif,
+                                  items: [
+                                    const DropdownMenuItem<String>(
+                                      value: 'oui',
+                                      child: Text('Actif'),
+                                    ),
+                                    const DropdownMenuItem<String>(
+                                      value: 'non',
+                                      child: Text('Inactif'),
+                                    ),
+                                  ],
+                                  onChanged: (value) => setState(
+                                    () => _currentActif = value as String?,
+                                  ),
+                                  required: false,
+                                  isArabic: _isArabic,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // BOUTONS
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _isSaving
+                                ? null
+                                : () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: nafahatGreen,
+                              side: BorderSide(color: nafahatGreen),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 16,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.close_rounded,
+                                  size: 18,
+                                  color: nafahatGreen,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(_isArabic ? 'إلغاء' : 'Annuler'),
+                              ],
                             ),
                           ),
                         ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _isSaving ? null : _saveTraining,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: nafahatGreen,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 16,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              elevation: 4,
+                              shadowColor: nafahatGreen.withOpacity(0.3),
+                            ),
+                            child: _isSaving
+                                ? const SizedBox(
+                                    height: 24,
+                                    width: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.check_circle_rounded,
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        _isArabic
+                                            ? 'حفظ التغييرات'
+                                            : 'Enregistrer',
+                                        style: GoogleFonts.cairo(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // BOUTON SUPPRIMER
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _isSaving ? null : _deleteFormation,
+                        icon: const Icon(Icons.delete_outline, size: 18),
+                        label: Text(
+                          _isArabic
+                              ? 'حذف هذا التكوين'
+                              : 'Supprimer cette formation',
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red,
+                          side: BorderSide(color: Colors.red.shade300),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
+            ),
     );
   }
 }

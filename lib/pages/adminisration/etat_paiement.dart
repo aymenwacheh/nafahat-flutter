@@ -46,6 +46,50 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
   bool _isMobile = false;
   bool _isTablet = false;
 
+  // ============================================================
+  // ✅ Configuration des types de paiement
+  // (MaterialColor pour supporter .shade800)
+  // ============================================================
+  
+  static const Map<String, Map<String, dynamic>> _typeConfigs = {
+    'formation': {
+      'icon': '🎓',
+      'labelFr': 'Paiement complet',
+      'labelAr': 'دفع كامل',
+      'color': Colors.purple,
+    },
+    'mois': {
+      'icon': '📅',
+      'labelFr': 'Mensuel',
+      'labelAr': 'شهري',
+      'color': Colors.blue,
+    },
+    'semaine': {
+      'icon': '📆',
+      'labelFr': 'Hebdomadaire',
+      'labelAr': 'أسبوعي',
+      'color': Colors.teal,
+    },
+    'trimestre': {
+      'icon': '📊',
+      'labelFr': 'Trimestriel',
+      'labelAr': 'ربع سنوي',
+      'color': Colors.indigo,
+    },
+    'annee': {
+      'icon': '🗓️',
+      'labelFr': 'Annuel',
+      'labelAr': 'سنوي',
+      'color': Colors.deepPurple,
+    },
+    'seance': {
+      'icon': '🎯',
+      'labelFr': 'Par séance',
+      'labelAr': 'بالحصة',
+      'color': Colors.pink,
+    },
+  };
+
   @override
   void initState() {
     super.initState();
@@ -53,7 +97,7 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
   }
 
   // ============================================================
-  // ✅ MÉTHODE UTILITAIRE : Conversion sécurisée en int
+  // MÉTHODE UTILITAIRE : Conversion sécurisée en int
   // ============================================================
   
   int _parseInt(dynamic value) {
@@ -75,7 +119,7 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
     } catch (e) {
       _showError('Erreur de chargement: $e');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -141,7 +185,6 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
       if (!mounted) return;
 
       setState(() {
-        // ✅ Sécuriser les accès
         final globalData = stats['data']?['global'];
         _stats = globalData is Map
             ? globalData.cast<String, dynamic>()
@@ -156,7 +199,6 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
               )
             : [];
 
-        // ✅ Pas de par_formation dans la réponse backend
         _formationStats = {};
       });
     } catch (e) {
@@ -231,6 +273,30 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
     } catch (e) {
       return 'Formation inconnue';
     }
+  }
+
+  // ============================================================
+  // ✅ Utilitaires pour les types (MaterialColor)
+  // ============================================================
+  
+  Map<String, dynamic> _getTypeConfig(String? type) {
+    return _typeConfigs[type] ?? _typeConfigs['formation']!;
+  }
+
+  String _getTypeLabel(String? type, bool isArabic) {
+    final config = _getTypeConfig(type);
+    return (isArabic ? config['labelAr'] : config['labelFr']) as String;
+  }
+
+  String _getTypeIcon(String? type) {
+    final config = _getTypeConfig(type);
+    return config['icon'] as String;
+  }
+
+  /// ✅ Retourne MaterialColor (pour supporter .shade800)
+  MaterialColor _getTypeColor(String? type) {
+    final config = _getTypeConfig(type);
+    return config['color'] as MaterialColor;
   }
 
   // ============================================================
@@ -393,6 +459,12 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
                     '🔄 Reste à payer',
                     '${validation.montantRestant.toStringAsFixed(2)} ${validation.formationDevise ?? 'DT'}',
                   ),
+                  // ✅ Type de paiement
+                  _buildInfoRow(
+                    '📊 Type de paiement',
+                    '${_getTypeIcon(validation.typePaiement)} ${_getTypeLabel(validation.typePaiement, false)}',
+                  ),
+                  // ✅ Progression
                   if (validation.isMensuel)
                     _buildInfoRow(
                       '📅 Progression',
@@ -547,7 +619,7 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 120,
+            width: 130,
             child: Text(
               label,
               style: const TextStyle(
@@ -820,8 +892,11 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
               ),
               _buildInfoRow('💳 Modalité', v.modalitePaiement ?? 'N/A'),
               const Divider(),
-              _buildInfoRow('📊 Type',
-                  v.typePaiement == 'mois' ? '📅 Mensuel' : '🎓 Complet'),
+              // ✅ Type dynamique
+              _buildInfoRow(
+                '📊 Type',
+                '${_getTypeIcon(v.typePaiement)} ${_getTypeLabel(v.typePaiement, false)}',
+              ),
               if (v.isMensuel) ...[
                 _buildInfoRow(
                   '📅 Progression',
@@ -1005,9 +1080,7 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
                 children: [
                   if (_selectedType != 'tous')
                     _buildFilterChip(
-                      label: _selectedType == 'mois'
-                          ? '📅 Mensuel'
-                          : '🎓 Complet',
+                      label: '${_getTypeIcon(_selectedType)} ${_getTypeLabel(_selectedType, false)}',
                       onDeleted: () {
                         setState(() {
                           _selectedType = 'tous';
@@ -1099,6 +1172,7 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
     );
   }
 
+  // ✅ Dropdown avec les 6 types
   Widget _buildTypeDropdown() {
     return Container(
       decoration: BoxDecoration(
@@ -1113,8 +1187,8 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
           isDense: true,
         ),
         value: _selectedType,
-        items: const [
-          DropdownMenuItem(
+        items: [
+          const DropdownMenuItem(
             value: 'tous',
             child: Row(
               children: [
@@ -1124,8 +1198,14 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
               ],
             ),
           ),
-          DropdownMenuItem(value: 'mois', child: Text('📅 Mensuel')),
-          DropdownMenuItem(value: 'formation', child: Text('🎓 Complet')),
+          // ✅ 6 types dynamiques
+          ..._typeConfigs.entries.map((entry) {
+            final config = entry.value;
+            return DropdownMenuItem(
+              value: entry.key,
+              child: Text('${config['icon']} ${config['labelFr']}'),
+            );
+          }),
         ],
         onChanged: (value) {
           setState(() {
@@ -1186,17 +1266,22 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
   }
 
   // ============================================================
-  // ✅ STATISTIQUES (avec _parseInt sécurisé)
+  // STATISTIQUES (avec nouveaux types)
   // ============================================================
 
   Widget _buildStats() {
-    // ✅ Utilisation de _parseInt pour éviter l'erreur "NoSuchMethodError: '>'"
     final total = _parseInt(_stats['total_validations']);
     final enAttente = _parseInt(_stats['en_attente']);
     final valides = _parseInt(_stats['valides']);
     final refuses = _parseInt(_stats['refuses']);
-    final mensuels = _parseInt(_stats['paiements_mensuels']);
     final tranchesEnAttente = _parseInt(_stats['tranches_en_attente']);
+
+    // ✅ Stats par type
+    final mensuels = _parseInt(_stats['paiements_mensuels']);
+    final hebdo = _parseInt(_stats['paiements_hebdo']);
+    final trimestriels = _parseInt(_stats['paiements_trimestriels']);
+    final annuels = _parseInt(_stats['paiements_annuels']);
+    final seances = _parseInt(_stats['paiements_seances']);
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -1217,7 +1302,17 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
                 '⏳', '$enAttente', 'En attente', Colors.orange),
             _buildModernStatItem('✅', '$valides', 'Validés', Colors.green),
             _buildModernStatItem('❌', '$refuses', 'Refusés', Colors.red),
-            _buildModernStatItem('📅', '$mensuels', 'Mensuels', Colors.blue),
+            // ✅ Stats par type
+            if (mensuels > 0)
+              _buildModernStatItem('📅', '$mensuels', 'Mensuels', Colors.blue),
+            if (hebdo > 0)
+              _buildModernStatItem('📆', '$hebdo', 'Hebdo', Colors.teal),
+            if (trimestriels > 0)
+              _buildModernStatItem('📊', '$trimestriels', 'Trim.', Colors.indigo),
+            if (annuels > 0)
+              _buildModernStatItem('🗓️', '$annuels', 'Annuel', Colors.deepPurple),
+            if (seances > 0)
+              _buildModernStatItem('🎯', '$seances', 'Séances', Colors.pink),
             if (tranchesEnAttente > 0)
               _buildModernStatItem(
                 '⌛',
@@ -1360,16 +1455,14 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
                       ],
                     ),
 
-                    if (v.isMensuel) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          _buildTypeBadge(v),
-                          const SizedBox(width: 6),
-                          _buildTrancheBadge(v),
-                        ],
-                      ),
-                    ],
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        _buildTypeBadge(v),
+                        const SizedBox(width: 6),
+                        _buildTrancheBadge(v),
+                      ],
+                    ),
 
                     const SizedBox(height: 8),
                     Row(
@@ -1407,8 +1500,7 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
                       _buildTrancheEnAttenteBanner(v),
                     ],
 
-                    if (v.isMensuel &&
-                        v.prochainPaiementDate != null &&
+                    if (v.prochainPaiementDate != null &&
                         !v.aTrancheEnAttente) ...[
                       const SizedBox(height: 6),
                       Row(
@@ -1466,33 +1558,37 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
     );
   }
 
+  // ✅ Badge type DYNAMIQUE
   Widget _buildTypeBadge(PaiementValidation v) {
-    final isMensuel = v.isMensuel;
+    final type = v.typePaiement ?? 'formation';
+    final color = _getTypeColor(type);
+    final icon = _getTypeIcon(type);
+    final label = _getTypeLabel(type, false);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color:
-            isMensuel ? Colors.blue.shade50 : Colors.purple.shade50,
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color:
-              isMensuel ? Colors.blue.shade200 : Colors.purple.shade200,
-        ),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Text(
-        isMensuel ? '📅 Mensuel' : '🎓 Complet',
+        '$icon $label',
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w700,
-          color:
-              isMensuel ? Colors.blue.shade800 : Colors.purple.shade800,
+          color: color.shade800,
         ),
       ),
     );
   }
 
+  // ✅ Badge tranche générique (tous types périodiques)
   Widget _buildTrancheBadge(PaiementValidation v) {
-    if (!v.isMensuel) return const SizedBox.shrink();
+    // Ne s'affiche que pour les types périodiques
+    final isPeriodic =
+        v.typePaiement != null && v.typePaiement != 'formation';
+    if (!isPeriodic) return const SizedBox.shrink();
 
     final estTermine = v.estTermine;
     final enAttente = v.aTrancheEnAttente;
@@ -1672,16 +1768,14 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
                       overflow: TextOverflow.ellipsis,
                     ),
 
-                    if (v.isMensuel) ...[
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 6,
-                        children: [
-                          _buildTypeBadge(v),
-                          _buildTrancheBadge(v),
-                        ],
-                      ),
-                    ],
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      children: [
+                        _buildTypeBadge(v),
+                        _buildTrancheBadge(v),
+                      ],
+                    ),
 
                     const SizedBox(height: 6),
                     Row(

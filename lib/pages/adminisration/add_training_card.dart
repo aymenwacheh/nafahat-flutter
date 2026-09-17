@@ -28,6 +28,9 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
   final _targetController = TextEditingController();
   final _imageUrlController = TextEditingController();
 
+  // ✅ NOUVEAU : Contrôleur du lien
+  final _lienController = TextEditingController();
+
   // ✅ ANCIEN CONTROLEUR PRIX (conservé pour compatibilité)
   final _priceController = TextEditingController();
 
@@ -49,11 +52,10 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
   bool _isArabic = false;
   bool _isRepetitive = false;
 
-  // Nouveaux états pour l'image — ✅ unifié Web + Mobile (plus de
-  // branchement dart:io File / dart:html)
+  // Nouveaux états pour l'image
   bool _isUploadingImage = false;
   String? _uploadedImageUrl;
-  Uint8List? _imageBytes; // Aperçu local, Web ET Mobile
+  Uint8List? _imageBytes;
   String? _imageName;
 
   // Sélections
@@ -62,7 +64,18 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
   int? _selectedCategorieId;
   int? _selectedSousCategorieId;
   int? _selectedFormateurId;
-  int? _selectedCibleId; // ✅ AJOUTÉ
+  int? _selectedCibleId;
+
+  // ✅ NOUVEAU : Types de paiement autorisés
+  final Map<String, bool> _typesPaiementAutorises = {
+    'formation': true,
+    'mois': false,
+    'semaine': false,
+    'trimestre': false,
+    'annee': false,
+    'seance': false,
+    'heure': false,
+  };
 
   // Jours de la semaine
   final Map<String, bool> _joursSemaine = {
@@ -82,7 +95,7 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
   List<Map<String, dynamic>> _allSousCategories = [];
   List<Map<String, dynamic>> _filteredSousCategories = [];
   List<Map<String, dynamic>> _formateurs = [];
-  List<CibleModel> _cibles = []; // ✅ AJOUTÉ
+  List<CibleModel> _cibles = [];
 
   static const Color nafahatGreen = Color(0xff0D443E);
   static const Color nafahatOrange = Color(0xffd57653);
@@ -123,6 +136,12 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
   void initState() {
     super.initState();
     _loadData();
+    _nbrHeurController.addListener(_onFieldsChanged);
+    _nbrSeanceController.addListener(_onFieldsChanged);
+  }
+
+  void _onFieldsChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadData() async {
@@ -172,10 +191,9 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
       _selectedCategorieId = value as int?;
       _selectedSousCategorieId = null;
       if (_selectedCategorieId != null) {
-        _filteredSousCategories =
-            _allSousCategories
-                .where((sc) => sc['id_categorie'] == _selectedCategorieId)
-                .toList();
+        _filteredSousCategories = _allSousCategories
+            .where((sc) => sc['id_categorie'] == _selectedCategorieId)
+            .toList();
       } else {
         _filteredSousCategories = [];
       }
@@ -184,14 +202,17 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
 
   @override
   void dispose() {
+    _nbrHeurController.removeListener(_onFieldsChanged);
+    _nbrSeanceController.removeListener(_onFieldsChanged);
+
     _titleFrController.dispose();
     _titleArController.dispose();
     _descriptionFrController.dispose();
     _descriptionArController.dispose();
     _targetController.dispose();
     _imageUrlController.dispose();
+    _lienController.dispose();   // ✅ NOUVEAU
     _priceController.dispose();
-    // ✅ Dispose des nouveaux contrôleurs
     _priceDtController.dispose();
     _priceEurController.dispose();
     _priceUsdController.dispose();
@@ -204,10 +225,8 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
     super.dispose();
   }
 
-  // ==================== SÉLECTION + UPLOAD DE L'IMAGE (Web + Mobile) ====================
-  // ✅ image_picker fonctionne nativement sur Flutter Web (via
-  // image_picker_for_web) et sur Mobile : plus besoin de dupliquer la
-  // logique avec dart:html / dart:io. Ce code est identique partout.
+  // ==================== SÉLECTION + UPLOAD DE L'IMAGE ====================
+
   Future<void> _pickImage() async {
     try {
       final ImagePicker picker = ImagePicker();
@@ -243,8 +262,6 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
     }
   }
 
-  // lib/pages/adminisration/add_training_card.dart
-
   Future<void> _uploadImage(Uint8List bytes, String fileName) async {
     setState(() => _isUploadingImage = true);
 
@@ -252,11 +269,9 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
       Map<String, dynamic> result;
 
       try {
-        // Essayer d'abord avec la route /upload/image
         result = await TrainingService.uploadImageBytes(bytes, fileName);
       } catch (e) {
         debugPrint('⚠️ Échec avec /upload/image, tentative avec /upload');
-        // Fallback avec la route /upload
         result = await TrainingService.uploadImageBytesAlt(bytes, fileName);
       }
 
@@ -290,15 +305,13 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
 
       String errorMessage = e.toString();
       if (errorMessage.contains('500')) {
-        errorMessage =
-            _isArabic
-                ? '❌ Erreur serveur. Vérifiez que le serveur est configuré correctement.'
-                : '❌ Server error. Check server configuration.';
+        errorMessage = _isArabic
+            ? '❌ Erreur serveur. Vérifiez que le serveur est configuré correctement.'
+            : '❌ Server error. Check server configuration.';
       } else if (errorMessage.contains('image')) {
-        errorMessage =
-            _isArabic
-                ? '❌ Format d\'image non supporté. Utilisez JPG, PNG ou GIF.'
-                : '❌ Unsupported image format. Use JPG, PNG or GIF.';
+        errorMessage = _isArabic
+            ? '❌ Format d\'image non supporté. Utilisez JPG, PNG ou GIF.'
+            : '❌ Unsupported image format. Use JPG, PNG or GIF.';
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -312,7 +325,6 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
     }
   }
 
-  // ==================== SUPPRIMER L'IMAGE ====================
   void _removeImage() {
     setState(() {
       _uploadedImageUrl = null;
@@ -359,8 +371,30 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
     return jsonEncode(selected);
   }
 
+  List<String> _getTypesPaiementSelectionnes() {
+    return _typesPaiementAutorises.entries
+        .where((e) => e.value)
+        .map((e) => e.key)
+        .toList();
+  }
+
   Future<void> _saveTraining() async {
     if (_formKey.currentState!.validate()) {
+      final typesSelectionnes = _getTypesPaiementSelectionnes();
+      if (typesSelectionnes.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _isArabic
+                  ? '⚠️ اختر نوع دفع واحد على الأقل'
+                  : '⚠️ Sélectionnez au moins un type de paiement',
+            ),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
       setState(() => _isLoading = true);
 
       final requestBody = {
@@ -371,44 +405,44 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
         'cible_fr': null,
         'cible_ar': null,
         'id_duree': _selectedDureeId,
-        'date_debut':
-            _dateDebutController.text.isNotEmpty
-                ? _dateDebutController.text
-                : null,
-        'date_fin':
-            _dateFinController.text.isNotEmpty ? _dateFinController.text : null,
-        // ✅ ANCIEN PRIX (conservé pour compatibilité)
+        'date_debut': _dateDebutController.text.isNotEmpty
+            ? _dateDebutController.text
+            : null,
+        'date_fin': _dateFinController.text.isNotEmpty
+            ? _dateFinController.text
+            : null,
         'prix': double.parse(_priceDtController.text),
-        // ✅ NOUVEAUX PRIX MULTI-DEVISES
         'prix_dt': double.parse(_priceDtController.text),
         'prix_eur': double.parse(_priceEurController.text),
         'prix_usd': double.parse(_priceUsdController.text),
         'discount': _hasDiscount ? 'oui' : 'non',
-        'valeur_disc':
-            _hasDiscount ? double.parse(_discountValueController.text) : null,
+        'valeur_disc': _hasDiscount
+            ? double.parse(_discountValueController.text)
+            : null,
         'descri_fr': _descriptionFrController.text,
         'descri_ar': _descriptionArController.text,
         'id_categorie': _selectedCategorieId,
         'sous_categorie_id': _selectedSousCategorieId,
         'id_formateur': _selectedFormateurId,
-        'photo':
-            _imageUrlController.text.isNotEmpty
-                ? _imageUrlController.text
-                : null,
-        'nbr_heur':
-            _nbrHeurController.text.isNotEmpty
-                ? int.parse(_nbrHeurController.text)
-                : null,
-        'nbr_seance':
-            _nbrSeanceController.text.isNotEmpty
-                ? int.parse(_nbrSeanceController.text)
-                : null,
-        'nbr_jour':
-            _nbrJourController.text.isNotEmpty
-                ? int.parse(_nbrJourController.text)
-                : null,
+        'photo': _imageUrlController.text.isNotEmpty
+            ? _imageUrlController.text
+            : null,
+        'nbr_heur': _nbrHeurController.text.isNotEmpty
+            ? int.parse(_nbrHeurController.text)
+            : null,
+        'nbr_seance': _nbrSeanceController.text.isNotEmpty
+            ? int.parse(_nbrSeanceController.text)
+            : null,
+        'nbr_jour': _nbrJourController.text.isNotEmpty
+            ? int.parse(_nbrJourController.text)
+            : null,
         'repetitive': _isRepetitive ? 'oui' : 'non',
         'jour_semaine': _isRepetitive ? _getSelectedJours() : null,
+        'types_paiement_autorises': typesSelectionnes,
+        // ✅ NOUVEAU : Lien (non obligatoire)
+        'lien': _lienController.text.isNotEmpty
+            ? _lienController.text.trim()
+            : null,
       };
 
       try {
@@ -471,11 +505,17 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
       _nbrJourController.clear();
       _joursSemaine.updateAll((key, value) => false);
 
+      // ✅ Réinitialiser les types de paiement (garder "formation" par défaut)
+      _typesPaiementAutorises.updateAll((key, value) => key == 'formation');
+
       // ✅ Réinitialiser les prix
       _priceDtController.clear();
       _priceEurController.clear();
       _priceUsdController.clear();
       _discountValueController.clear();
+
+      // ✅ Réinitialiser le lien
+      _lienController.clear();
 
       // Réinitialiser l'image
       _uploadedImageUrl = null;
@@ -541,34 +581,29 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
                       // SECTION 1: Informations de base
                       _buildSection(
                         icon: Icons.info_outline,
-                        title:
-                            _isArabic
-                                ? 'معلومات أساسية'
-                                : 'Informations de base',
+                        title: _isArabic
+                            ? 'معلومات أساسية'
+                            : 'Informations de base',
                         children: [
                           _buildField(
-                            label:
-                                _isArabic
-                                    ? 'العنوان (بالفرنسية) *'
-                                    : 'Titre (Français) *',
+                            label: _isArabic
+                                ? 'العنوان (بالفرنسية) *'
+                                : 'Titre (Français) *',
                             controller: _titleFrController,
-                            hint:
-                                _isArabic
-                                    ? 'مثال: Formation Flutter avancé'
-                                    : 'Ex: Formation Flutter avancé',
+                            hint: _isArabic
+                                ? 'مثال: Formation Flutter avancé'
+                                : 'Ex: Formation Flutter avancé',
                             required: true,
                           ),
                           const SizedBox(height: 16),
                           _buildField(
-                            label:
-                                _isArabic
-                                    ? 'العنوان (بالعربية) *'
-                                    : 'Titre (Arabe) *',
+                            label: _isArabic
+                                ? 'العنوان (بالعربية) *'
+                                : 'Titre (Arabe) *',
                             controller: _titleArController,
-                            hint:
-                                _isArabic
-                                    ? 'مثال: دورة فلاتر المتقدمة'
-                                    : 'Ex: دورة فلاتر المتقدمة',
+                            hint: _isArabic
+                                ? 'مثال: دورة فلاتر المتقدمة'
+                                : 'Ex: دورة فلاتر المتقدمة',
                             required: true,
                             textDirection: TextDirection.rtl,
                           ),
@@ -577,26 +612,20 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
                             children: [
                               Expanded(
                                 child: _buildDropdownField(
-                                  label:
-                                      _isArabic
-                                          ? 'نوع التكوين *'
-                                          : 'Type de formation *',
+                                  label: _isArabic
+                                      ? 'نوع التكوين *'
+                                      : 'Type de formation *',
                                   value: _selectedTypeFormationId,
-                                  items:
-                                      _typesFormation.map((t) {
-                                        return DropdownMenuItem<int>(
-                                          value: t['id'],
-                                          child: Text(
-                                            t['type_formation'] ?? '',
-                                          ),
-                                        );
-                                      }).toList(),
-                                  onChanged:
-                                      (value) => setState(
-                                        () =>
-                                            _selectedTypeFormationId =
-                                                value as int?,
-                                      ),
+                                  items: _typesFormation.map((t) {
+                                    return DropdownMenuItem<int>(
+                                      value: t['id'],
+                                      child: Text(t['type_formation'] ?? ''),
+                                    );
+                                  }).toList(),
+                                  onChanged: (value) => setState(
+                                    () => _selectedTypeFormationId =
+                                        value as int?,
+                                  ),
                                   required: true,
                                   isArabic: _isArabic,
                                 ),
@@ -606,17 +635,15 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
                                 child: _buildDropdownField(
                                   label: _isArabic ? 'المدة *' : 'Durée *',
                                   value: _selectedDureeId,
-                                  items:
-                                      _durees.map((d) {
-                                        return DropdownMenuItem<int>(
-                                          value: d['id'],
-                                          child: Text(d['type_duree'] ?? ''),
-                                        );
-                                      }).toList(),
-                                  onChanged:
-                                      (value) => setState(
-                                        () => _selectedDureeId = value as int?,
-                                      ),
+                                  items: _durees.map((d) {
+                                    return DropdownMenuItem<int>(
+                                      value: d['id'],
+                                      child: Text(d['type_duree'] ?? ''),
+                                    );
+                                  }).toList(),
+                                  onChanged: (value) => setState(
+                                    () => _selectedDureeId = value as int?,
+                                  ),
                                   required: true,
                                   isArabic: _isArabic,
                                 ),
@@ -645,10 +672,9 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
                                       child: Text('---'),
                                     ),
                                     ..._categories.map((c) {
-                                      final label =
-                                          _isArabic
-                                              ? c['categorie_ar']
-                                              : c['categorie_fr'];
+                                      final label = _isArabic
+                                          ? c['categorie_ar']
+                                          : c['categorie_fr'];
                                       return DropdownMenuItem<int>(
                                         value: c['id'],
                                         child: Text(label ?? ''),
@@ -663,10 +689,9 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: _buildDropdownField(
-                                  label:
-                                      _isArabic
-                                          ? 'التصنيف الفرعي'
-                                          : 'Sous-catégorie',
+                                  label: _isArabic
+                                      ? 'التصنيف الفرعي'
+                                      : 'Sous-catégorie',
                                   value: _selectedSousCategorieId,
                                   items: [
                                     const DropdownMenuItem<int>(
@@ -674,22 +699,19 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
                                       child: Text('---'),
                                     ),
                                     ..._filteredSousCategories.map((sc) {
-                                      final label =
-                                          _isArabic
-                                              ? sc['nom_ar']
-                                              : sc['nom_fr'];
+                                      final label = _isArabic
+                                          ? sc['nom_ar']
+                                          : sc['nom_fr'];
                                       return DropdownMenuItem<int>(
                                         value: sc['id'],
                                         child: Text(label ?? ''),
                                       );
                                     }),
                                   ],
-                                  onChanged:
-                                      (value) => setState(
-                                        () =>
-                                            _selectedSousCategorieId =
-                                                value as int?,
-                                      ),
+                                  onChanged: (value) => setState(
+                                    () => _selectedSousCategorieId =
+                                        value as int?,
+                                  ),
                                   required: false,
                                   isArabic: _isArabic,
                                 ),
@@ -706,20 +728,18 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
                                 child: Text('---'),
                               ),
                               ..._formateurs.map((f) {
-                                final label =
-                                    _isArabic
-                                        ? f['nom_prenom_ar']
-                                        : f['nom_prenom_fr'];
+                                final label = _isArabic
+                                    ? f['nom_prenom_ar']
+                                    : f['nom_prenom_fr'];
                                 return DropdownMenuItem<int>(
                                   value: f['id'],
                                   child: Text(label ?? ''),
                                 );
                               }),
                             ],
-                            onChanged:
-                                (value) => setState(
-                                  () => _selectedFormateurId = value as int?,
-                                ),
+                            onChanged: (value) => setState(
+                              () => _selectedFormateurId = value as int?,
+                            ),
                             required: false,
                             isArabic: _isArabic,
                           ),
@@ -731,8 +751,9 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
                       // SECTION 3: Détails de la durée
                       _buildSection(
                         icon: Icons.timer_outlined,
-                        title:
-                            _isArabic ? 'تفاصيل المدة' : 'Détails de la durée',
+                        title: _isArabic
+                            ? 'تفاصيل المدة'
+                            : 'Détails de la durée',
                         children: [
                           Row(
                             children: [
@@ -790,13 +811,12 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
                             children: [
                               Expanded(
                                 child: _buildDateField(
-                                  label:
-                                      _isArabic
-                                          ? 'تاريخ البداية *'
-                                          : 'Date de début *',
+                                  label: _isArabic
+                                      ? 'تاريخ البداية *'
+                                      : 'Date de début *',
                                   controller: _dateDebutController,
-                                  onTap:
-                                      () => _selectDate(_dateDebutController),
+                                  onTap: () =>
+                                      _selectDate(_dateDebutController),
                                   required: true,
                                   isArabic: _isArabic,
                                 ),
@@ -804,12 +824,12 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: _buildDateField(
-                                  label:
-                                      _isArabic
-                                          ? 'تاريخ النهاية *'
-                                          : 'Date de fin *',
+                                  label: _isArabic
+                                      ? 'تاريخ النهاية *'
+                                      : 'Date de fin *',
                                   controller: _dateFinController,
-                                  onTap: () => _selectDate(_dateFinController),
+                                  onTap: () =>
+                                      _selectDate(_dateFinController),
                                   required: true,
                                   isArabic: _isArabic,
                                 ),
@@ -827,29 +847,25 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
                         title: _isArabic ? 'الوصف' : 'Description',
                         children: [
                           _buildField(
-                            label:
-                                _isArabic
-                                    ? 'الوصف (بالفرنسية) *'
-                                    : 'Description (Français) *',
+                            label: _isArabic
+                                ? 'الوصف (بالفرنسية) *'
+                                : 'Description (Français) *',
                             controller: _descriptionFrController,
-                            hint:
-                                _isArabic
-                                    ? 'وصف تفصيلي'
-                                    : 'Description détaillée',
+                            hint: _isArabic
+                                ? 'وصف تفصيلي'
+                                : 'Description détaillée',
                             required: true,
                             maxLines: 3,
                           ),
                           const SizedBox(height: 16),
                           _buildField(
-                            label:
-                                _isArabic
-                                    ? 'الوصف (بالعربية) *'
-                                    : 'Description (Arabe) *',
+                            label: _isArabic
+                                ? 'الوصف (بالعربية) *'
+                                : 'Description (Arabe) *',
                             controller: _descriptionArController,
-                            hint:
-                                _isArabic
-                                    ? 'وصف تفصيلي'
-                                    : 'Description détaillée',
+                            hint: _isArabic
+                                ? 'وصف تفصيلي'
+                                : 'Description détaillée',
                             required: true,
                             maxLines: 3,
                             textDirection: TextDirection.rtl,
@@ -864,9 +880,10 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
                         icon: Icons.payments_outlined,
                         title: _isArabic ? 'السعر والجمهور' : 'Prix et Cible',
                         children: [
-                          // ✅ DROPDOWN POUR LA CIBLE
                           _buildDropdownField(
-                            label: _isArabic ? 'الجمهور المستهدف *' : 'Cible *',
+                            label: _isArabic
+                                ? 'الجمهور المستهدف *'
+                                : 'Cible *',
                             value: _selectedCibleId,
                             items: [
                               const DropdownMenuItem<int>(
@@ -883,16 +900,14 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
                                 );
                               }),
                             ],
-                            onChanged:
-                                (value) => setState(
-                                  () => _selectedCibleId = value as int?,
-                                ),
+                            onChanged: (value) => setState(
+                              () => _selectedCibleId = value as int?,
+                            ),
                             required: true,
                             isArabic: _isArabic,
                           ),
                           const SizedBox(height: 16),
 
-                          // ✅ PRIX DT
                           _buildField(
                             label: _isArabic ? 'السعر (DT) *' : 'Prix (DT) *',
                             controller: _priceDtController,
@@ -903,7 +918,6 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
                           ),
                           const SizedBox(height: 12),
 
-                          // ✅ PRIX EURO
                           _buildField(
                             label: _isArabic ? 'السعر (€) *' : 'Prix (€) *',
                             controller: _priceEurController,
@@ -914,7 +928,6 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
                           ),
                           const SizedBox(height: 12),
 
-                          // ✅ PRIX USD - AVEC ÉCHAPPEMENT DU $
                           _buildField(
                             label: _isArabic ? 'السعر (\$) *' : 'Prix (\$) *',
                             controller: _priceUsdController,
@@ -931,7 +944,51 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
 
                       const Divider(height: 32, color: grey200),
 
-                      // ==================== SECTION 8: IMAGE ====================
+                      // ==================== SECTION 8: TYPES DE PAIEMENT ====================
+                      _buildSection(
+                        icon: Icons.payment_rounded,
+                        title: _isArabic
+                            ? 'أنواع الدفع المسموحة'
+                            : 'Types de paiement autorisés',
+                        children: [_buildTypesPaiementSection()],
+                      ),
+
+                      const Divider(height: 32, color: grey200),
+
+                      // ==================== SECTION 9: LIEN EXTERNE ====================
+                      _buildSection(
+                        icon: Icons.link_rounded,
+                        title: _isArabic
+                            ? 'الرابط الخارجي'
+                            : 'Lien externe',
+                        children: [
+                          _buildField(
+                            label: _isArabic
+                                ? 'الرابط (اختياري)'
+                                : 'Lien (optionnel)',
+                            controller: _lienController,
+                            hint: _isArabic
+                                ? 'مثال: https://wa.me/21612345678'
+                                : 'Ex: https://wa.me/21612345678',
+                            prefixIcon: Icons.link_rounded,
+                            textDirection: TextDirection.ltr,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            _isArabic
+                                ? '📌 يمكنك إضافة رابط لمجموعة WhatsApp أو Telegram أو أي رابط خارجي (حقل اختياري)'
+                                : '📌 Vous pouvez ajouter un lien WhatsApp, Telegram ou autre (champ optionnel)',
+                            style: GoogleFonts.cairo(
+                              fontSize: 11,
+                              color: grey500,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const Divider(height: 32, color: grey200),
+
+                      // ==================== SECTION 10: IMAGE ====================
                       _buildImageSection(),
                     ],
                   ),
@@ -982,31 +1039,30 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
                         elevation: 4,
                         shadowColor: nafahatGreen.withOpacity(0.3),
                       ),
-                      child:
-                          _isLoading
-                              ? const SizedBox(
-                                height: 24,
-                                width: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                              : Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.check_circle_rounded, size: 18),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    _isArabic
-                                        ? 'إضافة التكوين'
-                                        : 'Ajouter la formation',
-                                    style: GoogleFonts.cairo(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
                               ),
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.check_circle_rounded, size: 18),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _isArabic
+                                      ? 'إضافة التكوين'
+                                      : 'Ajouter la formation',
+                                  style: GoogleFonts.cairo(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
                     ),
                   ),
                 ],
@@ -1018,10 +1074,276 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
     );
   }
 
+  // ==================== SECTION TYPES DE PAIEMENT ====================
+  Widget _buildTypesPaiementSection() {
+    final configs = {
+      'formation': {
+        'icon': '🎓',
+        'labelFr': 'Paiement complet',
+        'labelAr': 'دفع كامل',
+        'descFr': 'Payer le montant total en une fois',
+        'descAr': 'دفع المبلغ الإجمالي مرة واحدة',
+      },
+      'mois': {
+        'icon': '📅',
+        'labelFr': 'Paiement mensuel',
+        'labelAr': 'دفع شهري',
+        'descFr': 'Réparti sur plusieurs mois',
+        'descAr': 'مقسم على عدة أشهر',
+      },
+      'semaine': {
+        'icon': '📆',
+        'labelFr': 'Paiement hebdomadaire',
+        'labelAr': 'دفع أسبوعي',
+        'descFr': 'Réparti sur plusieurs semaines',
+        'descAr': 'مقسم على عدة أسابيع',
+      },
+      'trimestre': {
+        'icon': '📊',
+        'labelFr': 'Paiement trimestriel',
+        'labelAr': 'دفع ربع سنوي',
+        'descFr': 'Réparti sur plusieurs trimestres',
+        'descAr': 'مقسم على عدة أرباع',
+      },
+      'annee': {
+        'icon': '🗓️',
+        'labelFr': 'Paiement annuel',
+        'labelAr': 'دفع سنوي',
+        'descFr': 'Réparti sur plusieurs années',
+        'descAr': 'مقسم على عدة سنوات',
+      },
+      'seance': {
+        'icon': '🎯',
+        'labelFr': 'Paiement par séance',
+        'labelAr': 'دفع بالحصة',
+        'descFr': 'Prix total ÷ nombre de séances',
+        'descAr': 'السعر الإجمالي ÷ عدد الحصص',
+      },
+      'heure': {
+        'icon': '⏰',
+        'labelFr': 'Paiement par heure',
+        'labelAr': 'دفع بالساعة',
+        'descFr': 'Prix total ÷ nombre d\'heures',
+        'descAr': 'السعر الإجمالي ÷ عدد الساعات',
+      },
+    };
+
+    final nbrHeur = int.tryParse(_nbrHeurController.text) ?? 0;
+    final nbrSeance = int.tryParse(_nbrSeanceController.text) ?? 0;
+    final prixDt = double.tryParse(_priceDtController.text) ?? 0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: nafahatGreen.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: nafahatGreen.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline,
+                    color: Colors.blue.shade700, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _isArabic
+                        ? 'اختر أنواع الدفع التي يمكن للطالب استخدامها لهذه الدورة'
+                        : 'Sélectionnez les types de paiement que l\'étudiant peut utiliser',
+                    style: GoogleFonts.cairo(
+                      fontSize: 12,
+                      color: Colors.blue.shade800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          ...configs.entries.map((entry) {
+            final type = entry.key;
+            final config = entry.value;
+            final isSelected = _typesPaiementAutorises[type] ?? false;
+
+            bool isAvailable = true;
+            String? unavailableReason;
+
+            if (type == 'seance' && nbrSeance <= 0) {
+              isAvailable = false;
+              unavailableReason = _isArabic
+                  ? 'املأ عدد الحصص أولاً'
+                  : 'Remplir le nombre de séances';
+            } else if (type == 'heure' && nbrHeur <= 0) {
+              isAvailable = false;
+              unavailableReason = _isArabic
+                  ? 'املأ عدد الساعات أولاً'
+                  : 'Remplir le nombre d\'heures';
+            }
+
+            String? montantAffiche;
+            if (isAvailable && prixDt > 0) {
+              switch (type) {
+                case 'seance':
+                  if (nbrSeance > 0) {
+                    final montant = prixDt / nbrSeance;
+                    montantAffiche =
+                        '${montant.toStringAsFixed(0)} DT × $nbrSeance';
+                  }
+                  break;
+                case 'heure':
+                  if (nbrHeur > 0) {
+                    final montant = prixDt / nbrHeur;
+                    montantAffiche =
+                        '${montant.toStringAsFixed(0)} DT × $nbrHeur';
+                  }
+                  break;
+              }
+            }
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Opacity(
+                opacity: isAvailable ? 1.0 : 0.5,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? nafahatGreen.withOpacity(0.08)
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected ? nafahatGreen : grey300,
+                      width: isSelected ? 2 : 1,
+                    ),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: isAvailable
+                          ? () {
+                              setState(() {
+                                _typesPaiementAutorises[type] = !isSelected;
+                              });
+                            }
+                          : null,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 24,
+                              height: 24,
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? nafahatGreen
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color:
+                                      isSelected ? nafahatGreen : grey400,
+                                  width: 2,
+                                ),
+                              ),
+                              child: isSelected
+                                  ? const Icon(
+                                      Icons.check,
+                                      color: Colors.white,
+                                      size: 16,
+                                    )
+                                  : null,
+                            ),
+                            const SizedBox(width: 12),
+
+                            Text(
+                              config['icon']!,
+                              style: const TextStyle(fontSize: 20),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _isArabic
+                                        ? config['labelAr']!
+                                        : config['labelFr']!,
+                                    style: GoogleFonts.cairo(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: isAvailable
+                                          ? Colors.black87
+                                          : grey500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    isAvailable
+                                        ? (_isArabic
+                                            ? config['descAr']!
+                                            : config['descFr']!)
+                                        : unavailableReason!,
+                                    style: GoogleFonts.cairo(
+                                      fontSize: 11,
+                                      color: isAvailable
+                                          ? grey600
+                                          : Colors.orange.shade700,
+                                      fontStyle: isAvailable
+                                          ? FontStyle.normal
+                                          : FontStyle.italic,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            if (montantAffiche != null) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: nafahatOrange.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  montantAffiche,
+                                  style: GoogleFonts.cairo(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: nafahatOrange,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
   // ==================== SECTION IMAGE ====================
   Widget _buildImageSection() {
-    final bool hasImage =
-        _imageBytes != null ||
+    final bool hasImage = _imageBytes != null ||
         (_imageUrlController.text.isNotEmpty && _uploadedImageUrl != null);
 
     return _buildSection(
@@ -1031,22 +1353,19 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            // Champ URL
             Expanded(
               flex: 3,
               child: _buildField(
                 label: _isArabic ? 'رابط الصورة' : 'URL de l\'image',
                 controller: _imageUrlController,
-                hint:
-                    _isArabic
-                        ? 'URL ou sélectionnez une image'
-                        : 'URL ou sélectionnez une image',
+                hint: _isArabic
+                    ? 'URL ou sélectionnez une image'
+                    : 'URL ou sélectionnez une image',
                 prefixIcon: Icons.link_rounded,
                 readOnly: true,
               ),
             ),
             const SizedBox(width: 12),
-            // Bouton Parcourir
             Expanded(
               flex: 1,
               child: Column(
@@ -1066,17 +1385,16 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
                       minimumSize: const Size(double.infinity, 40),
                       textStyle: GoogleFonts.cairo(fontSize: 12),
                     ),
-                    icon:
-                        _isUploadingImage
-                            ? const SizedBox(
-                              height: 16,
-                              width: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                            : const Icon(Icons.folder_open_rounded, size: 16),
+                    icon: _isUploadingImage
+                        ? const SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.folder_open_rounded, size: 16),
                     label: Text(
                       _isUploadingImage
                           ? (_isArabic ? 'جاري...' : 'Chargement...')
@@ -1089,7 +1407,6 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
           ],
         ),
 
-        // Aperçu de l'image
         if (hasImage) ...[
           const SizedBox(height: 16),
           Container(
@@ -1103,7 +1420,6 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
               child: _getImagePreview(),
             ),
           ),
-          // Bouton Supprimer
           const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerRight,
@@ -1131,10 +1447,7 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
     );
   }
 
-  // ==================== APERÇU DE L'IMAGE ====================
   Widget _getImagePreview() {
-    // ✅ Image.memory fonctionne identiquement sur Web et Mobile,
-    // plus besoin de distinguer File (dart:io) / html.File (dart:html)
     if (_imageBytes != null) {
       return Image.memory(
         _imageBytes!,
@@ -1163,7 +1476,6 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
       );
     }
 
-    // URL distante
     if (_uploadedImageUrl != null && _uploadedImageUrl!.isNotEmpty) {
       return Image.network(
         _uploadedImageUrl!,
@@ -1177,11 +1489,10 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
             color: grey100,
             child: Center(
               child: CircularProgressIndicator(
-                value:
-                    loadingProgress.expectedTotalBytes != null
-                        ? loadingProgress.cumulativeBytesLoaded /
-                            loadingProgress.expectedTotalBytes!
-                        : null,
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded /
+                        loadingProgress.expectedTotalBytes!
+                    : null,
                 color: nafahatGreen,
               ),
             ),
@@ -1365,50 +1676,48 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
               child: Wrap(
                 spacing: 10,
                 runSpacing: 10,
-                children:
-                    _joursSemaine.keys.map((key) {
-                      final label = _isArabic ? _joursAr[key] : _joursFr[key];
-                      final isSelected = _joursSemaine[key]!;
-                      return ChoiceChip(
-                        label: Text(
-                          label ?? key,
-                          style: GoogleFonts.cairo(
-                            fontSize: 13,
-                            fontWeight:
-                                isSelected ? FontWeight.w600 : FontWeight.w400,
-                            color: isSelected ? Colors.white : nafahatGreen,
-                          ),
-                        ),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          setState(() {
-                            _joursSemaine[key] = selected;
-                          });
-                        },
-                        selectedColor: nafahatGreen,
-                        backgroundColor: Colors.white,
-                        side: BorderSide(
-                          color: isSelected ? nafahatGreen : grey300,
-                          width: 1.5,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        labelStyle: GoogleFonts.cairo(),
-                        avatar:
-                            isSelected
-                                ? const Icon(
-                                  Icons.check_circle_rounded,
-                                  color: Colors.white,
-                                  size: 16,
-                                )
-                                : null,
-                      );
-                    }).toList(),
+                children: _joursSemaine.keys.map((key) {
+                  final label = _isArabic ? _joursAr[key] : _joursFr[key];
+                  final isSelected = _joursSemaine[key]!;
+                  return ChoiceChip(
+                    label: Text(
+                      label ?? key,
+                      style: GoogleFonts.cairo(
+                        fontSize: 13,
+                        fontWeight:
+                            isSelected ? FontWeight.w600 : FontWeight.w400,
+                        color: isSelected ? Colors.white : nafahatGreen,
+                      ),
+                    ),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      setState(() {
+                        _joursSemaine[key] = selected;
+                      });
+                    },
+                    selectedColor: nafahatGreen,
+                    backgroundColor: Colors.white,
+                    side: BorderSide(
+                      color: isSelected ? nafahatGreen : grey300,
+                      width: 1.5,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    labelStyle: GoogleFonts.cairo(),
+                    avatar: isSelected
+                        ? const Icon(
+                            Icons.check_circle_rounded,
+                            color: Colors.white,
+                            size: 16,
+                          )
+                        : null,
+                  );
+                }).toList(),
               ),
             ),
           ],
@@ -1475,17 +1784,15 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
                       const SizedBox(height: 8),
                       SegmentedButton<bool>(
                         style: ButtonStyle(
-                          backgroundColor: WidgetStateProperty.resolveWith((
-                            states,
-                          ) {
+                          backgroundColor:
+                              WidgetStateProperty.resolveWith((states) {
                             if (states.contains(WidgetState.selected)) {
                               return nafahatOrange.withOpacity(0.15);
                             }
                             return grey100;
                           }),
-                          foregroundColor: WidgetStateProperty.resolveWith((
-                            states,
-                          ) {
+                          foregroundColor:
+                              WidgetStateProperty.resolveWith((states) {
                             if (states.contains(WidgetState.selected)) {
                               return nafahatOrange;
                             }
@@ -1523,18 +1830,16 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: _buildField(
-                    label:
-                        _isPercentageDiscount
-                            ? (_isArabic ? 'نسبة الخصم (%)' : 'Valeur (%)')
-                            : (_isArabic ? 'قيمة الخصم (درهم)' : 'Valeur (DH)'),
+                    label: _isPercentageDiscount
+                        ? (_isArabic ? 'نسبة الخصم (%)' : 'Valeur (%)')
+                        : (_isArabic ? 'قيمة الخصم (درهم)' : 'Valeur (DH)'),
                     controller: _discountValueController,
                     hint: _isPercentageDiscount ? '15' : '2000',
                     required: _hasDiscount,
                     keyboardType: TextInputType.number,
-                    prefixIcon:
-                        _isPercentageDiscount
-                            ? Icons.percent_rounded
-                            : Icons.money_rounded,
+                    prefixIcon: _isPercentageDiscount
+                        ? Icons.percent_rounded
+                        : Icons.money_rounded,
                   ),
                 ),
               ],
@@ -1595,14 +1900,13 @@ class _AddTrainingCardPageState extends State<AddTrainingCardPage> {
             hintStyle: GoogleFonts.cairo(color: grey400),
             filled: true,
             fillColor: readOnly ? grey100 : Colors.white,
-            prefixIcon:
-                prefixIcon != null
-                    ? Icon(
-                      prefixIcon,
-                      color: nafahatGreen.withOpacity(0.6),
-                      size: 20,
-                    )
-                    : null,
+            prefixIcon: prefixIcon != null
+                ? Icon(
+                    prefixIcon,
+                    color: nafahatGreen.withOpacity(0.6),
+                    size: 20,
+                  )
+                : null,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 14,
               vertical: 14,

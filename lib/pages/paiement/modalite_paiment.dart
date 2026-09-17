@@ -1,5 +1,7 @@
 // lib/pages/paiement/modalite_paiment.dart
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io';
@@ -37,12 +39,26 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
 
   bool _isArabic = true;
   String? _selectedPaymentMethod;
-  String? _selectedPaymentType; // 'mois' ou 'formation'
+  String? _selectedPaymentType;
 
+  // Données de la formation
   double _montantTotal = 0.0;
   DateTime? _dateDebut;
   DateTime? _dateFin;
-  int _nombreMois = 1;
+
+  // ✅ NOUVEAU : Compteurs de la formation
+  int _nbrHeur = 0;
+  int _nbrSeance = 0;
+  int _nbrJour = 0;
+
+  // ✅ NOUVEAU : Types de paiement autorisés pour cette formation
+  List<String> _typesPaiementAutorises = ['formation'];
+
+  // ✅ Types de paiement avec config (filtrés selon la formation)
+  List<Map<String, dynamic>> _paymentTypes = [];
+
+  // Nombre de périodes selon le type sélectionné
+  int _nombrePeriodes = 1;
 
   Uint8List? _selectedFileBytes;
   File? _selectedFile;
@@ -57,22 +73,74 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
   static const Color primaryColorLight = Color(0xff1a6b60);
 
   // ============================================================
+  // CONFIGURATION DES 7 TYPES DE PAIEMENT
+  // ============================================================
+  
+  static const Map<String, Map<String, dynamic>> _allTypeConfigs = {
+    'formation': {
+      'icon': '🎓',
+      'labelFr': 'Paiement complet',
+      'labelAr': 'دفع كامل',
+      'isPeriodic': false,
+    },
+    'mois': {
+      'icon': '📅',
+      'labelFr': 'Paiement mensuel',
+      'labelAr': 'دفع شهري',
+      'isPeriodic': true,
+    },
+    'semaine': {
+      'icon': '📆',
+      'labelFr': 'Paiement hebdomadaire',
+      'labelAr': 'دفع أسبوعي',
+      'isPeriodic': true,
+    },
+    'trimestre': {
+      'icon': '📊',
+      'labelFr': 'Paiement trimestriel',
+      'labelAr': 'دفع ربع سنوي',
+      'isPeriodic': true,
+    },
+    'annee': {
+      'icon': '🗓️',
+      'labelFr': 'Paiement annuel',
+      'labelAr': 'دفع سنوي',
+      'isPeriodic': true,
+    },
+    'seance': {
+      'icon': '🎯',
+      'labelFr': 'Paiement par séance',
+      'labelAr': 'دفع بالحصة',
+      'isPeriodic': true,
+    },
+    'heure': {
+      'icon': '⏰',
+      'labelFr': 'Paiement par heure',
+      'labelAr': 'دفع بالساعة',
+      'isPeriodic': true,
+    },
+  };
+
+  // ============================================================
   // GETTERS CALCULÉS
   // ============================================================
 
-  double get _montantAPayer {
-    final double total = _montantTotal;
-    if (_selectedPaymentType == 'mois' && _nombreMois > 0) {
-      return total / _nombreMois;
-    }
-    return total;
+  Map<String, dynamic>? get _currentTypeConfig {
+    if (_selectedPaymentType == null) return null;
+    return _allTypeConfigs[_selectedPaymentType];
   }
 
-  double get _montantMensuelCalcule {
-    if (_nombreMois > 0) {
-      return _montantTotal / _nombreMois;
+  bool get _isPeriodic {
+    final config = _currentTypeConfig;
+    return config?['isPeriodic'] == true;
+  }
+
+  double get _montantAPayer {
+    final total = _montantTotal;
+    if (_isPeriodic && _nombrePeriodes > 0) {
+      return total / _nombrePeriodes;
     }
-    return 0.0;
+    return total;
   }
 
   bool get _canSubmit =>
@@ -88,10 +156,8 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
   void initState() {
     super.initState();
     _loadLanguage();
-    _loadFormationData();
-    print(
-      '🔵 [ModalitePaiment] Page initialisée - paymentId: ${widget.paymentId}, formationId: ${widget.formationId}',
-    );
+    _loadData();
+    print('🔵 [ModalitePaiment] Page initialisée - paymentId: ${widget.paymentId}');
   }
 
   Future<void> _loadLanguage() async {
@@ -108,17 +174,74 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
     }
   }
 
-  // ============================================================
-  // CHARGEMENT DES DONNÉES DE LA FORMATION
-  // ============================================================
-
-  Future<void> _loadFormationData() async {
+  /// ✅ Charger d'abord la formation (récupère les types autorisés)
+  /// puis filtrer les types de paiement disponibles
+  Future<void> _loadData() async {
     try {
       setState(() {
         _isLoading = true;
         _errorMessage = null;
       });
 
+      // ÉTAPE 1 : Charger la formation (pour avoir les types autorisés)
+      await _loadFormationData();
+
+      // ÉTAPE 2 : Construire les types filtrés
+      _buildFilteredPaymentTypes();
+    } catch (e) {
+      print('❌ [ModalitePaiment] Erreur chargement: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  // ============================================================
+  // ✅ CONSTRUCTION DES TYPES FILTRÉS
+  // ============================================================
+
+  void _buildFilteredPaymentTypes() {
+    final List<Map<String, dynamic>> filtered = [];
+
+    for (final typeKey in _typesPaiementAutorises) {
+      final config = _allTypeConfigs[typeKey];
+      if (config == null) continue;
+
+      // ✅ Vérifier que le type est cohérent (ex: séance nécessite nbr_seance > 0)
+      if (typeKey == 'seance' && _nbrSeance <= 0) continue;
+      if (typeKey == 'heure' && _nbrHeur <= 0) continue;
+
+      filtered.add({
+        'value': typeKey,
+        ...config,
+      });
+    }
+
+    // ✅ Sécurité : au moins "formation" disponible
+    if (filtered.isEmpty) {
+      filtered.add({
+        'value': 'formation',
+        ..._allTypeConfigs['formation']!,
+      });
+    }
+
+    if (mounted) {
+      setState(() {
+        _paymentTypes = filtered;
+      });
+    }
+
+    print('✅ [ModalitePaiment] ${filtered.length} types disponibles: '
+        '${filtered.map((e) => e['value']).join(', ')}');
+  }
+
+  // ============================================================
+  // CHARGEMENT DES DONNÉES DE LA FORMATION
+  // ============================================================
+
+  Future<void> _loadFormationData() async {
+    try {
       if (widget.montantTotal != null && widget.montantTotal! > 0) {
         setState(() {
           _montantTotal = widget.montantTotal!.toDouble();
@@ -139,10 +262,15 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
           final DateTime? dateDebut = _parseDate(formationData['date_debut']);
           final DateTime? dateFin = _parseDate(formationData['date_fin']);
 
-          int nombreMois = 1;
-          if (dateDebut != null && dateFin != null) {
-            nombreMois = _calculerNombreMois(dateDebut, dateFin);
-          }
+          // ✅ Récupérer les compteurs
+          final int nbrHeur = _toInt(formationData['nbr_heur']);
+          final int nbrSeance = _toInt(formationData['nbr_seance']);
+          final int nbrJour = _toInt(formationData['nbr_jour']);
+
+          // ✅ Récupérer les types autorisés
+          final List<String> typesAutorises = _parseTypesPaiement(
+            formationData['types_paiement_autorises'],
+          );
 
           if (mounted) {
             setState(() {
@@ -151,22 +279,24 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
               }
               _dateDebut = dateDebut;
               _dateFin = dateFin;
-              _nombreMois = nombreMois;
+              _nbrHeur = nbrHeur;
+              _nbrSeance = nbrSeance;
+              _nbrJour = nbrJour;
+              _typesPaiementAutorises = typesAutorises;
             });
           }
 
           print('✅ [ModalitePaiment] Montant: $_montantTotal');
           print('✅ [ModalitePaiment] Période: $_dateDebut → $_dateFin');
-          print('✅ [ModalitePaiment] Nombre de mois: $_nombreMois');
-        } else {
-          print('⚠️ [ModalitePaiment] Formation non trouvée');
+          print('✅ [ModalitePaiment] Heures: $_nbrHeur, Séances: $_nbrSeance');
+          print('✅ [ModalitePaiment] Types autorisés: $_typesPaiementAutorises');
         }
       }
 
+      // Fallback via paymentId
       if (_montantTotal == 0 &&
           widget.paymentId != null &&
           widget.paymentId!.isNotEmpty) {
-        print('🔵 [ModalitePaiment] Fallback: chargement depuis paymentId');
         final payment = await PaymentService.getPaymentById(widget.paymentId!);
         if (payment != null) {
           final double? montantFromPayment = _extractMontant(payment);
@@ -181,19 +311,6 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
       }
     } catch (e) {
       print('❌ [ModalitePaiment] Erreur chargement formation: $e');
-      if (mounted) {
-        setState(() {
-          _errorMessage = _isArabic
-              ? '⚠️ تعذر تحميل بيانات التكوين'
-              : '⚠️ Impossible de charger les données de la formation';
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
     }
   }
 
@@ -237,16 +354,162 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
     }
   }
 
-  int _calculerNombreMois(DateTime debut, DateTime fin) {
-    if (fin.isBefore(debut)) return 1;
+  int _toInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value.trim()) ?? 0;
+    return 0;
+  }
 
-    int mois = (fin.year - debut.year) * 12 + (fin.month - debut.month);
+  /// ✅ Parser les types de paiement autorisés
+  List<String> _parseTypesPaiement(dynamic rawValue) {
+    const defaultTypes = ['formation'];
 
-    if (fin.day >= debut.day) {
-      mois += 1;
+    if (rawValue == null) return defaultTypes;
+
+    // Cas 1 : List
+    if (rawValue is List) {
+      final result = rawValue
+          .map((e) => e.toString().trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+      return result.isEmpty ? defaultTypes : result;
     }
 
+    // Cas 2 : String JSON
+    if (rawValue is String && rawValue.isNotEmpty) {
+      try {
+        final parsed = jsonDecode(rawValue);
+        if (parsed is List) {
+          final result = parsed
+              .map((e) => e.toString().trim())
+              .where((e) => e.isNotEmpty)
+              .toList();
+          return result.isEmpty ? defaultTypes : result;
+        }
+      } catch (e) {
+        return [rawValue];
+      }
+    }
+
+    return defaultTypes;
+  }
+
+  // ============================================================
+  // ✅ CALCUL DU NOMBRE DE PÉRIODES
+  // ============================================================
+
+  int _calculerNombrePeriodes(String type) {
+    switch (type) {
+      case 'seance':
+        // ✅ Utiliser nbr_seance de la formation
+        return _nbrSeance > 0 ? _nbrSeance : 1;
+
+      case 'heure':
+        // ✅ Utiliser nbr_heur de la formation
+        return _nbrHeur > 0 ? _nbrHeur : 1;
+
+      case 'mois':
+        return _calculerNombreMois();
+
+      case 'semaine':
+        return _calculerNombreSemaines();
+
+      case 'trimestre':
+        return _calculerNombreTrimestres();
+
+      case 'annee':
+        return _calculerNombreAnnees();
+
+      default:
+        return 1;
+    }
+  }
+
+  int _calculerNombreMois() {
+    if (_dateDebut == null || _dateFin == null) return 1;
+    final debut = _dateDebut!;
+    final fin = _dateFin!;
+    if (fin.isBefore(debut)) return 1;
+    int mois = (fin.year - debut.year) * 12 + (fin.month - debut.month);
+    if (fin.day >= debut.day) mois += 1;
     return mois > 0 ? mois : 1;
+  }
+
+  int _calculerNombreSemaines() {
+    if (_dateDebut == null || _dateFin == null) return 1;
+    final debut = _dateDebut!;
+    final fin = _dateFin!;
+    if (fin.isBefore(debut)) return 1;
+    final jours = fin.difference(debut).inDays + 1;
+    final semaines = (jours / 7).ceil();
+    return semaines > 0 ? semaines : 1;
+  }
+
+  int _calculerNombreTrimestres() {
+    final mois = _calculerNombreMois();
+    final trimestres = (mois / 3).ceil();
+    return trimestres > 0 ? trimestres : 1;
+  }
+
+  int _calculerNombreAnnees() {
+    if (_dateDebut == null || _dateFin == null) return 1;
+    final debut = _dateDebut!;
+    final fin = _dateFin!;
+    int annees = fin.year - debut.year;
+    if (fin.month > debut.month ||
+        (fin.month == debut.month && fin.day >= debut.day)) {
+      annees += 1;
+    }
+    return annees > 0 ? annees : 1;
+  }
+
+  /// Libellé du nombre de périodes selon le type
+  String _getPeriodeLabel(int nombre, String type) {
+    if (_isArabic) {
+      switch (type) {
+        case 'mois':
+          return nombre > 1 ? '$nombre أشهر' : 'شهر';
+        case 'semaine':
+          return nombre > 1 ? '$nombre أسابيع' : 'أسبوع';
+        case 'trimestre':
+          return nombre > 1 ? '$nombre أرباع' : 'ربع';
+        case 'annee':
+          return nombre > 1 ? '$nombre سنوات' : 'سنة';
+        case 'seance':
+          return nombre > 1 ? '$nombre حصص' : 'حصة';
+        case 'heure':
+          return nombre > 1 ? '$nombre ساعات' : 'ساعة';
+        default:
+          return '';
+      }
+    } else {
+      switch (type) {
+        case 'mois':
+          return nombre > 1 ? '$nombre mois' : 'mois';
+        case 'semaine':
+          return nombre > 1 ? '$nombre semaines' : 'semaine';
+        case 'trimestre':
+          return nombre > 1 ? '$nombre trimestres' : 'trimestre';
+        case 'annee':
+          return nombre > 1 ? '$nombre années' : 'année';
+        case 'seance':
+          return nombre > 1 ? '$nombre séances' : 'séance';
+        case 'heure':
+          return nombre > 1 ? '$nombre heures' : 'heure';
+        default:
+          return '';
+      }
+    }
+  }
+
+  /// Symbole de la devise
+  String _getCurrencySymbol() {
+    final currency = (widget.currency ?? 'DT').toUpperCase();
+    if (currency.contains('EUR') || currency.contains('€')) return '€';
+    if (currency.contains('USD') || currency.contains('\$')) return '\$';
+    return 'DT';
   }
 
   // ============================================================
@@ -262,18 +525,12 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
 
   Future<void> _pickFileWeb(String method) async {
     try {
-      print('🔵 [FilePicker-Web] Sélection de fichier pour: $method');
-
       final input = html.FileUploadInputElement()
         ..accept = '.pdf,.jpg,.jpeg,.png,.doc,.docx';
       input.click();
 
       await input.onChange.first;
-
-      if (input.files == null || input.files!.isEmpty) {
-        print('ℹ️ [FilePicker-Web] Sélection annulée');
-        return;
-      }
+      if (input.files == null || input.files!.isEmpty) return;
 
       final file = input.files!.first;
       final ext = file.name.split('.').last.toLowerCase();
@@ -281,9 +538,7 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
 
       if (!allowedExtensions.contains(ext)) {
         throw Exception(
-          _isArabic
-              ? '⚠️ صيغة الملف غير مقبولة'
-              : '⚠️ Format de fichier non accepté',
+          _isArabic ? '⚠️ صيغة الملف غير مقبولة' : '⚠️ Format non accepté',
         );
       }
 
@@ -295,9 +550,7 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
 
       if (bytes.length > 5 * 1024 * 1024) {
         throw Exception(
-          _isArabic
-              ? '⚠️ الملف كبير جداً (الحد الأقصى 5 ميجابايت)'
-              : '⚠️ Fichier trop volumineux (max 5MB)',
+          _isArabic ? '⚠️ الملف كبير جداً' : '⚠️ Fichier trop volumineux',
         );
       }
 
@@ -309,10 +562,8 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
         _errorMessage = null;
       });
 
-      print('✅ [FilePicker-Web] ${file.name} (${bytes.length} bytes)');
       _showFileSelectedSnackBar();
     } catch (e) {
-      print('❌ [FilePicker-Web] Erreur: $e');
       _handleFilePickError(e);
     }
   }
@@ -321,8 +572,8 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
     _handleFilePickError(
       Exception(
         _isArabic
-            ? '⚠️ هذه الميزة غير متوفرة على هذه المنصة'
-            : '⚠️ Cette fonctionnalité n\'est pas disponible sur cette plateforme',
+            ? '⚠️ Cette fonctionnalité n\'est pas disponible'
+            : '⚠️ Cette fonctionnalité n\'est pas disponible',
       ),
     );
   }
@@ -331,9 +582,7 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          _isArabic
-              ? '✅ تم اختيار الملف بنجاح'
-              : '✅ Fichier sélectionné avec succès',
+          _isArabic ? '✅ تم اختيار الملف' : '✅ Fichier sélectionné',
           style: GoogleFonts.cairo(),
         ),
         backgroundColor: Colors.green,
@@ -349,37 +598,25 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
       _selectedFileName = null;
       _errorMessage = e.toString();
     });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          _isArabic ? '❌ خطأ: ${e.toString()}' : '❌ Erreur: ${e.toString()}',
-          style: GoogleFonts.cairo(),
-        ),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 3),
-      ),
-    );
   }
 
   bool _hasFile() {
     if (kIsWeb) {
       return _selectedFileBytes != null && _selectedFileName != null;
-    } else {
-      return _selectedFile != null && _selectedFileName != null;
     }
+    return _selectedFile != null && _selectedFileName != null;
   }
 
   // ============================================================
-  // ✅ SOUMISSION DU PAIEMENT (avec type de paiement)
+  // SOUMISSION DU PAIEMENT
   // ============================================================
 
   Future<void> _submitPayment() async {
     if (_selectedPaymentType == null) {
       setState(() {
         _errorMessage = _isArabic
-            ? '⚠️ الرجاء اختيار نوع الدفع (شهري أو كامل)'
-            : '⚠️ Veuillez sélectionner un type de paiement';
+            ? '⚠️ الرجاء اختيار نوع الدفع'
+            : '⚠️ Veuillez sélectionner un type';
       });
       return;
     }
@@ -388,7 +625,7 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
       setState(() {
         _errorMessage = _isArabic
             ? '⚠️ الرجاء اختيار طريقة الدفع'
-            : '⚠️ Veuillez sélectionner un mode de paiement';
+            : '⚠️ Veuillez sélectionner un mode';
       });
       return;
     }
@@ -408,37 +645,32 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
     });
 
     try {
-      // ✅ Calcul du montant mensuel
-      final double montantMensuel = _selectedPaymentType == 'mois'
-          ? _montantMensuelCalcule
-          : 0.0;
+      final double montantParPeriode = _isPeriodic ? _montantAPayer : 0.0;
 
-      print('🔵 [ModalitePaiment] Envoi des données:');
+      print('🔵 [ModalitePaiment] Envoi:');
       print('   - Type: $_selectedPaymentType');
-      print('   - Modalité: $_selectedPaymentMethod');
+      print('   - Périodes: $_nombrePeriodes');
+      print('   - Montant/période: $montantParPeriode');
       print('   - Montant à payer: $_montantAPayer');
-      print('   - Nombre mois: $_nombreMois');
-      print('   - Montant mensuel: $montantMensuel');
 
-      // ✅ ÉTAPE 1 : Confirmer le paiement avec les nouvelles infos
+      // ✅ Envoi au backend
       final confirmResult = await PaymentService.confirmPayment(
         paymentId: widget.paymentId ?? '',
         modalite: _selectedPaymentMethod!,
-        typePaiement: _selectedPaymentType,                            // ✅
-        montantAPayer: _montantAPayer,                                 // ✅
-        nombreMois: _selectedPaymentType == 'mois' ? _nombreMois : 1,  // ✅
-        montantMensuel: _selectedPaymentType == 'mois'                 // ✅
-            ? montantMensuel
-            : null,
+        typePaiement: _selectedPaymentType,
+        montantAPayer: _montantAPayer,
+        nombreMois: _selectedPaymentType == 'mois' ? _nombrePeriodes : 1,
+        montantMensuel:
+            _selectedPaymentType == 'mois' ? montantParPeriode : null,
       );
 
       if (confirmResult['success'] != true) {
         throw Exception(confirmResult['message'] ?? 'Erreur de confirmation');
       }
 
-      print('✅ [ModalitePaiment] Paiement confirmé et enregistré en base');
+      print('✅ [ModalitePaiment] Paiement confirmé');
 
-      // ✅ ÉTAPE 2 : Upload de la quittance
+      // Upload de la quittance
       dynamic fileData = kIsWeb ? _selectedFileBytes : _selectedFile;
 
       final uploadResult = await PaymentService.uploadQuittance(
@@ -448,10 +680,8 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
       );
 
       if (uploadResult['success'] != true) {
-        throw Exception(uploadResult['message'] ?? 'Erreur lors de l\'upload');
+        throw Exception(uploadResult['message'] ?? 'Erreur upload');
       }
-
-      print('✅ [ModalitePaiment] Quittance uploadée avec succès');
 
       if (mounted) {
         _showSuccessDialog();
@@ -463,34 +693,47 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
           _isSubmitting = false;
           _errorMessage = e.toString();
         });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _isArabic
-                  ? '❌ خطأ: ${e.toString()}'
-                  : '❌ Erreur: ${e.toString()}',
-              style: GoogleFonts.cairo(),
-            ),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
       }
     }
   }
 
   // ============================================================
-  // WIDGET : SÉLECTION DU TYPE DE PAIEMENT
+  // WIDGET : SÉLECTION DU TYPE DE PAIEMENT (FILTRÉ)
   // ============================================================
 
   Widget _buildPaymentTypeSelector() {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
-    final double montantTotalDouble = _montantTotal;
-    final double montantMensuel = _montantMensuelCalcule;
-    final String symbol = _getCurrencySymbol();
+    // ✅ Si aucun type disponible
+    if (_paymentTypes.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade50,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.orange.shade200),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded,
+                color: Colors.orange.shade700, size: 28),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                _isArabic
+                    ? 'لا توجد أنواع دفع متاحة لهذه الدورة'
+                    : 'Aucun type de paiement disponible',
+                style: GoogleFonts.cairo(
+                  fontSize: 14,
+                  color: Colors.orange.shade800,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Container(
       padding: EdgeInsets.all(isMobile ? 16 : 20),
@@ -552,186 +795,160 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
           ),
           const SizedBox(height: 16),
 
-          _buildPaymentTypeOption(
-            type: 'mois',
-            title: _isArabic ? '📅 دفع شهري' : '📅 Paiement mensuel',
-            subtitle: _isArabic
-                ? 'تقسيم على $_nombreMois ${_nombreMois > 1 ? "أشهر" : "شهر"}'
-                : 'Réparti sur $_nombreMois mois',
-            montant: montantMensuel,
-            symbol: symbol,
-            isSelected: _selectedPaymentType == 'mois',
-            isRecommended: _nombreMois > 1,
-          ),
-
-          const SizedBox(height: 12),
-
-          _buildPaymentTypeOption(
-            type: 'formation',
-            title: _isArabic ? '🎓 دفع كامل التكوين' : '🎓 Paiement complet',
-            subtitle: _isArabic
-                ? 'دفع المبلغ الإجمالي مرة واحدة'
-                : 'Payer le montant total en une fois',
-            montant: montantTotalDouble,
-            symbol: symbol,
-            isSelected: _selectedPaymentType == 'formation',
-          ),
+          // ✅ Afficher les types filtrés
+          ..._paymentTypes.asMap().entries.map((entry) {
+            final index = entry.key;
+            final type = entry.value;
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: index < _paymentTypes.length - 1 ? 10 : 0,
+              ),
+              child: _buildPaymentTypeOption(type),
+            );
+          }),
         ],
       ),
     );
   }
 
-  Widget _buildPaymentTypeOption({
-    required String type,
-    required String title,
-    required String subtitle,
-    required double montant,
-    required String symbol,
-    required bool isSelected,
-    bool isRecommended = false,
-  }) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      decoration: BoxDecoration(
-        color: isSelected
-            ? primaryColor.withOpacity(0.05)
-            : Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isSelected ? primaryColor : Colors.grey.shade200,
-          width: isSelected ? 2 : 1,
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            setState(() {
-              _selectedPaymentType = type;
-              _errorMessage = null;
-            });
-          },
+  Widget _buildPaymentTypeOption(Map<String, dynamic> type) {
+    final value = type['value'] as String;
+    final icon = type['icon'] as String? ?? '💳';
+    final labelFr = type['labelFr'] as String? ?? value;
+    final labelAr = type['labelAr'] as String? ?? value;
+    final isPeriodic = type['isPeriodic'] == true;
+
+    final isSelected = _selectedPaymentType == value;
+    final symbol = _getCurrencySymbol();
+
+    final nombrePeriodes = isPeriodic ? _calculerNombrePeriodes(value) : 1;
+
+    final double montantAffiche = isPeriodic && nombrePeriodes > 0
+        ? _montantTotal / nombrePeriodes
+        : _montantTotal;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedPaymentType = value;
+          _nombrePeriodes = nombrePeriodes;
+          _errorMessage = null;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? primaryColor.withOpacity(0.06)
+              : Colors.grey.shade50,
           borderRadius: BorderRadius.circular(14),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Row(
+          border: Border.all(
+            color: isSelected ? primaryColor : Colors.grey.shade200,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            // Radio
+            Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? primaryColor : Colors.grey.shade400,
+                  width: 2,
+                ),
+              ),
+              child: isSelected
+                  ? Center(
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: primaryColor,
+                        ),
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 12),
+
+            // Emoji
+            Text(icon, style: const TextStyle(fontSize: 22)),
+            const SizedBox(width: 10),
+
+            // Texte
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _isArabic ? labelAr : labelFr,
+                    style: GoogleFonts.cairo(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    isPeriodic
+                        ? _getPeriodeLabel(nombrePeriodes, value)
+                        : (_isArabic ? 'دفعة واحدة' : 'En une fois'),
+                    style: GoogleFonts.cairo(
+                      fontSize: 11,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Montant
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Container(
-                  width: 22,
-                  height: 22,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: isSelected ? primaryColor : Colors.grey.shade400,
-                      width: 2,
-                    ),
-                  ),
-                  child: isSelected
-                      ? Center(
-                          child: Container(
-                            width: 10,
-                            height: 10,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: primaryColor,
-                            ),
-                          ),
-                        )
-                      : null,
-                ),
-                const SizedBox(width: 12),
-
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              title,
-                              style: GoogleFonts.cairo(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ),
-                          if (isRecommended) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.amber.shade100,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                _isArabic ? 'مقترح' : 'Conseillé',
-                                style: GoogleFonts.cairo(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.amber.shade900,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        style: GoogleFonts.cairo(
-                          fontSize: 11,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
+                Text(
+                  '${montantAffiche.toStringAsFixed(0)} $symbol',
+                  style: GoogleFonts.cairo(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: primaryColor,
                   ),
                 ),
-
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '${montant.toStringAsFixed(0)} $symbol',
-                      style: GoogleFonts.cairo(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: primaryColor,
-                      ),
+                if (isPeriodic && nombrePeriodes > 1)
+                  Text(
+                    _isArabic ? 'لكل فترة' : 'par période',
+                    style: GoogleFonts.cairo(
+                      fontSize: 10,
+                      color: Colors.grey.shade500,
                     ),
-                    if (type == 'mois' && _nombreMois > 1)
-                      Text(
-                        _isArabic ? 'شهرياً' : 'par mois',
-                        style: GoogleFonts.cairo(
-                          fontSize: 10,
-                          color: Colors.grey.shade500,
-                        ),
-                      ),
-                  ],
-                ),
+                  ),
               ],
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 
   // ============================================================
-  // WIDGET : RÉCAPITULATIF DU MONTANT
+  // WIDGET : RÉCAPITULATIF
   // ============================================================
 
   Widget _buildAmountSummary() {
     if (_selectedPaymentType == null) return const SizedBox.shrink();
 
-    final bool isMensuel = _selectedPaymentType == 'mois';
-    final String symbol = _getCurrencySymbol();
-    final double totalDouble = _montantTotal;
-    final double aPayer = _montantAPayer;
+    final isPeriodic = _isPeriodic;
+    final symbol = _getCurrencySymbol();
+    final config = _currentTypeConfig;
+    final labelFr = config?['labelFr'] as String? ?? '';
+    final labelAr = config?['labelAr'] as String? ?? '';
+    final icon = config?['icon'] as String? ?? '';
+    final typeLabel = _isArabic ? labelAr : labelFr;
 
     return Container(
       margin: const EdgeInsets.only(top: 16),
@@ -748,6 +965,7 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
       ),
       child: Column(
         children: [
+          // Période formation
           if (_dateDebut != null && _dateFin != null) ...[
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -772,20 +990,42 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
             const SizedBox(height: 8),
           ],
 
+          // Type
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                _isArabic
-                    ? 'المبلغ الإجمالي للتكوين'
-                    : 'Montant total de la formation',
+                _isArabic ? 'نوع الدفع' : 'Type',
                 style: GoogleFonts.cairo(
                   fontSize: 13,
                   color: Colors.grey.shade700,
                 ),
               ),
               Text(
-                '${totalDouble.toStringAsFixed(0)} $symbol',
+                '$icon $typeLabel',
+                style: GoogleFonts.cairo(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Montant total
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                _isArabic ? 'المبلغ الإجمالي' : 'Montant total',
+                style: GoogleFonts.cairo(
+                  fontSize: 13,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+              Text(
+                '${_montantTotal.toStringAsFixed(0)} $symbol',
                 style: GoogleFonts.cairo(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -795,22 +1035,21 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
             ],
           ),
 
-          if (isMensuel && _nombreMois > 1) ...[
+          // Nombre de périodes
+          if (isPeriodic && _nombrePeriodes > 1) ...[
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  _isArabic
-                      ? 'عدد الأشهر ($_nombreMois)'
-                      : 'Nombre de mois ($_nombreMois)',
+                  _isArabic ? 'عدد الفترات' : 'Nombre de périodes',
                   style: GoogleFonts.cairo(
                     fontSize: 13,
                     color: Colors.grey.shade700,
                   ),
                 ),
                 Text(
-                  '÷ $_nombreMois',
+                  _getPeriodeLabel(_nombrePeriodes, _selectedPaymentType!),
                   style: GoogleFonts.cairo(
                     fontSize: 14,
                     color: Colors.grey.shade600,
@@ -822,12 +1061,13 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
 
           const Divider(height: 20),
 
+          // Montant à payer
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                isMensuel
-                    ? (_isArabic ? 'المبلغ الشهري' : 'Montant mensuel')
+                isPeriodic
+                    ? (_isArabic ? 'المبلغ لكل فترة' : 'Montant par période')
                     : (_isArabic ? 'المبلغ الواجب دفعه' : 'Montant à payer'),
                 style: GoogleFonts.cairo(
                   fontSize: 15,
@@ -836,7 +1076,7 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
                 ),
               ),
               Text(
-                '${aPayer.toStringAsFixed(0)} $symbol',
+                '${_montantAPayer.toStringAsFixed(0)} $symbol',
                 style: GoogleFonts.cairo(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -856,15 +1096,8 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
         '${date.year}';
   }
 
-  String _getCurrencySymbol() {
-    final String currency = (widget.currency ?? 'DT').toUpperCase();
-    if (currency.contains('EUR') || currency.contains('€')) return '€';
-    if (currency.contains('USD') || currency.contains('\$')) return '\$';
-    return 'DT';
-  }
-
   // ============================================================
-  // WIDGETS MODERNISÉS
+  // WIDGETS MODERNISÉS (identiques)
   // ============================================================
 
   Widget _buildModernPaymentCard({
@@ -886,7 +1119,6 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
       duration: const Duration(milliseconds: 250),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
           color: isSelected ? Colors.white : bgColor.withOpacity(0.05),
@@ -1064,8 +1296,8 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
   }
 
   Widget _buildModernFilePicker() {
-    final bool hasFile = _hasFile();
-    final String fileName = _selectedFileName ??
+    final hasFile = _hasFile();
+    final fileName = _selectedFileName ??
         (_isArabic ? 'لم يتم اختيار ملف' : 'Aucun fichier sélectionné');
 
     return Column(
@@ -1137,12 +1369,6 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                ),
               ),
             ],
           ),
@@ -1159,8 +1385,8 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
   }
 
   Widget _buildModernHeader() {
-    final bool isMobile = MediaQuery.of(context).size.width < 600;
-    final bool isTablet = MediaQuery.of(context).size.width >= 600 &&
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final isTablet = MediaQuery.of(context).size.width >= 600 &&
         MediaQuery.of(context).size.width < 1200;
 
     return Container(
@@ -1212,8 +1438,8 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
                 const SizedBox(height: 4),
                 Text(
                   _isArabic
-                      ? 'قم باختيار طريقة الدفع وإرفاق الوثائق المطلوبة'
-                      : 'Sélectionnez un mode de paiement et joignez les justificatifs',
+                      ? 'قم باختيار طريقة الدفع وإرفاق الوثائق'
+                      : 'Sélectionnez un mode et joignez les justificatifs',
                   style: GoogleFonts.cairo(
                     fontSize: isMobile ? 13 : (isTablet ? 14 : 15),
                     color: Colors.white.withOpacity(0.8),
@@ -1254,8 +1480,8 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
   }
 
   Widget _buildModernValidateButton() {
-    final bool isEnabled = _canSubmit;
-    final bool isMobile = MediaQuery.of(context).size.width < 600;
+    final isEnabled = _canSubmit;
+    final isMobile = MediaQuery.of(context).size.width < 600;
 
     String buttonText;
     if (!isEnabled) {
@@ -1329,7 +1555,7 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
   }
 
   Widget _buildModernFooter() {
-    final bool isMobile = MediaQuery.of(context).size.width < 600;
+    final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Container(
       padding: EdgeInsets.all(isMobile ? 14 : 20),
@@ -1398,23 +1624,16 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
         ),
         content: Text(
           _isArabic
-              ? 'خدمة الدفع عبر الإنترنت غير متوفرة حالياً.\n\nالرجاء استخدام إحدى الطرق الأخرى المتاحة.'
-              : 'Le paiement en ligne est temporairement indisponible.\n\nVeuillez utiliser les autres modes de paiement disponibles.',
-          style: GoogleFonts.cairo(
-            fontSize: 15,
-            color: Colors.grey.shade700,
-            height: 1.5,
-          ),
+              ? 'خدمة الدفع عبر الإنترنت غير متوفرة حالياً.'
+              : 'Le paiement en ligne est temporairement indisponible.',
+          style: GoogleFonts.cairo(fontSize: 15),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
               _isArabic ? 'حسناً' : 'OK',
-              style: const TextStyle(
-                color: primaryColor,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(color: primaryColor),
             ),
           ),
         ],
@@ -1428,7 +1647,7 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
         content: Text(
           _isArabic
               ? '⚠️ الرجاء اختيار نوع الدفع أولاً'
-              : '⚠️ Veuillez d\'abord choisir un type de paiement',
+              : '⚠️ Veuillez d\'abord choisir un type',
           style: GoogleFonts.cairo(),
         ),
         backgroundColor: Colors.orange,
@@ -1469,25 +1688,16 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
             ),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              _isArabic
-                  ? 'تم تسجيل عملية الدفع الخاصة بك بنجاح.\n\n'
-                        '📧 ستصلك رسالة تأكيد عبر البريد الإلكتروني قريباً.\n\n'
-                        '📋 رقم المرجع: ${widget.paymentId ?? "N/A"}'
-                  : 'Votre paiement a été enregistré avec succès.\n\n'
-                        '📧 Vous recevrez un email de confirmation prochainement.\n\n'
-                        '📋 Référence: ${widget.paymentId ?? "N/A"}',
-              style: GoogleFonts.cairo(
-                fontSize: 15,
-                color: Colors.grey.shade700,
-                height: 1.6,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+        content: Text(
+          _isArabic
+              ? 'تم تسجيل عملية الدفع.\n\n'
+                  '📧 ستصلك رسالة تأكيد قريباً.\n\n'
+                  '📋 رقم المرجع: ${widget.paymentId ?? "N/A"}'
+              : 'Votre paiement a été enregistré.\n\n'
+                  '📧 Vous recevrez une confirmation bientôt.\n\n'
+                  '📋 Référence: ${widget.paymentId ?? "N/A"}',
+          style: GoogleFonts.cairo(fontSize: 15, height: 1.6),
+          textAlign: TextAlign.center,
         ),
         actions: [
           SizedBox(
@@ -1525,8 +1735,8 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isMobile = MediaQuery.of(context).size.width < 600;
-    final bool isTablet = MediaQuery.of(context).size.width >= 600 &&
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final isTablet = MediaQuery.of(context).size.width >= 600 &&
         MediaQuery.of(context).size.width < 1200;
 
     return Scaffold(
@@ -1562,6 +1772,7 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
                       _buildModernHeader(),
                       const SizedBox(height: 24),
 
+                      // ÉTAPE 1 : Type
                       _buildStepIndicator(
                         step: 1,
                         isActive: true,
@@ -1574,6 +1785,7 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
                       _buildPaymentTypeSelector(),
                       const SizedBox(height: 24),
 
+                      // ÉTAPE 2 : Mode
                       _buildStepIndicator(
                         step: 2,
                         isActive: _selectedPaymentType != null,
@@ -1594,10 +1806,10 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
                         method: 'bancaire',
                         description: _isArabic
                             ? 'تحويل بنكي عبر حسابنا الجاري'
-                            : 'Virement bancaire sur notre compte courant',
+                            : 'Virement bancaire',
                         bankInfo: _isArabic
-                            ? '🏦 الرجاء التوجه إلى أقرب فرع لبنك BNA و إيداع المبلغ الجملي للدورات التي قمتم بإختيارها في الحساب الجاري عدد 1000123456789'
-                            : '🏦 Veuillez vous rendre à l\'agence BNA la plus proche et déposer le montant total des formations choisies sur le compte courant numéro 1000123456789',
+                            ? '🏦 حساب BNA: 1000123456789'
+                            : '🏦 Compte BNA : 1000123456789',
                       ),
 
                       _buildModernPaymentCard(
@@ -1610,10 +1822,10 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
                         method: 'postal',
                         description: _isArabic
                             ? 'تحويل بريدي عبر مكتب البريد'
-                            : 'Virement postal via le bureau de poste',
+                            : 'Virement postal',
                         bankInfo: _isArabic
-                            ? '📮 الرجاء التوجه إلى أقرب مكتب بريد و إيداع المبلغ الجملي للدورات التي قمتم بإختيارها في الحساب البريدي عدد 123456789'
-                            : '📮 Veuillez vous rendre au bureau de poste le plus proche et déposer le montant total des formations choisies sur le compte postal numéro 123456789',
+                            ? '📮 حساب بريدي: 123456789'
+                            : '📮 Compte postal : 123456789',
                       ),
 
                       _buildModernPaymentCard(
@@ -1625,16 +1837,14 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
                         bgColor: Colors.grey.shade600,
                         method: 'en_ligne',
                         description: _isArabic
-                            ? 'بطاقة بنكية أو عبر المحافظ الإلكترونية'
-                            : 'Carte bancaire ou portefeuilles électroniques',
+                            ? 'بطاقة بنكية'
+                            : 'Carte bancaire',
                         bankInfo: '',
                         isDisabled: true,
                       ),
 
                       const SizedBox(height: 16),
-
                       _buildAmountSummary(),
-
                       const SizedBox(height: 24),
 
                       if (_errorMessage != null) ...[
@@ -1644,7 +1854,6 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
 
                       _buildModernValidateButton(),
                       const SizedBox(height: 20),
-
                       _buildModernFooter(),
                       const SizedBox(height: 16),
                     ],

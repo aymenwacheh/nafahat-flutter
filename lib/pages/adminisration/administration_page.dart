@@ -41,6 +41,7 @@ import '../../services/navigation_service.dart';
 import 'etat_paiement.dart';
 import 'adherents_list_page.dart';
 import 'apparence_bull.dart';
+import 'statistiques.dart';
 
 class AdministrationPage extends StatefulWidget {
   const AdministrationPage({super.key});
@@ -76,6 +77,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     const ApparenceCardFormateurPage(),
     const ApparitionBullPage(),
     const ApparitionLandingPage(),
+    const StatistiquesPaiementsPage(),
   ];
 
   // Titres pour l'AppBar
@@ -99,6 +101,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     'Apparence des formateur',
     'Apparence des bull',
     'Ordre des sections',
+    'Statistiques des paiements',
   ];
 
   final List<String> _titlesAr = [
@@ -121,6 +124,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
     'مظهر المكونين ',
     'مظهر الوحدات ',
     'ترتيب أقسام الصفحة',
+    'إحصائيات المدفوعات',
   ];
 
   // Structure des menus avec groupes
@@ -252,6 +256,12 @@ class _AdministrationPageState extends State<AdministrationPage> {
           'titleAr': 'حالة المدفوعات',
           'page': 14,
         },
+        {
+      'icon': Icons.bar_chart,
+      'title': 'Statistiques paiements',
+      'titleAr': 'إحصائيات المدفوعات',
+      'page': 19,
+    },
       ],
     },
   ];

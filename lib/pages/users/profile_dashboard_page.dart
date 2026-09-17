@@ -1,6 +1,5 @@
 // lib/pages/users/profile_dashboard_page.dart
 import 'package:flutter/material.dart';
-import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/pages/users/edit_profile_page.dart';
@@ -12,30 +11,49 @@ import 'package:nafahat/models/training_model.dart';
 import 'package:nafahat/services/payment_service.dart';
 import 'package:nafahat/services/training_service.dart';
 import 'package:nafahat/pages/formation/formation_detail_page.dart';
-import 'package:nafahat/pages/paiement/paiement_tranche_page.dart';  // ✅ AJOUTÉ
+import 'package:nafahat/pages/paiement/paiement_tranche_page.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-class ProfileDashboardPage extends StatefulWidget {
-  const ProfileDashboardPage({super.key});
-
-  @override
-  State<ProfileDashboardPage> createState() => _ProfileDashboardPageState();
+// ============================================================
+// PALETTE MODERNE
+// ============================================================
+class UXColors {
+  static const Color bgStart = Color(0xFFF8FAFC);
+  static const Color bgEnd = Color(0xFFEEF2F7);
+  static const Color surface = Colors.white;
+  static const Color primary = Color(0xFF0D443E);
+  static const Color primaryLight = Color(0xFF1A6B60);
+  static const Color primarySoft = Color(0xFFE6F0EE);
+  static const Color accent = Color(0xFFD57653);
+  static const Color accentLight = Color(0xFFF4A484);
+  static const Color accentSoft = Color(0xFFFDF2EC);
+  static const Color success = Color(0xFF10B981);
+  static const Color successSoft = Color(0xFFD1FAE5);
+  static const Color warning = Color(0xFFF59E0B);
+  static const Color warningSoft = Color(0xFFFEF3C7);
+  static const Color danger = Color(0xFFEF4444);
+  static const Color dangerSoft = Color(0xFFFEE2E2);
+  static const Color info = Color(0xFF3B82F6);
+  static const Color infoSoft = Color(0xFFDBEAFE);
+  static const Color textDark = Color(0xFF0F172A);
+  static const Color textMuted = Color(0xFF64748B);
+  static const Color textLight = Color(0xFF94A3B8);
+  static const Color border = Color(0xFFE2E8F0);
 }
 
-/// ✅ Classe qui contient les infos d'un paiement + formation
+// ============================================================
+// MODÈLE
+// ============================================================
 class FormationAvecPaiement {
   final TrainingModel formation;
   final Map<String, dynamic> paiement;
 
   FormationAvecPaiement({required this.formation, required this.paiement});
 
-  // Type de paiement
   String get typePaiement => paiement['type_paiement'] ?? 'formation';
   bool get isMensuel => typePaiement == 'mois';
-
-  // Statut du paiement
   String get statut => paiement['statut_paiement'] ?? 'en_attente';
 
-  // Montants
   double get montantTotal =>
       double.tryParse(paiement['formation_prix']?.toString() ?? '0') ?? 0;
   double get montantPaye =>
@@ -45,7 +63,6 @@ class FormationAvecPaiement {
   double get montantMensuel =>
       double.tryParse(paiement['montant_mensuel']?.toString() ?? '0') ?? 0;
 
-  // Progression
   int get paiementsEffectues {
     final v = paiement['paiements_effectues'];
     if (v is int) return v;
@@ -58,13 +75,8 @@ class FormationAvecPaiement {
     return int.tryParse(v?.toString() ?? '1') ?? 1;
   }
 
-  // ✅ ID du paiement
   String get paymentId => paiement['id']?.toString() ?? '';
 
-  // ✅ URL de la quittance en attente (le cas échéant)
-  String? get trancheQuittanceUrl => paiement['tranche_quittance_url'];
-
-  // ✅ Montant en attente de validation
   double get trancheEnAttente {
     final v = paiement['tranche_en_attente'];
     if (v == null) return 0;
@@ -73,7 +85,6 @@ class FormationAvecPaiement {
 
   bool get aTrancheEnAttente => trancheEnAttente > 0;
 
-  // Date du prochain paiement
   DateTime? get prochaineDate {
     final dateStr = paiement['prochain_paiement_date'];
     if (dateStr == null || dateStr.toString().isEmpty) return null;
@@ -84,8 +95,8 @@ class FormationAvecPaiement {
     }
   }
 
-  // ✅ Logique métier
   bool get estTermine => montantRestant <= 0;
+
   bool get estEnRetard {
     if (estTermine || !isMensuel) return false;
     final date = prochaineDate;
@@ -93,24 +104,45 @@ class FormationAvecPaiement {
     return date.isBefore(DateTime.now());
   }
 
-  bool get estPayeComplet => estTermine;
-
-  /// La formation est-elle accessible (débloquée) ?
   bool get estAccessible {
     if (estTermine) return true;
     if (isMensuel && estEnRetard) return false;
     return true;
   }
+
+  int? get joursRestants {
+    final date = prochaineDate;
+    if (date == null) return null;
+    return date.difference(DateTime.now()).inDays;
+  }
+
+  double get progression {
+    if (montantTotal <= 0) return 0;
+    return (montantPaye / montantTotal).clamp(0.0, 1.0);
+  }
 }
 
-class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
+// ============================================================
+// PAGE PRINCIPALE
+// ============================================================
+class ProfileDashboardPage extends StatefulWidget {
+  const ProfileDashboardPage({super.key});
+
+  @override
+  State<ProfileDashboardPage> createState() => _ProfileDashboardPageState();
+}
+
+class _ProfileDashboardPageState extends State<ProfileDashboardPage>
+    with TickerProviderStateMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   bool _showEnCours = true;
   bool _showTerminees = false;
+  bool _showHistorique = false;
 
   List<FormationAvecPaiement> _formationsEnCours = [];
   List<FormationAvecPaiement> _formationsTerminees = [];
+  List<Map<String, dynamic>> _historiquePayments = [];
   bool _isLoading = true;
 
   @override
@@ -133,7 +165,6 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
       final userId = userProvider.userId!.toString();
       final payments = await PaymentService.getUserPayments(userId);
 
-      // ✅ On garde les paiements validés OU en attente (pas refusés)
       final acceptedPayments = payments.where((p) {
         final statut = p['statut_paiement'] ?? '';
         return statut == 'valide' || statut == 'en_attente';
@@ -155,11 +186,10 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
             );
           }
         } catch (e) {
-          print('❌ Erreur chargement formation $formationId: $e');
+          debugPrint('❌ Erreur chargement formation $formationId: $e');
         }
       }
 
-      // ✅ Trier : en cours vs terminées
       final now = DateTime.now();
       _formationsEnCours = formationsAvecPaiement.where((f) {
         if (f.formation.dateFin.isEmpty) return true;
@@ -180,41 +210,135 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
           return false;
         }
       }).toList();
+
+      _historiquePayments = payments.take(20).toList();
     } catch (e) {
-      print('❌ Erreur chargement formations: $e');
+      debugPrint('❌ Erreur chargement formations: $e');
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   // ============================================================
-  // ✅ PAYER UNE TRANCHE → REDIRIGER VERS LA NOUVELLE PAGE
+  // LIEN EXTERNE
+  // ============================================================
+
+  Future<void> _ouvrirLien(String url) async {
+    try {
+      String cleanUrl = url.trim();
+      if (!cleanUrl.startsWith('http://') &&
+          !cleanUrl.startsWith('https://')) {
+        cleanUrl = 'https://$cleanUrl';
+      }
+      final uri = Uri.parse(cleanUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        throw Exception('Impossible d\'ouvrir le lien');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ ${e.toString()}', style: GoogleFonts.cairo()),
+            backgroundColor: UXColors.danger,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  IconData _getLienIcon(String lien) {
+    final url = lien.toLowerCase();
+    if (url.contains('wa.me') || url.contains('whatsapp')) {
+      return Icons.chat_bubble_rounded;
+    }
+    if (url.contains('t.me') || url.contains('telegram')) {
+      return Icons.send_rounded;
+    }
+    if (url.contains('mailto:') || url.contains('@')) {
+      return Icons.email_rounded;
+    }
+    if (url.contains('facebook') || url.contains('fb.com')) {
+      return Icons.facebook_rounded;
+    }
+    if (url.contains('instagram')) {
+      return Icons.camera_alt_rounded;
+    }
+    if (url.contains('youtube') || url.contains('youtu.be')) {
+      return Icons.play_circle_fill_rounded;
+    }
+    return Icons.link_rounded;
+  }
+
+  Color _getLienColor(String lien) {
+    final url = lien.toLowerCase();
+    if (url.contains('wa.me') || url.contains('whatsapp')) {
+      return const Color(0xff25D366);
+    }
+    if (url.contains('t.me') || url.contains('telegram')) {
+      return const Color(0xff0088cc);
+    }
+    if (url.contains('mailto:') || url.contains('@')) {
+      return UXColors.warning;
+    }
+    if (url.contains('facebook') || url.contains('fb.com')) {
+      return const Color(0xff1877f2);
+    }
+    if (url.contains('instagram')) {
+      return const Color(0xffe1306c);
+    }
+    if (url.contains('youtube') || url.contains('youtu.be')) {
+      return const Color(0xffff0000);
+    }
+    return UXColors.primary;
+  }
+
+  String _getLienLabel(String lien, bool isArabic) {
+    final url = lien.toLowerCase();
+    if (url.contains('wa.me') || url.contains('whatsapp')) {
+      return isArabic ? 'انضم لمجموعة واتساب' : 'Rejoindre WhatsApp';
+    }
+    if (url.contains('t.me') || url.contains('telegram')) {
+      return isArabic ? 'انضم لتليجرام' : 'Rejoindre Telegram';
+    }
+    if (url.contains('mailto:')) {
+      return isArabic ? 'إرسال بريد' : 'Envoyer un email';
+    }
+    if (url.contains('facebook')) {
+      return isArabic ? 'زيارة فيسبوك' : 'Visiter Facebook';
+    }
+    if (url.contains('instagram')) {
+      return isArabic ? 'زيارة إنستغرام' : 'Visiter Instagram';
+    }
+    if (url.contains('youtube') || url.contains('youtu.be')) {
+      return isArabic ? 'مشاهدة الفيديو' : 'Regarder la vidéo';
+    }
+    return isArabic ? 'فتح الرابط' : 'Ouvrir le lien';
+  }
+
+  // ============================================================
+  // PAIEMENT TRANCHE
   // ============================================================
 
   Future<void> _payerTranche(FormationAvecPaiement fp) async {
     final isArabic =
         Provider.of<LanguageProvider>(context, listen: false).isArabic;
 
-    // Vérifier qu'il n'y a pas déjà une tranche en attente
     if (fp.aTrancheEnAttente) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            isArabic
-                ? '⚠️ لديك قسط في انتظار الموافقة'
-                : '⚠️ Vous avez une tranche en attente de validation',
-            style: GoogleFonts.cairo(),
-          ),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-        ),
+      _showSnack(
+        isArabic
+            ? '⚠️ لديك قسط في انتظار الموافقة'
+            : '⚠️ Vous avez une tranche en attente',
+        UXColors.warning,
       );
       return;
     }
 
-    // Naviguer vers la page de paiement de tranche
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
@@ -224,18 +348,62 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
           numeroTranche: fp.paiementsEffectues + 1,
           nombreMois: fp.nombreMois,
           montantRestant: fp.montantRestant,
-          formationTitre: isArabic
-              ? fp.formation.titleAr
-              : fp.formation.titleFr,
+          formationTitre:
+              isArabic ? fp.formation.titleAr : fp.formation.titleFr,
           montantMensuel: fp.montantMensuel,
         ),
       ),
     );
 
-    // Recharger si succès
     if (result == true && mounted) {
       await _loadUserFormations();
     }
+  }
+
+  void _showSnack(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.cairo()),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // STATISTIQUES GLOBALES
+  // ============================================================
+
+  Map<String, dynamic> _computeStats() {
+    final all = [..._formationsEnCours, ..._formationsTerminees];
+    double totalPaye = 0;
+    double totalRestant = 0;
+    int actives = 0;
+    int enRetard = 0;
+    int terminees = 0;
+
+    for (var f in all) {
+      totalPaye += f.montantPaye;
+      totalRestant += f.montantRestant;
+      if (f.estTermine) {
+        terminees++;
+      } else {
+        actives++;
+        if (f.estEnRetard) enRetard++;
+      }
+    }
+
+    return {
+      'total': all.length,
+      'actives': actives,
+      'terminees': terminees,
+      'enRetard': enRetard,
+      'totalPaye': totalPaye,
+      'totalRestant': totalRestant,
+    };
   }
 
   // ============================================================
@@ -246,17 +414,18 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
   Widget build(BuildContext context) {
     final isArabic = Provider.of<LanguageProvider>(context).isArabic;
     final userProvider = Provider.of<UserProvider>(context);
-    final isMobile = MediaQuery.of(context).size.width < 850;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 850;
 
     return Directionality(
       textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
       child: ChatbotWrapper(
         apiBaseUrl: 'http://localhost:3000',
         langue: isArabic ? 'ar' : 'fr',
-        primaryColor: AppColors.primary,
+        primaryColor: UXColors.accent,
         child: Scaffold(
           key: _scaffoldKey,
-          backgroundColor: AppColors.surface,
+          backgroundColor: UXColors.bgStart,
           drawer: Navbar(
             isMobile: isMobile,
             scaffoldKey: _scaffoldKey,
@@ -265,93 +434,136 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
             top: false,
             child: Column(
               children: [
+                // ============================================================
+                // ✅ NAVBAR EN HAUT (JAMAIS RECOUVERT, TOUJOURS CLIQUABLE)
+                // ============================================================
+                Material(
+                  color: Colors.white,
+                  elevation: 4,
+                  shadowColor: Colors.black.withOpacity(0.08),
+                  child: SizedBox(
+                    height: 85,
+                    child: Navbar(
+                      isMobile: isMobile,
+                      scaffoldKey: _scaffoldKey,
+                    ),
+                  ),
+                ),
+
+                // ============================================================
+                // ✅ CONTENU SCROLLABLE (SOUS LE NAVBAR)
+                // ============================================================
                 Expanded(
-                  child: Stack(
-                    children: [
-                      SingleChildScrollView(
-                        physics: const BouncingScrollPhysics(),
-                        padding: const EdgeInsets.only(top: 100),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildProfileSection(isArabic, userProvider),
-                              const SizedBox(height: 32),
-
-                              _buildSectionHeader(
-                                isArabic: isArabic,
-                                titleFr: 'Mes Formations en Cours',
-                                titleAr: 'تكويناتي الجارية',
-                                count: _formationsEnCours.length,
-                                isExpanded: _showEnCours,
-                                onToggle: () {
-                                  setState(() {
-                                    _showEnCours = !_showEnCours;
-                                    _showTerminees = false;
-                                  });
-                                },
-                              ),
-                              if (_showEnCours) ...[
-                                const SizedBox(height: 16),
-                                _buildFormationsList(
-                                  _formationsEnCours,
-                                  isArabic,
-                                  isMobile,
-                                ),
-                              ],
-                              const SizedBox(height: 24),
-
-                              _buildSectionHeader(
-                                isArabic: isArabic,
-                                titleFr: 'Mes Formations Terminées',
-                                titleAr: 'تكويناتي المنتهية',
-                                count: _formationsTerminees.length,
-                                isExpanded: _showTerminees,
-                                onToggle: () {
-                                  setState(() {
-                                    _showTerminees = !_showTerminees;
-                                    _showEnCours = false;
-                                  });
-                                },
-                              ),
-                              if (_showTerminees) ...[
-                                const SizedBox(height: 16),
-                                _buildFormationsList(
-                                  _formationsTerminees,
-                                  isArabic,
-                                  isMobile,
-                                ),
-                              ],
-                              const SizedBox(height: 60),
-                            ],
-                          ),
-                        ),
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [UXColors.bgStart, UXColors.bgEnd],
                       ),
-
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        child: Container(
-                          height: 85,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.02),
-                                blurRadius: 10,
-                                offset: const Offset(0, 2),
+                    ),
+                    child: _isLoading
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              color: UXColors.primary,
+                            ),
+                          )
+                        : SingleChildScrollView(
+                            physics: const BouncingScrollPhysics(),
+                            padding: const EdgeInsets.only(
+                              top: 20,
+                              bottom: 60,
+                            ),
+                            child: Center(
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxWidth:
+                                      isMobile ? double.infinity : 1100,
+                                ),
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: isMobile ? 16 : 32,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _buildHeroProfile(
+                                          isArabic, userProvider),
+                                      const SizedBox(height: 24),
+                                      _buildStatsRow(isArabic),
+                                      const SizedBox(height: 32),
+                                      _buildSection(
+                                        isArabic: isArabic,
+                                        titleFr:
+                                            'Mes Formations en Cours',
+                                        titleAr: 'تكويناتي الجارية',
+                                        icon: Icons.school_rounded,
+                                        color: UXColors.info,
+                                        count:
+                                            _formationsEnCours.length,
+                                        isExpanded: _showEnCours,
+                                        onToggle: () => setState(() {
+                                          _showEnCours = !_showEnCours;
+                                          _showTerminees = false;
+                                          _showHistorique = false;
+                                        }),
+                                        child: _buildFormationsGrid(
+                                          _formationsEnCours,
+                                          isArabic,
+                                          isMobile,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      _buildSection(
+                                        isArabic: isArabic,
+                                        titleFr:
+                                            'Mes Formations Terminées',
+                                        titleAr: 'تكويناتي المنتهية',
+                                        icon: Icons.verified_rounded,
+                                        color: UXColors.success,
+                                        count:
+                                            _formationsTerminees.length,
+                                        isExpanded: _showTerminees,
+                                        onToggle: () => setState(() {
+                                          _showTerminees =
+                                              !_showTerminees;
+                                          _showEnCours = false;
+                                          _showHistorique = false;
+                                        }),
+                                        child: _buildFormationsGrid(
+                                          _formationsTerminees,
+                                          isArabic,
+                                          isMobile,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      _buildSection(
+                                        isArabic: isArabic,
+                                        titleFr:
+                                            'Historique des paiements',
+                                        titleAr: 'سجل المدفوعات',
+                                        icon: Icons.history_rounded,
+                                        color: UXColors.accent,
+                                        count:
+                                            _historiquePayments.length,
+                                        isExpanded: _showHistorique,
+                                        onToggle: () => setState(() {
+                                          _showHistorique =
+                                              !_showHistorique;
+                                          _showEnCours = false;
+                                          _showTerminees = false;
+                                        }),
+                                        child: _buildHistorique(
+                                            isArabic, isMobile),
+                                      ),
+                                      const SizedBox(height: 40),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ],
+                            ),
                           ),
-                          child: Navbar(
-                            isMobile: isMobile,
-                            scaffoldKey: _scaffoldKey,
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
                 ),
               ],
@@ -362,13 +574,16 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
     );
   }
 
-  Widget _buildProfileSection(bool isArabic, UserProvider userProvider) {
+  // ============================================================
+  // HERO PROFILE
+  // ============================================================
+
+  Widget _buildHeroProfile(bool isArabic, UserProvider userProvider) {
     final userName =
         userProvider.isLoggedIn ? userProvider.displayName : 'Utilisateur';
-    final userEmail =
-        userProvider.isLoggedIn
-            ? (userProvider.userEmail ?? 'email@exemple.com')
-            : 'email@exemple.com';
+    final userEmail = userProvider.isLoggedIn
+        ? (userProvider.userEmail ?? 'email@exemple.com')
+        : 'email@exemple.com';
     final userRole =
         userProvider.isLoggedIn && userProvider.userRole != null
             ? userProvider.userRole!.libelle
@@ -377,239 +592,524 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.primary.withOpacity(0.08)),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [UXColors.primary, UXColors.primaryLight],
+        ),
+        borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: UXColors.primary.withOpacity(0.3),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
-      child: Row(
+      child: Stack(
         children: [
-          CircleAvatar(
-            radius: 35,
-            backgroundColor: AppColors.primary.withOpacity(0.1),
-            child: Text(
-              userProvider.isLoggedIn ? userProvider.initials : 'U',
-              style: GoogleFonts.cairo(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: AppColors.primary,
+          // Cercles décoratifs
+          Positioned(
+            top: -30,
+            right: -30,
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.06),
               ),
             ),
           ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        isArabic ? "مرحباً، $userName" : "Bienvenue, $userName",
-                        style: GoogleFonts.cairo(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textDark,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    if (userRole.isNotEmpty)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          userRole,
-                          style: GoogleFonts.cairo(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  userEmail,
-                  style: GoogleFonts.cairo(
-                    fontSize: 14,
-                    color: AppColors.textMuted,
-                  ),
-                ),
-                if (userProvider.isLoggedIn &&
-                    userProvider.userWhatsapp != null)
-                  Text(
-                    userProvider.userWhatsapp!,
-                    style: GoogleFonts.cairo(
-                      fontSize: 12,
-                      color: AppColors.textMuted.withOpacity(0.7),
-                    ),
-                  ),
-              ],
+          Positioned(
+            bottom: -40,
+            left: -40,
+            child: Container(
+              width: 160,
+              height: 160,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.04),
+              ),
             ),
           ),
-          IconButton(
-            icon: const Icon(
-              Icons.edit_note_rounded,
-              color: AppColors.primary,
-              size: 28,
-            ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const EditProfilePage(),
+          // Contenu
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.2),
                 ),
-              );
-            },
-            tooltip: isArabic ? "تعديل الملف الشخصي" : "Modifier le profil",
+                child: CircleAvatar(
+                  radius: 34,
+                  backgroundColor: UXColors.accent,
+                  child: Text(
+                    userProvider.isLoggedIn ? userProvider.initials : 'U',
+                    style: GoogleFonts.cairo(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 18),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            isArabic
+                                ? "مرحباً، $userName"
+                                : "Bienvenue, $userName",
+                            style: GoogleFonts.cairo(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (userRole.isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              userRole,
+                              style: GoogleFonts.cairo(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(Icons.email_rounded,
+                            size: 14,
+                            color: Colors.white.withOpacity(0.8)),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            userEmail,
+                            style: GoogleFonts.cairo(
+                              fontSize: 13,
+                              color: Colors.white.withOpacity(0.8),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (userProvider.isLoggedIn &&
+                        userProvider.userWhatsapp != null) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.phone_rounded,
+                              size: 14,
+                              color: Colors.white.withOpacity(0.8)),
+                          const SizedBox(width: 6),
+                          Text(
+                            userProvider.userWhatsapp!,
+                            style: GoogleFonts.cairo(
+                              fontSize: 13,
+                              color: Colors.white.withOpacity(0.8),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Material(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(14),
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const EditProfilePage(),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(14),
+                  child: const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Icon(
+                      Icons.edit_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSectionHeader({
+  // ============================================================
+  // STATISTIQUES
+  // ============================================================
+
+  Widget _buildStatsRow(bool isArabic) {
+    final stats = _computeStats();
+    final isMobile = MediaQuery.of(context).size.width < 850;
+
+    final items = [
+      {
+        'icon': Icons.school_rounded,
+        'value': '${stats['total']}',
+        'label': isArabic ? 'التكوينات' : 'Formations',
+        'color': UXColors.info,
+        'bg': UXColors.infoSoft,
+      },
+      {
+        'icon': Icons.trending_up_rounded,
+        'value': '${stats['actives']}',
+        'label': isArabic ? 'جارية' : 'En cours',
+        'color': UXColors.warning,
+        'bg': UXColors.warningSoft,
+      },
+      {
+        'icon': Icons.verified_rounded,
+        'value': '${stats['terminees']}',
+        'label': isArabic ? 'منتهية' : 'Terminées',
+        'color': UXColors.success,
+        'bg': UXColors.successSoft,
+      },
+      {
+        'icon': Icons.warning_amber_rounded,
+        'value': '${stats['enRetard']}',
+        'label': isArabic ? 'متأخرة' : 'En retard',
+        'color': UXColors.danger,
+        'bg': UXColors.dangerSoft,
+      },
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 14, left: 4),
+          child: Text(
+            isArabic ? '📊 نظرة عامة' : '📊 Vue d\'ensemble',
+            style: GoogleFonts.cairo(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: UXColors.textDark,
+            ),
+          ),
+        ),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: isMobile ? 2 : 4,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: isMobile ? 1.4 : 1.6,
+          ),
+          itemCount: items.length,
+          itemBuilder: (context, i) {
+            final item = items[i];
+            return _buildStatCard(
+              icon: item['icon'] as IconData,
+              value: item['value'] as String,
+              label: item['label'] as String,
+              color: item['color'] as Color,
+              bg: item['bg'] as Color,
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard({
+    required IconData icon,
+    required String value,
+    required String label,
+    required Color color,
+    required Color bg,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: UXColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            style: GoogleFonts.cairo(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: UXColors.textDark,
+              height: 1,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: GoogleFonts.cairo(
+              fontSize: 12,
+              color: UXColors.textMuted,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // SECTION REPLIABLE
+  // ============================================================
+
+  Widget _buildSection({
     required bool isArabic,
     required String titleFr,
     required String titleAr,
+    required IconData icon,
+    required Color color,
     required int count,
     required bool isExpanded,
     required VoidCallback onToggle,
+    required Widget child,
   }) {
-    return GestureDetector(
-      onTap: onToggle,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-        decoration: BoxDecoration(
-          color:
-              isExpanded ? AppColors.primary.withOpacity(0.08) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isExpanded ? AppColors.primary : Colors.grey.shade200,
-            width: 1.5,
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isExpanded ? color.withOpacity(0.4) : UXColors.border,
+          width: isExpanded ? 2 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isExpanded
+                ? color.withOpacity(0.08)
+                : Colors.black.withOpacity(0.02),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onToggle,
+          borderRadius: BorderRadius.circular(24),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: color.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(icon, color: color, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        isArabic ? titleAr : titleFr,
+                        style: GoogleFonts.cairo(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: UXColors.textDark,
+                        ),
+                      ),
+                    ),
+                    if (count > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: color,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '$count',
+                          style: GoogleFonts.cairo(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(width: 8),
+                    AnimatedRotation(
+                      turns: isExpanded ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 250),
+                      child: Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: color,
+                        size: 26,
+                      ),
+                    ),
+                  ],
+                ),
+                AnimatedCrossFade(
+                  firstChild: const SizedBox(width: double.infinity),
+                  secondChild: Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: child,
+                  ),
+                  crossFadeState: isExpanded
+                      ? CrossFadeState.showSecond
+                      : CrossFadeState.showFirst,
+                  duration: const Duration(milliseconds: 250),
+                ),
+              ],
+            ),
           ),
         ),
-        child: Row(
+      ),
+    );
+  }
+
+  // ============================================================
+  // GRILLE FORMATIONS
+  // ============================================================
+
+  Widget _buildFormationsGrid(
+    List<FormationAvecPaiement> formations,
+    bool isArabic,
+    bool isMobile,
+  ) {
+    if (formations.isEmpty) {
+      return _buildEmptyState(isArabic);
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        int cols = 1;
+        if (screenWidth >= 1200) {
+          cols = 3;
+        } else if (screenWidth >= 850) {
+          cols = 2;
+        }
+
+        if (cols == 1) {
+          return Column(
+            children: formations
+                .map((f) => Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _buildFormationCard(f, isArabic),
+                    ))
+                .toList(),
+          );
+        }
+
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: cols,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            childAspectRatio: 0.85,
+          ),
+          itemCount: formations.length,
+          itemBuilder: (context, index) =>
+              _buildFormationCard(formations[index], isArabic),
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyState(bool isArabic) {
+    return Container(
+      padding: const EdgeInsets.all(40),
+      decoration: BoxDecoration(
+        color: UXColors.bgStart,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: UXColors.border, style: BorderStyle.solid),
+      ),
+      child: Center(
+        child: Column(
           children: [
-            Icon(
-              isExpanded ? Icons.expand_less : Icons.expand_more,
-              color: AppColors.primary,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                isArabic ? titleAr : titleFr,
-                style: GoogleFonts.cairo(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryDark,
-                ),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                color: UXColors.infoSoft,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.school_outlined,
+                size: 40,
+                color: UXColors.info,
               ),
             ),
-            if (!_isLoading && count > 0)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '$count',
-                  style: GoogleFonts.cairo(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+            const SizedBox(height: 16),
+            Text(
+              isArabic
+                  ? 'لا توجد تكوينات في هذه الفئة'
+                  : 'Aucune formation dans cette catégorie',
+              style: GoogleFonts.cairo(
+                color: UXColors.textMuted,
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
               ),
-            if (_isLoading)
-              const Padding(
-                padding: EdgeInsets.only(left: 8),
-                child: SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildFormationsList(
-    List<FormationAvecPaiement> formations,
-    bool isArabic,
-    bool isMobile,
-  ) {
-    if (_isLoading) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(32.0),
-          child: CircularProgressIndicator(color: AppColors.primary),
-        ),
-      );
-    }
-
-    if (formations.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(40),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.shade200),
-        ),
-        child: Center(
-          child: Column(
-            children: [
-              Icon(Icons.school_outlined, size: 60, color: Colors.grey[300]),
-              const SizedBox(height: 16),
-              Text(
-                isArabic
-                    ? 'لا توجد تكوينات في هذه الفئة'
-                    : 'Aucune formation dans cette catégorie',
-                style: GoogleFonts.cairo(color: Colors.grey[600], fontSize: 16),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: formations.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 16),
-      itemBuilder: (context, index) {
-        return _buildFormationCard(formations[index], isArabic);
-      },
-    );
-  }
-
   // ============================================================
-  // ✅ CARTE DE FORMATION AVEC STATUT DE PAIEMENT
+  // CARTE FORMATION MODERNE
   // ============================================================
 
   Widget _buildFormationCard(FormationAvecPaiement fp, bool isArabic) {
@@ -620,391 +1120,247 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
     final isMensuel = fp.isMensuel;
     final aTrancheEnAttente = fp.aTrancheEnAttente;
 
-    // Couleurs selon le statut
     Color statusColor;
     String statusLabel;
     IconData statusIcon;
 
     if (aTrancheEnAttente) {
-      statusColor = Colors.blue.shade700;
-      statusLabel = isArabic
-          ? '⏳ قسط في انتظار الموافقة'
-          : '⏳ Tranche en attente';
-      statusIcon = Icons.hourglass_top;
+      statusColor = UXColors.info;
+      statusLabel = isArabic ? 'في انتظار الموافقة' : 'En attente';
+      statusIcon = Icons.hourglass_top_rounded;
     } else if (isTermine) {
-      statusColor = Colors.green.shade700;
-      statusLabel = isArabic ? '✅ مدفوع بالكامل' : '✅ Payé intégralement';
-      statusIcon = Icons.check_circle;
+      statusColor = UXColors.success;
+      statusLabel = isArabic ? 'مدفوع بالكامل' : 'Payé intégralement';
+      statusIcon = Icons.verified_rounded;
     } else if (isEnRetard) {
-      statusColor = Colors.red.shade700;
-      statusLabel = isArabic ? '⚠️ متأخر' : '⚠️ En retard';
+      statusColor = UXColors.danger;
+      statusLabel = isArabic ? 'متأخر' : 'En retard';
       statusIcon = Icons.warning_amber_rounded;
     } else if (isMensuel) {
-      statusColor = Colors.orange.shade700;
+      statusColor = UXColors.warning;
       statusLabel = isArabic
-          ? '📅 القسط ${fp.paiementsEffectues + 1}/${fp.nombreMois}'
-          : '📅 Tranche ${fp.paiementsEffectues + 1}/${fp.nombreMois}';
-      statusIcon = Icons.schedule;
+          ? 'القسط ${fp.paiementsEffectues + 1}/${fp.nombreMois}'
+          : 'Tranche ${fp.paiementsEffectues + 1}/${fp.nombreMois}';
+      statusIcon = Icons.schedule_rounded;
     } else {
-      statusColor = Colors.blue.shade700;
-      statusLabel = isArabic ? '✅ مدفوع' : '✅ Payé';
-      statusIcon = Icons.check_circle;
+      statusColor = UXColors.info;
+      statusLabel = isArabic ? 'مدفوع' : 'Payé';
+      statusIcon = Icons.check_circle_rounded;
     }
 
-    return AnimatedOpacity(
-      opacity: isAccessible ? 1.0 : 0.55,
-      duration: const Duration(milliseconds: 300),
+    return _HoverCard(
+      onTap: isAccessible
+          ? () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => FormationDetailPage(
+                    formationId: formation.id.toString(),
+                  ),
+                ),
+              );
+            }
+          : () => _showLockedDialog(isArabic),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(22),
           border: Border.all(
             color: isEnRetard
-                ? Colors.red.shade300
-                : (aTrancheEnAttente
-                    ? Colors.blue.shade300
-                    : (isTermine
-                        ? Colors.green.shade200
-                        : AppColors.primary.withOpacity(0.15))),
-            width: isEnRetard ? 2 : 1.5,
+                ? UXColors.danger.withOpacity(0.5)
+                : (isTermine
+                    ? UXColors.success.withOpacity(0.4)
+                    : UXColors.border),
+            width: isEnRetard ? 2 : 1.2,
           ),
           boxShadow: [
             BoxShadow(
               color: isEnRetard
-                  ? Colors.red.withOpacity(0.08)
-                  : Colors.black.withOpacity(0.03),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+                  ? UXColors.danger.withOpacity(0.15)
+                  : Colors.black.withOpacity(0.04),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: isAccessible
-                ? () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => FormationDetailPage(
-                          formationId: formation.id.toString(),
-                        ),
-                      ),
-                    );
-                  }
-                : () => _showLockedDialog(isArabic),
-            borderRadius: BorderRadius.circular(20),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          width: 80,
-                          height: 80,
-                          color: Colors.grey.shade100,
-                          child: formation.imageUrl.isNotEmpty
-                              ? Image.network(
-                                  formation.imageUrl,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => Icon(
-                                    Icons.school_outlined,
-                                    color: Colors.grey.shade400,
-                                    size: 32,
-                                  ),
-                                )
-                              : Icon(
-                                  Icons.school_outlined,
-                                  color: Colors.grey.shade400,
-                                  size: 32,
-                                ),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              isArabic
-                                  ? formation.titleAr
-                                  : formation.titleFr,
-                              style: GoogleFonts.cairo(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textDark,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image + badges
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(22),
+                  ),
+                  child: Container(
+                    height: 140,
+                    width: double.infinity,
+                    color: UXColors.primarySoft,
+                    child: formation.imageUrl.isNotEmpty
+                        ? Image.network(
+                            formation.imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Center(
+                              child: Icon(
+                                Icons.school_rounded,
+                                color: UXColors.primary.withOpacity(0.4),
+                                size: 50,
                               ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
                             ),
-                            const SizedBox(height: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: statusColor.withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: statusColor.withOpacity(0.3),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    statusIcon,
-                                    size: 14,
-                                    color: statusColor,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    statusLabel,
-                                    style: GoogleFonts.cairo(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: statusColor,
-                                    ),
-                                  ),
-                                ],
+                          )
+                        : Center(
+                            child: Icon(
+                              Icons.school_rounded,
+                              color: UXColors.primary.withOpacity(0.4),
+                              size: 50,
+                            ),
+                          ),
+                  ),
+                ),
+                Positioned(
+                  top: 12,
+                  left: 12,
+                  right: 12,
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: statusColor,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: statusColor.withOpacity(0.4),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(statusIcon,
+                                size: 13, color: Colors.white),
+                            const SizedBox(width: 4),
+                            Text(
+                              statusLabel,
+                              style: GoogleFonts.cairo(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
                               ),
                             ),
                           ],
                         ),
                       ),
+                      const Spacer(),
                       if (!isAccessible)
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.red.shade50,
+                            color: UXColors.danger,
                             shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: UXColors.danger.withOpacity(0.4),
+                                blurRadius: 8,
+                              ),
+                            ],
                           ),
-                          child: Icon(
+                          child: const Icon(
                             Icons.lock_rounded,
-                            color: Colors.red.shade700,
-                            size: 20,
+                            color: Colors.white,
+                            size: 16,
                           ),
                         ),
                     ],
                   ),
-
-                  // ✅ Section paiement mensuel
-                  if (isMensuel && !isTermine) ...[
-                    const SizedBox(height: 16),
-                    const Divider(height: 1),
-                    const SizedBox(height: 12),
-
-                    // Barre de progression
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          isArabic
-                              ? 'التقدم: ${fp.paiementsEffectues}/${fp.nombreMois}'
-                              : 'Progression : ${fp.paiementsEffectues}/${fp.nombreMois}',
+                ),
+              ],
+            ),
+            // Contenu
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isArabic ? formation.titleAr : formation.titleFr,
+                    style: GoogleFonts.cairo(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: UXColors.textDark,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.person_rounded,
+                          size: 13, color: UXColors.textMuted),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          formation.trainer,
                           style: GoogleFonts.cairo(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey.shade700,
+                            fontSize: 11,
+                            color: UXColors.textMuted,
                           ),
-                        ),
-                        Text(
-                          '${((fp.paiementsEffectues / fp.nombreMois) * 100).toInt()}%',
-                          style: GoogleFonts.cairo(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: fp.paiementsEffectues / fp.nombreMois,
-                        minHeight: 6,
-                        backgroundColor: Colors.grey.shade200,
-                        valueColor: AlwaysStoppedAnimation(
-                          isEnRetard ? Colors.red.shade600 : AppColors.primary,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Détails montants
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildInfoBox(
-                            isArabic ? 'المدفوع' : 'Payé',
-                            '${fp.montantPaye.toStringAsFixed(0)} DT',
-                            Colors.green.shade700,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildInfoBox(
-                            isArabic ? 'المتبقي' : 'Restant',
-                            '${fp.montantRestant.toStringAsFixed(0)} DT',
-                            Colors.orange.shade700,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    // ✅ Info tranche en attente
-                    if (aTrancheEnAttente) ...[
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.blue.shade200),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.hourglass_top,
-                              color: Colors.blue.shade700,
-                              size: 18,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                isArabic
-                                    ? '⏳ القسط ${fp.paiementsEffectues + 1} بمبلغ ${fp.trancheEnAttente.toStringAsFixed(0)} DT في انتظار الموافقة'
-                                    : '⏳ Tranche ${fp.paiementsEffectues + 1} de ${fp.trancheEnAttente.toStringAsFixed(0)} DT en attente de validation',
-                                style: GoogleFonts.cairo(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.blue.shade800,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ]
-                    // Date du prochain paiement
-                    else if (fp.prochaineDate != null) ...[
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: isEnRetard
-                              ? Colors.red.shade50
-                              : Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: isEnRetard
-                                ? Colors.red.shade200
-                                : Colors.blue.shade200,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              isEnRetard
-                                  ? Icons.error_outline
-                                  : Icons.event_available,
-                              color: isEnRetard
-                                  ? Colors.red.shade700
-                                  : Colors.blue.shade700,
-                              size: 18,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                isEnRetard
-                                    ? (isArabic
-                                        ? '⚠️ القسط التالي متأخر! كان يجب دفعه قبل ${_formatDate(fp.prochaineDate!)}'
-                                        : '⚠️ Tranche en retard ! À payer avant le ${_formatDate(fp.prochaineDate!)}')
-                                    : (isArabic
-                                        ? '📅 القسط التالي: ${_formatDate(fp.prochaineDate!)}'
-                                        : '📅 Prochaine tranche : ${_formatDate(fp.prochaineDate!)}'),
-                                style: GoogleFonts.cairo(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: isEnRetard
-                                      ? Colors.red.shade800
-                                      : Colors.blue.shade800,
-                                ),
-                              ),
-                            ),
-                          ],
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
+                  ),
 
-                    // ✅ Bouton payer (désactivé si tranche en attente)
+                  // ✅ Lien externe
+                  if (isAccessible &&
+                      !aTrancheEnAttente &&
+                      formation.hasLien) ...[
                     const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: aTrancheEnAttente
-                            ? null
-                            : () => _payerTranche(fp),
-                        icon: Icon(
-                          aTrancheEnAttente
-                              ? Icons.hourglass_top
-                              : Icons.payment_rounded,
-                          size: 18,
-                        ),
-                        label: Text(
-                          aTrancheEnAttente
-                              ? (isArabic
-                                  ? 'في انتظار الموافقة'
-                                  : 'En attente de validation')
-                              : (isArabic
-                                  ? 'دفع القسط (${fp.montantMensuel.toStringAsFixed(0)} DT)'
-                                  : 'Payer la tranche (${fp.montantMensuel.toStringAsFixed(0)} DT)'),
-                          style: GoogleFonts.cairo(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: aTrancheEnAttente
-                              ? Colors.grey.shade400
-                              : (isEnRetard
-                                  ? Colors.red.shade600
-                                  : AppColors.primary),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ),
+                    _buildLienButton(formation.lien!, isArabic),
                   ],
 
-                  // Info si payé complètement
+                  // ⚠️ Rappel de paiement
+                  if (!isAccessible && isMensuel) ...[
+                    const SizedBox(height: 12),
+                    _buildRappelPaiement(isArabic),
+                  ],
+
+                  // Progression
+                  if (isMensuel && !isTermine) ...[
+                    const SizedBox(height: 14),
+                    _buildProgressSection(fp, isArabic, isEnRetard),
+                    const SizedBox(height: 12),
+                    _buildMontantsRow(fp, isArabic),
+                    const SizedBox(height: 12),
+                    _buildEcheanceInfo(
+                        fp, isArabic, isEnRetard, aTrancheEnAttente),
+                    const SizedBox(height: 12),
+                    _buildPayButton(fp, isArabic, isEnRetard, aTrancheEnAttente),
+                  ],
+
+                  // Terminé
                   if (isTermine && isMensuel) ...[
                     const SizedBox(height: 12),
                     Container(
-                      padding: const EdgeInsets.all(10),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.green.shade50,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.green.shade200),
+                        color: UXColors.successSoft,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: UXColors.success.withOpacity(0.3),
+                        ),
                       ),
                       child: Row(
                         children: [
-                          Icon(
-                            Icons.verified_rounded,
-                            color: Colors.green.shade700,
-                            size: 18,
-                          ),
+                          const Icon(Icons.emoji_events_rounded,
+                              color: UXColors.success, size: 20),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -1014,7 +1370,7 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
                               style: GoogleFonts.cairo(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.green.shade800,
+                                color: UXColors.success,
                               ),
                             ),
                           ),
@@ -1023,33 +1379,29 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
                     ),
                   ],
 
-                  // Message si verrouillé
+                  // Verrouillé
                   if (!isAccessible) ...[
                     const SizedBox(height: 10),
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.red.shade200),
+                        color: UXColors.dangerSoft,
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
                         children: [
-                          Icon(
-                            Icons.lock_outline,
-                            color: Colors.red.shade700,
-                            size: 16,
-                          ),
+                          const Icon(Icons.lock_rounded,
+                              color: UXColors.danger, size: 16),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               isArabic
-                                  ? '🔒 الوصول معطل - دفع القسط المتأخر للفتح'
-                                  : '🔒 Accès verrouillé - Payez la tranche en retard',
+                                  ? 'الوصول معطل - دفع القسط المتأخر'
+                                  : 'Accès verrouillé - Payez la tranche',
                               style: GoogleFonts.cairo(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.red.shade800,
+                                color: UXColors.danger,
                               ),
                             ),
                           ),
@@ -1060,42 +1412,522 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
                 ],
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildInfoBox(String label, String value, Color color) {
+  // ============================================================
+  // PROGRESSION
+  // ============================================================
+
+  Widget _buildProgressSection(
+      FormationAvecPaiement fp, bool isArabic, bool isEnRetard) {
+    final color = isEnRetard ? UXColors.danger : UXColors.primary;
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    isArabic ? 'التقدم' : 'Progression',
+                    style: GoogleFonts.cairo(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: UXColors.textMuted,
+                    ),
+                  ),
+                  Text(
+                    '${(fp.progression * 100).toInt()}%',
+                    style: GoogleFonts.cairo(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(
+                  value: fp.progression,
+                  minHeight: 8,
+                  backgroundColor: UXColors.border,
+                  valueColor: AlwaysStoppedAnimation(color),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMontantsRow(FormationAvecPaiement fp, bool isArabic) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildMiniInfoCard(
+            Icons.arrow_downward_rounded,
+            isArabic ? 'المدفوع' : 'Payé',
+            '${fp.montantPaye.toStringAsFixed(0)} DT',
+            UXColors.success,
+            UXColors.successSoft,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildMiniInfoCard(
+            Icons.arrow_upward_rounded,
+            isArabic ? 'المتبقي' : 'Restant',
+            '${fp.montantRestant.toStringAsFixed(0)} DT',
+            UXColors.warning,
+            UXColors.warningSoft,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMiniInfoCard(
+    IconData icon,
+    String label,
+    String value,
+    Color color,
+    Color bg,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: bg,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withOpacity(0.2)),
       ),
-      child: Column(
+      child: Row(
         children: [
-          Text(
-            label,
-            style: GoogleFonts.cairo(
-              fontSize: 10,
-              color: Colors.grey.shade600,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: GoogleFonts.cairo(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: color,
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: GoogleFonts.cairo(
+                    fontSize: 9,
+                    color: color.withOpacity(0.8),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: GoogleFonts.cairo(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
     );
   }
+
+  Widget _buildEcheanceInfo(
+    FormationAvecPaiement fp,
+    bool isArabic,
+    bool isEnRetard,
+    bool aTrancheEnAttente,
+  ) {
+    if (aTrancheEnAttente) {
+      return _buildInfoBanner(
+        Icons.hourglass_top_rounded,
+        isArabic
+            ? 'القسط ${fp.paiementsEffectues + 1} (${fp.trancheEnAttente.toStringAsFixed(0)} DT) في انتظار الموافقة'
+            : 'Tranche ${fp.paiementsEffectues + 1} (${fp.trancheEnAttente.toStringAsFixed(0)} DT) en attente',
+        UXColors.info,
+        UXColors.infoSoft,
+      );
+    }
+
+    if (fp.prochaineDate != null) {
+      if (isEnRetard) {
+        final joursRetard =
+            fp.prochaineDate!.difference(DateTime.now()).inDays.abs();
+        return _buildInfoBanner(
+          Icons.error_outline_rounded,
+          isArabic
+              ? 'متأخر بـ $joursRetard يوم - كان يجب الدفع قبل ${_formatDate(fp.prochaineDate!)}'
+              : 'En retard de $joursRetard j - avant le ${_formatDate(fp.prochaineDate!)}',
+          UXColors.danger,
+          UXColors.dangerSoft,
+        );
+      }
+      final jours = fp.joursRestants ?? 0;
+      return _buildInfoBanner(
+        Icons.event_available_rounded,
+        isArabic
+            ? 'القسط القادم بعد $jours يوم (${_formatDate(fp.prochaineDate!)})'
+            : 'Prochaine échéance dans $jours j (${_formatDate(fp.prochaineDate!)})',
+        UXColors.info,
+        UXColors.infoSoft,
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildInfoBanner(
+    IconData icon,
+    String text,
+    Color color,
+    Color bg,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: GoogleFonts.cairo(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: color,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPayButton(
+    FormationAvecPaiement fp,
+    bool isArabic,
+    bool isEnRetard,
+    bool aTrancheEnAttente,
+  ) {
+    final color = aTrancheEnAttente
+        ? UXColors.textLight
+        : (isEnRetard ? UXColors.danger : UXColors.primary);
+
+    return SizedBox(
+      width: double.infinity,
+      height: 46,
+      child: ElevatedButton(
+        onPressed: aTrancheEnAttente ? null : () => _payerTranche(fp),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: UXColors.border,
+          disabledForegroundColor: UXColors.textLight,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          elevation: aTrancheEnAttente ? 0 : 3,
+          shadowColor: color.withOpacity(0.3),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              aTrancheEnAttente
+                  ? Icons.hourglass_top_rounded
+                  : Icons.payments_rounded,
+              size: 18,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              aTrancheEnAttente
+                  ? (isArabic ? 'في انتظار الموافقة' : 'En attente')
+                  : (isArabic
+                      ? 'دفع ${fp.montantMensuel.toStringAsFixed(0)} DT'
+                      : 'Payer ${fp.montantMensuel.toStringAsFixed(0)} DT'),
+              style: GoogleFonts.cairo(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // BOUTON LIEN MODERNE
+  // ============================================================
+
+  Widget _buildLienButton(String lien, bool isArabic) {
+    final color = _getLienColor(lien);
+    final icon = _getLienIcon(lien);
+    final label = _getLienLabel(lien, isArabic);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _ouvrirLien(lien),
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                color.withOpacity(0.15),
+                color.withOpacity(0.05),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: color.withOpacity(0.3), width: 1.5),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withOpacity(0.4),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Icon(icon, color: Colors.white, size: 16),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  label,
+                  style: GoogleFonts.cairo(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Icon(Icons.arrow_forward_rounded, color: color, size: 18),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // RAPPEL DE PAIEMENT
+  // ============================================================
+
+  Widget _buildRappelPaiement(bool isArabic) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [UXColors.warningSoft, UXColors.dangerSoft],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: UXColors.warning.withOpacity(0.4), width: 1.5),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: UXColors.warning,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: UXColors.warning.withOpacity(0.4),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.priority_high_rounded,
+              color: Colors.white,
+              size: 16,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isArabic ? 'يرجى دفع القسط' : 'Paiement requis',
+                  style: GoogleFonts.cairo(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: UXColors.textDark,
+                  ),
+                ),
+                Text(
+                  isArabic
+                      ? 'الرابط غير متوفر حتى تسدد القسط'
+                      : 'Lien indisponible avant paiement',
+                  style: GoogleFonts.cairo(
+                    fontSize: 10,
+                    color: UXColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // HISTORIQUE
+  // ============================================================
+
+  Widget _buildHistorique(bool isArabic, bool isMobile) {
+    if (_historiquePayments.isEmpty) {
+      return _buildEmptyState(isArabic);
+    }
+
+    return Column(
+      children: _historiquePayments.map((p) {
+        final statut = p['statut_paiement'] ?? 'en_attente';
+        Color statutColor;
+        String statutLabel;
+
+        switch (statut) {
+          case 'valide':
+            statutColor = UXColors.success;
+            statutLabel = isArabic ? 'مقبول' : 'Validé';
+            break;
+          case 'refuse':
+            statutColor = UXColors.danger;
+            statutLabel = isArabic ? 'مرفوض' : 'Refusé';
+            break;
+          case 'annule':
+            statutColor = UXColors.textLight;
+            statutLabel = isArabic ? 'ملغى' : 'Annulé';
+            break;
+          default:
+            statutColor = UXColors.warning;
+            statutLabel = isArabic ? 'في انتظار' : 'En attente';
+        }
+
+        final montant =
+            double.tryParse(p['montant_paye']?.toString() ?? '0') ?? 0;
+        final formationTitre = isArabic
+            ? (p['formation_titre_ar'] ?? 'N/A')
+            : (p['formation_titre_fr'] ?? 'N/A');
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: UXColors.bgStart,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: UXColors.border),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: statutColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.receipt_long_rounded,
+                  color: statutColor,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      formationTitre,
+                      style: GoogleFonts.cairo(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: UXColors.textDark,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      p['reference_paiement'] ?? '',
+                      style: GoogleFonts.cairo(
+                        fontSize: 10,
+                        color: UXColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '${montant.toStringAsFixed(0)} DT',
+                    style: GoogleFonts.cairo(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: UXColors.textDark,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statutColor,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      statutLabel,
+                      style: GoogleFonts.cairo(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  // ============================================================
+  // UTILITAIRES
+  // ============================================================
 
   String _formatDate(DateTime date) {
     return '${date.day.toString().padLeft(2, '0')}/'
@@ -1107,14 +1939,27 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
         title: Row(
           children: [
-            Icon(Icons.lock_outline, color: Colors.red.shade700),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: const BoxDecoration(
+                color: UXColors.dangerSoft,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.lock_rounded,
+                  color: UXColors.danger, size: 20),
+            ),
             const SizedBox(width: 12),
             Text(
-              isArabic ? '🔒 التكوين معطل' : '🔒 Formation verrouillée',
-              style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+              isArabic ? 'التكوين معطل' : 'Formation verrouillée',
+              style: GoogleFonts.cairo(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
             ),
           ],
         ),
@@ -1124,7 +1969,7 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
               : 'Vous ne pouvez pas accéder à cette formation tant que vous n\'avez pas payé la tranche en retard.',
           style: GoogleFonts.cairo(
             fontSize: 14,
-            color: Colors.grey.shade700,
+            color: UXColors.textMuted,
             height: 1.5,
           ),
         ),
@@ -1134,7 +1979,7 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
             child: Text(
               isArabic ? 'حسناً' : 'OK',
               style: GoogleFonts.cairo(
-                color: AppColors.primary,
+                color: UXColors.primary,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -1145,10 +1990,38 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage> {
   }
 }
 
-class AppColors {
-  static const Color surface = Color(0xfffcfbfa);
-  static const Color primary = Color(0xffd57653);
-  static const Color textDark = Color(0xff2c221e);
-  static const Color textMuted = Color(0xff7c6e68);
-  static const Color primaryDark = Color(0xff994a2b);
+// ============================================================
+// WIDGET HOVER (pour cartes interactives)
+// ============================================================
+
+class _HoverCard extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+
+  const _HoverCard({required this.child, this.onTap});
+
+  @override
+  State<_HoverCard> createState() => _HoverCardState();
+}
+
+class _HoverCardState extends State<_HoverCard> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          transform: Matrix4.translationValues(0, _isHovered ? -4 : 0, 0),
+          child: widget.child,
+        ),
+      ),
+    );
+  }
 }

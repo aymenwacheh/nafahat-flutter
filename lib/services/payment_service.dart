@@ -411,4 +411,43 @@ class PaymentService {
       return {'success': false, 'message': e.toString()};
     }
   }
+    // ============================================================
+  // ✅ RÉCUPÉRER LES TYPES DE PAIEMENT DISPONIBLES
+  // GET /api/payments/types
+  // ============================================================
+
+  static Future<List<Map<String, dynamic>>> getPaymentTypes() async {
+    try {
+      print('🔵 [PaymentService] Récupération des types de paiement...');
+
+      final url = '$baseUrl/payments/types';
+      print('   📋 URL: $url');
+
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final List<dynamic> types = data['data'] ?? [];
+        return types.map((e) => Map<String, dynamic>.from(e)).toList();
+      } else {
+        print('❌ Erreur: ${response.statusCode}');
+        return getDefaultPaymentTypes();
+      }
+    } catch (e) {
+      print('❌ [PaymentService] Erreur getPaymentTypes: $e');
+      return getDefaultPaymentTypes();
+    }
+  }
+
+  /// ✅ Types par défaut (fallback si l'API échoue)
+  static List<Map<String, dynamic>> getDefaultPaymentTypes() {
+    return [
+      {'value': 'formation', 'labelFr': 'Paiement complet', 'labelAr': 'دفع كامل', 'isPeriodic': false},
+      {'value': 'mois', 'labelFr': 'Paiement mensuel', 'labelAr': 'دفع شهري', 'isPeriodic': true},
+      {'value': 'semaine', 'labelFr': 'Paiement hebdomadaire', 'labelAr': 'دفع أسبوعي', 'isPeriodic': true},
+      {'value': 'trimestre', 'labelFr': 'Paiement trimestriel', 'labelAr': 'دفع ربع سنوي', 'isPeriodic': true},
+      {'value': 'annee', 'labelFr': 'Paiement annuel', 'labelAr': 'دفع سنوي', 'isPeriodic': true},
+      {'value': 'seance', 'labelFr': 'Paiement par séance', 'labelAr': 'دفع بالحصة', 'isPeriodic': true},
+    ];
+  }
 }

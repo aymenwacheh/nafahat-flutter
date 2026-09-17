@@ -190,4 +190,66 @@ class PaiementValidation {
       'commentaire': commentaire,
     };
   }
+    // ============================================================
+  // ✅ GETTERS POUR LES TYPES DE PAIEMENT
+  // ============================================================
+
+  /// Label du type de paiement
+  String getTypeLabel(bool isArabic) {
+    switch (typePaiement) {
+      case 'formation':
+        return isArabic ? 'دفع كامل' : 'Paiement complet';
+      case 'mois':
+        return isArabic ? 'دفع شهري' : 'Paiement mensuel';
+      case 'semaine':
+        return isArabic ? 'دفع أسبوعي' : 'Paiement hebdomadaire';
+      case 'trimestre':
+        return isArabic ? 'دفع ربع سنوي' : 'Paiement trimestriel';
+      case 'annee':
+        return isArabic ? 'دفع سنوي' : 'Paiement annuel';
+      case 'seance':
+        return isArabic ? 'دفع بالحصة' : 'Paiement par séance';
+      default:
+        return isArabic ? 'دفع' : 'Paiement';
+    }
+  }
+
+  /// Icône du type de paiement
+  String getTypeIcon() {
+    switch (typePaiement) {
+      case 'formation':
+        return '🎓';
+      case 'mois':
+        return '📅';
+      case 'semaine':
+        return '📆';
+      case 'trimestre':
+        return '📊';
+      case 'annee':
+        return '🗓️';
+      case 'seance':
+        return '🎯';
+      default:
+        return '💳';
+    }
+  }
+
+  /// Libellé court de la période (mois, semaines, etc.)
+  String getPeriodeLabel(bool isArabic) {
+    final n = nombreMois > 0 ? nombreMois : 1;
+    switch (typePaiement) {
+      case 'mois':
+        return isArabic ? '$n شهر' : '$n mois';
+      case 'semaine':
+        return isArabic ? '$n أسبوع' : '$n sem.';
+      case 'trimestre':
+        return isArabic ? '$n ربع' : '$n trim.';
+      case 'annee':
+        return isArabic ? '$n سنة' : '$n an';
+      case 'seance':
+        return isArabic ? '$n حصة' : '$n séance';
+      default:
+        return '';
+    }
+  }
 }
