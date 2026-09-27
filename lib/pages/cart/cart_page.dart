@@ -1,3 +1,4 @@
+import 'package:nafahat/pages/widgets/shared_navigation_shell.dart';
 // lib/pages/cart/cart_page.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -252,7 +253,7 @@ class _CartPageState extends State<CartPage> {
           // Naviguer vers ModalitePaimentPage
           Navigator.push(
             context,
-            MaterialPageRoute(
+            NafahatPageRoute(
               builder: (context) => ModalitePaimentPage(
                 paymentId: paymentId,
                 formationId: formationId,

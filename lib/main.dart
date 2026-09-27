@@ -1,3 +1,4 @@
+import 'package:nafahat/pages/widgets/shared_navigation_shell.dart';
 // lib/main.dart
 import 'dart:ui';
 
@@ -5,10 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:nafahat/pages/formation/formations_page.dart';
+import 'package:nafahat/pages/formateur/formateurs_page.dart';
 import 'package:nafahat/pages/widgets/chatbot/chatbot_widget.dart';
 import 'package:nafahat/pages/users/inscription_adherent.dart';
 import 'package:provider/provider.dart';
-import '/pages/landing/splash_screen.dart';
+import 'package:nafahat/pages/landing/splash_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/pages/users/auth_page.dart';
 import 'package:nafahat/providers/language_provider.dart';
@@ -81,7 +83,7 @@ class _MyAppState extends State<MyApp> {
     final String path = uri.path;
 
     if (path == '/' || path.isEmpty) {
-      return const ComingSoonPage();
+      return const SharedNavigationShell(child: ComingSoonPage());
     } else if (path == '/project') {
       return ChatbotGlobalWrapper(child: const SplashScreen());
     } else if (path == '/reset-password') {
@@ -90,7 +92,7 @@ class _MyAppState extends State<MyApp> {
         child: ResetPasswordPage(),
       );
     } else {
-      return const ComingSoonPage();
+      return const SharedNavigationShell(child: ComingSoonPage());
     }
   }
 
@@ -201,6 +203,10 @@ class _MyAppState extends State<MyApp> {
                 hideOnRoute: false,
                 child: CartPage(),
               ),
+              '/formateurs': (context) => const ChatbotGlobalWrapper(
+                hideOnRoute: false,
+                child: FormateursPage(),
+              ),
               '/reset-password': (context) => const ChatbotGlobalWrapper(
                 hideOnRoute: false,
                 child: ResetPasswordPage(),
@@ -212,7 +218,7 @@ class _MyAppState extends State<MyApp> {
               if (settings.name == '/login') {
                 final args = settings.arguments as Map<String, dynamic>?;
                 final returnToPrevious = args?['returnToPrevious'] as bool? ?? false;
-                return MaterialPageRoute(
+                return NafahatPageRoute(
                   settings: settings,
                   builder: (context) => ChatbotGlobalWrapper(
                     hideOnRoute: false,
@@ -224,7 +230,7 @@ class _MyAppState extends State<MyApp> {
               if (settings.name == '/inscription') {
                 final args = settings.arguments as Map<String, dynamic>?;
                 final fromFormationDetail = args?['fromFormationDetail'] as bool? ?? false;
-                return MaterialPageRoute(
+                return NafahatPageRoute(
                   settings: settings,
                   builder: (context) => ChatbotGlobalWrapper(
                     hideOnRoute: false,
@@ -236,7 +242,7 @@ class _MyAppState extends State<MyApp> {
               }
 
               if (settings.name == '/reset-password') {
-                return MaterialPageRoute(
+                return NafahatPageRoute(
                   settings: settings,
                   builder: (context) => const ChatbotGlobalWrapper(
                     hideOnRoute: false,
@@ -247,7 +253,7 @@ class _MyAppState extends State<MyApp> {
 
               if (settings.name == '/formations') {
                 final args = settings.arguments as Map<String, String>?;
-                return MaterialPageRoute(
+                return NafahatPageRoute(
                   settings: settings,
                   builder: (context) => ChatbotGlobalWrapper(
                     hideOnRoute: false,
@@ -261,7 +267,7 @@ class _MyAppState extends State<MyApp> {
 
               if (settings.name != null && settings.name!.startsWith('/formation/')) {
                 final formationId = settings.name!.replaceAll('/formation/', '');
-                return MaterialPageRoute(
+                return NafahatPageRoute(
                   settings: settings,
                   builder: (context) => ChatbotGlobalWrapper(
                     hideOnRoute: false,
@@ -271,7 +277,7 @@ class _MyAppState extends State<MyApp> {
               }
 
               if (settings.name != null && settings.name!.startsWith('/video/')) {
-                return MaterialPageRoute(
+                return NafahatPageRoute(
                   settings: settings,
                   builder: (context) => ChatbotGlobalWrapper(
                     hideOnRoute: false,
@@ -281,7 +287,7 @@ class _MyAppState extends State<MyApp> {
               }
 
               if (settings.name == '/cart') {
-                return MaterialPageRoute(
+                return NafahatPageRoute(
                   settings: settings,
                   builder: (context) => const ChatbotGlobalWrapper(
                     hideOnRoute: false,
@@ -291,7 +297,7 @@ class _MyAppState extends State<MyApp> {
               }
 
               if (settings.name == '/profile') {
-                return MaterialPageRoute(
+                return NafahatPageRoute(
                   settings: settings,
                   builder: (context) => ChatbotGlobalWrapper(
                     hideOnRoute: false,
@@ -301,7 +307,7 @@ class _MyAppState extends State<MyApp> {
               }
 
               if (settings.name == '/videos') {
-                return MaterialPageRoute(
+                return NafahatPageRoute(
                   settings: settings,
                   builder: (context) => ChatbotGlobalWrapper(
                     hideOnRoute: false,
@@ -314,7 +320,7 @@ class _MyAppState extends State<MyApp> {
             },
             onUnknownRoute: (settings) {
               print('⚠️ [ROUTE] Route inconnue: ${settings.name}');
-              return MaterialPageRoute(
+              return NafahatPageRoute(
                 builder: (context) => const ChatbotGlobalWrapper(
                   hideOnRoute: false,
                   child: AuthPage(),
@@ -503,7 +509,8 @@ class _ChatbotGlobalWrapperState extends State<ChatbotGlobalWrapper> {
       showChatbot = false;
     }
 
-    return Stack(
+    if (widget.child is SplashScreen) return widget.child;
+    return SharedNavigationShell(child: Stack(
       children: [
         widget.child,
         if (showChatbot)
@@ -513,6 +520,6 @@ class _ChatbotGlobalWrapperState extends State<ChatbotGlobalWrapper> {
             primaryColor: const Color(0xffd57653),
           ),
       ],
-    );
+    ));
   }
 }

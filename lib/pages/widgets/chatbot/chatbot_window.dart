@@ -1,6 +1,6 @@
 // lib/widgets/chatbot/chatbot_window.dart
 import 'package:flutter/material.dart';
-import '/models/chatbot_models.dart';
+import 'package:nafahat/models/chatbot_models.dart';
 
 class ChatbotWindow extends StatefulWidget {
   final List<ChatMessage> messages;

@@ -1,3 +1,4 @@
+import 'package:nafahat/pages/widgets/shared_navigation_shell.dart';
 // lib/pages/adminisration/adherents_list_page.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -497,7 +498,7 @@ class _AdherentsListPageState extends State<AdherentsListPage> {
                               onPressed: () {
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute(
+                                  NafahatPageRoute(
                                     builder:
                                         (context) => EditProfilePage(
                                           adherentId: adherent.id.toString(),
@@ -636,7 +637,7 @@ class _AdherentsListPageState extends State<AdherentsListPage> {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
+                          NafahatPageRoute(
                             builder:
                                 (context) => EditProfilePage(
                                   adherentId: adherent.id.toString(),

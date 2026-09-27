@@ -1,3 +1,5 @@
+import 'package:nafahat/pages/widgets/shared_navigation_scope.dart';
+import 'package:nafahat/pages/widgets/shared_navigation_shell.dart';
 // lib/pages/landing/widgets/navbar.dart
 import 'dart:convert';
 import 'dart:ui';
@@ -18,7 +20,7 @@ import 'package:nafahat/pages/adminisration/add_video_fav_page.dart';
 import 'package:nafahat/pages/adminisration/add_duree.dart';
 import 'package:nafahat/pages/adminisration/add_typeFormation.dart';
 import 'package:nafahat/pages/adminisration/apparence_card.dart';
-import 'package:nafahat/pages/adminisration/creerUserPage.dart';
+import 'package:nafahat/pages/adminisration/CreerUserPage.dart';
 import 'package:nafahat/pages/users/auth_page.dart';
 import 'package:nafahat/pages/users/profile_dashboard_page.dart';
 import 'package:nafahat/pages/users/edit_profile_page.dart';
@@ -79,7 +81,7 @@ class Navbar extends StatelessWidget {
     if (context.mounted) {
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => const LandingPage()),
+        NafahatPageRoute(builder: (context) => const LandingPage()),
         (route) => false,
       );
     }
@@ -112,7 +114,7 @@ class Navbar extends StatelessWidget {
 
   void _closeDrawerAndNavigate(BuildContext context, Widget page) {
     _closeDrawer(context);
-    Navigator.push(context, MaterialPageRoute(builder: (context) => page));
+    Navigator.push(context, NafahatPageRoute(builder: (context) => page));
   }
 
   // ============================================================
@@ -120,6 +122,7 @@ class Navbar extends StatelessWidget {
   // ============================================================
   @override
   Widget build(BuildContext context) {
+    if (SharedNavigationScope.contains(context)) return const SizedBox.shrink();
     final languageProvider = Provider.of<LanguageProvider>(context);
     final userProvider = Provider.of<UserProvider>(context);
     final isArabic = languageProvider.isArabic;
@@ -375,7 +378,7 @@ class Navbar extends StatelessWidget {
           onTap: () {
             Navigator.pushAndRemoveUntil(
               context,
-              MaterialPageRoute(builder: (context) => const LandingPage()),
+              NafahatPageRoute(builder: (context) => const LandingPage()),
               (route) => false,
             );
           },
@@ -386,7 +389,7 @@ class Navbar extends StatelessWidget {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const AllTrainingsPage()),
+              NafahatPageRoute(builder: (context) => const AllTrainingsPage()),
             );
           },
         ),
@@ -396,7 +399,7 @@ class Navbar extends StatelessWidget {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const AllVideoPage()),
+              NafahatPageRoute(builder: (context) => const AllVideoPage()),
             );
           },
         ),
@@ -406,7 +409,7 @@ class Navbar extends StatelessWidget {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const AboutPage()),
+              NafahatPageRoute(builder: (context) => const AboutPage()),
             );
           },
         ),
@@ -499,7 +502,7 @@ class Navbar extends StatelessWidget {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
+                NafahatPageRoute(
                   builder: (context) => const InscriptionAdherentPage(),
                 ),
               );
@@ -523,7 +526,7 @@ class Navbar extends StatelessWidget {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const AuthPage()),
+                NafahatPageRoute(builder: (context) => const AuthPage()),
               );
             },
             style: ElevatedButton.styleFrom(
@@ -741,7 +744,7 @@ class Navbar extends StatelessWidget {
       case 'go_to_admin':
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const AdministrationPage()),
+          NafahatPageRoute(builder: (context) => const AdministrationPage()),
         );
         break;
       
@@ -749,7 +752,7 @@ class Navbar extends StatelessWidget {
       case 'add_training':
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const AddTrainingCardPage()),
+          NafahatPageRoute(builder: (context) => const AddTrainingCardPage()),
         );
         break;
       case 'edit_training':
@@ -758,13 +761,13 @@ class Navbar extends StatelessWidget {
       case 'add_duree':
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const AddDureePage()),
+          NafahatPageRoute(builder: (context) => const AddDureePage()),
         );
         break;
       case 'add_categorie':
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const AddCategoriePage()),
+          NafahatPageRoute(builder: (context) => const AddCategoriePage()),
         );
         break;
       case 'edit_categorie':
@@ -773,7 +776,7 @@ class Navbar extends StatelessWidget {
       case 'add_type_formation':
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const AddTypeFormationPage()),
+          NafahatPageRoute(builder: (context) => const AddTypeFormationPage()),
         );
         break;
       case 'edit_type_formation':
@@ -782,13 +785,13 @@ class Navbar extends StatelessWidget {
       case 'add_formateur':
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const AddFormateurPage()),
+          NafahatPageRoute(builder: (context) => const AddFormateurPage()),
         );
         break;
       case 'add_video':
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const AddVideoFavPage()),
+          NafahatPageRoute(builder: (context) => const AddVideoFavPage()),
         );
         break;
       case 'manage_trainings':
@@ -805,37 +808,37 @@ class Navbar extends StatelessWidget {
       case 'apparence_landing':
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const ApparitionLandingPage()),
+          NafahatPageRoute(builder: (context) => const ApparitionLandingPage()),
         );
         break;
       case 'apparence_hero':
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => ApparenceHero(isArabic: isArabic)),
+          NafahatPageRoute(builder: (context) => ApparenceHero(isArabic: isArabic)),
         );
         break;
       case 'apparence_card':
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const ApparenceCardPage()),
+          NafahatPageRoute(builder: (context) => const ApparenceCardPage()),
         );
         break;
       case 'apparence_formateur':
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const ApparenceCardFormateurPage()),
+          NafahatPageRoute(builder: (context) => const ApparenceCardFormateurPage()),
         );
         break;
       case 'apparence_bull':
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const ApparitionBullPage()),
+          NafahatPageRoute(builder: (context) => const ApparitionBullPage()),
         );
         break;
       case 'add_about':
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const AddAboutPage()),
+          NafahatPageRoute(builder: (context) => const AddAboutPage()),
         );
         break;
       
@@ -843,31 +846,31 @@ class Navbar extends StatelessWidget {
       case 'adherents':
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const AdherentsListPage()),
+          NafahatPageRoute(builder: (context) => const AdherentsListPage()),
         );
         break;
       case 'users_list':
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const UsersListPage()),
+          NafahatPageRoute(builder: (context) => const UsersListPage()),
         );
         break;
       case 'creer_user':
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const CreerUserPage()),
+          NafahatPageRoute(builder: (context) => const CreerUserPage()),
         );
         break;
       case 'inscription_adherent':
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const InscriptionAdherentPage()),
+          NafahatPageRoute(builder: (context) => const InscriptionAdherentPage()),
         );
         break;
       case 'etat_paiement':
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const EtatPaiementPage()),
+          NafahatPageRoute(builder: (context) => const EtatPaiementPage()),
         );
         break;
     }
@@ -979,7 +982,7 @@ class Navbar extends StatelessWidget {
       case 'create_account':
         Navigator.push(
           context,
-          MaterialPageRoute(
+          NafahatPageRoute(
             builder: (context) => const InscriptionAdherentPage(),
           ),
         );
@@ -987,19 +990,19 @@ class Navbar extends StatelessWidget {
       case 'authentification':
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const AuthPage()),
+          NafahatPageRoute(builder: (context) => const AuthPage()),
         );
         break;
       case 'profile':
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const EditProfilePage()),
+          NafahatPageRoute(builder: (context) => const EditProfilePage()),
         );
         break;
       case 'dashboard':
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const ProfileDashboardPage()),
+          NafahatPageRoute(builder: (context) => const ProfileDashboardPage()),
         );
         break;
       case 'account_management':
@@ -1328,7 +1331,7 @@ class Navbar extends StatelessWidget {
               _closeDrawer(context);
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const AdministrationPage()),
+                NafahatPageRoute(builder: (context) => const AdministrationPage()),
               );
             },
           ),
@@ -1562,7 +1565,7 @@ class Navbar extends StatelessWidget {
                               Navigator.pop(context);
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(
+                                NafahatPageRoute(
                                   builder: (context) => EditFormationPage(
                                     formationId: formation['id'].toString(),
                                   ),
@@ -1697,7 +1700,7 @@ class Navbar extends StatelessWidget {
                               Navigator.pop(context);
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(
+                                NafahatPageRoute(
                                   builder: (context) => EditCategoriePage(
                                     itemId: cat['id'].toString(),
                                     type: 'categorie',
@@ -1836,7 +1839,7 @@ class Navbar extends StatelessWidget {
                               Navigator.pop(context);
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(
+                                NafahatPageRoute(
                                   builder: (context) => AddTypeFormationPage(
                                     typeToEdit: type,
                                   ),

@@ -252,7 +252,7 @@ class _CmplInfoFormState extends State<CmplInfoForm> {
     final double cardPadding = isMobile ? 16 : 24;
     final double maxWidth = isDesktop ? 800 : double.infinity;
     final double fontSize = isMobile ? 14 : 16;
-    final double topMargin = isMobile ? 100 : 90;
+    const double topMargin = 20;
 
     return ChatbotWrapper(
       apiBaseUrl: 'http://localhost:3000',

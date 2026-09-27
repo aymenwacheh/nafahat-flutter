@@ -1,3 +1,4 @@
+import 'package:nafahat/pages/widgets/shared_navigation_shell.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'landing_page.dart';
@@ -71,7 +72,7 @@ class _SplashScreenState extends State<SplashScreen>
     Timer(const Duration(milliseconds: 4500), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const LandingPage()),
+          NafahatPageRoute(builder: (context) => const LandingPage()),
         );
       }
     });

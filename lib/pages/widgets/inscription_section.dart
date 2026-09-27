@@ -1,3 +1,4 @@
+import 'package:nafahat/pages/widgets/shared_navigation_shell.dart';
 // lib/widgets/inscription_section.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -327,7 +328,7 @@ class _InscriptionSectionState extends State<InscriptionSection>
   void _navigateToInscription(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const InscriptionAdherentPage()),
+      NafahatPageRoute(builder: (context) => const InscriptionAdherentPage()),
     );
   }
 }

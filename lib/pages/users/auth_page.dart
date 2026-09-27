@@ -1,3 +1,4 @@
+import 'package:nafahat/pages/widgets/shared_navigation_shell.dart';
 // lib/pages/users/auth_page.dart
 import 'package:flutter/material.dart';
 import 'package:nafahat/pages/users/reset_password_page.dart';
@@ -124,7 +125,7 @@ class _AuthPageState extends State<AuthPage> {
           } else {
             Navigator.pushAndRemoveUntil(
               context,
-              MaterialPageRoute(
+              NafahatPageRoute(
                 builder: (context) => const ProfileDashboardPage(),
               ),
               (route) => false,
@@ -424,7 +425,7 @@ class _AuthPageState extends State<AuthPage> {
     onPressed: () {
       Navigator.push(
         context,
-        MaterialPageRoute(
+        NafahatPageRoute(
           builder: (context) => const ResetPasswordPage(),
         ),
       );
@@ -501,7 +502,7 @@ class _AuthPageState extends State<AuthPage> {
                                             onPressed: () async {
                                               final result = await Navigator.push(
                                                 context,
-                                                MaterialPageRoute(
+                                                NafahatPageRoute(
                                                   builder:
                                                       (context) => InscriptionAdherentPage(
                                                         fromFormationDetail:

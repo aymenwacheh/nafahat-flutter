@@ -1,3 +1,4 @@
+import 'package:nafahat/pages/widgets/shared_navigation_scope.dart';
 // lib/pages/widgets/mobile_bottom_nav.dart
 
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ class MobileBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (SharedNavigationScope.contains(context)) return const SizedBox.shrink();
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     // Ne s'affiche que sur mobile

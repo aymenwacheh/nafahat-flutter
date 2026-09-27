@@ -1,3 +1,4 @@
+import 'package:nafahat/pages/widgets/shared_navigation_shell.dart';
 // lib/pages/cart/cart_popup.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -197,7 +198,7 @@ class _CartPopupState extends State<CartPopup> {
           // Naviguer vers ModalitePaimentPage (le paiement continue)
           Navigator.push(
             context,
-            MaterialPageRoute(
+            NafahatPageRoute(
               builder: (context) => ModalitePaimentPage(
                 paymentId: paymentId,
                 formationId: formationId,

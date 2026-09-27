@@ -1044,30 +1044,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       ),
                     ),
 
-                    // ---- NAVBAR ----
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      child: Container(
-                        height: 85,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.02),
-                              blurRadius: 10,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Navbar(
-                          isMobile: isMobile,
-                          scaffoldKey: _scaffoldKey,
-                        ),
-                      ),
-                    ),
-
                     // ---- Overlay chargement ----
                     if (_isLoading)
                       const Opacity(

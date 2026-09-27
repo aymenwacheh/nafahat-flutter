@@ -1,3 +1,4 @@
+import 'package:nafahat/pages/widgets/shared_navigation_shell.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -913,7 +914,7 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
       if (mounted) {
         final result = await Navigator.push(
           context,
-          MaterialPageRoute(
+          NafahatPageRoute(
             builder:
                 (context) => VerifCodePage(
                   email: adherent.email,
@@ -953,7 +954,7 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
             // 👇 NOUVEAU : Rediriger vers ProfileDashboardPage
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(
+              NafahatPageRoute(
                 builder: (context) => const ProfileDashboardPage(),
               ),
             );

@@ -1,7 +1,7 @@
 // lib/services/admin_user_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../../config/api_config.dart';
+import 'package:nafahat/config/api_config.dart';
 import '../models/adherent.dart';
 import '../models/enfant.dart';
 import '../models/role.dart';

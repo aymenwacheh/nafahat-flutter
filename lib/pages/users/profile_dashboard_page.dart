@@ -1,3 +1,4 @@
+import 'package:nafahat/pages/widgets/shared_navigation_shell.dart';
 // lib/pages/users/profile_dashboard_page.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -341,7 +342,7 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage>
 
     final result = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(
+      NafahatPageRoute(
         builder: (context) => PaiementTranchePage(
           paymentId: fp.paymentId,
           montantTranche: fp.montantMensuel,
@@ -437,18 +438,7 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage>
                 // ============================================================
                 // ✅ NAVBAR EN HAUT (JAMAIS RECOUVERT, TOUJOURS CLIQUABLE)
                 // ============================================================
-                Material(
-                  color: Colors.white,
-                  elevation: 4,
-                  shadowColor: Colors.black.withOpacity(0.08),
-                  child: SizedBox(
-                    height: 85,
-                    child: Navbar(
-                      isMobile: isMobile,
-                      scaffoldKey: _scaffoldKey,
-                    ),
-                  ),
-                ),
+
 
                 // ============================================================
                 // ✅ CONTENU SCROLLABLE (SOUS LE NAVBAR)
@@ -746,7 +736,7 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage>
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
+                      NafahatPageRoute(
                         builder: (context) => const EditProfilePage(),
                       ),
                     );
@@ -1153,7 +1143,7 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage>
           ? () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
+                NafahatPageRoute(
                   builder: (context) => FormationDetailPage(
                     formationId: formation.id.toString(),
                   ),

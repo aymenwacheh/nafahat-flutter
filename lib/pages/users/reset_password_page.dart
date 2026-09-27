@@ -1,3 +1,4 @@
+import 'package:nafahat/pages/widgets/shared_navigation_shell.dart';
 // lib/pages/users/reset_password_page.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -305,7 +306,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                           onPressed: () {
                             Navigator.pushReplacement(
                               context,
-                              MaterialPageRoute(builder: (context) => const AuthPage()),
+                              NafahatPageRoute(builder: (context) => const AuthPage()),
                             );
                           },
                           child: Text(
@@ -477,7 +478,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               if (mounted) {
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (context) => const ProfileDashboardPage()),
+                  NafahatPageRoute(builder: (context) => const ProfileDashboardPage()),
                   (route) => false,
                 );
               }
@@ -490,7 +491,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
           if (mounted) {
             Navigator.pushAndRemoveUntil(
               context,
-              MaterialPageRoute(builder: (context) => const AuthPage()),
+              NafahatPageRoute(builder: (context) => const AuthPage()),
               (route) => false,
             );
           }

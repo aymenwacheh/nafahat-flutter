@@ -1,3 +1,4 @@
+import 'package:nafahat/pages/widgets/shared_navigation_shell.dart';
 // lib/pages/formations/formation_detail_page.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -438,7 +439,7 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
             setState(() => _isProcessingPayment = false);
             Navigator.push(
               context,
-              MaterialPageRoute(
+              NafahatPageRoute(
                 builder: (context) => CmplInfoForm(
                   adherentId: adherentId,
                   formationId: int.parse(_training!.id),
@@ -495,7 +496,7 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
         if (paymentId != null && paymentId.isNotEmpty) {
           Navigator.push(
             context,
-            MaterialPageRoute(
+            NafahatPageRoute(
               builder: (context) => ModalitePaimentPage(
                 paymentId: paymentId,
                 formationId: _training!.id,
@@ -1347,7 +1348,7 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
                     onTap: () {
                       Navigator.pushReplacement(
                         context,
-                        MaterialPageRoute(
+                        NafahatPageRoute(
                           builder: (context) => FormationDetailPage(
                             formationId: training.id,
                           ),

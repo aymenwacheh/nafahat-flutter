@@ -540,7 +540,7 @@ class _VerifCodePageState extends State<VerifCodePage> {
                   padding: EdgeInsets.all(isMobile ? 20 : 32),
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
-                    padding: EdgeInsets.only(top: isMobile ? 120 : 100),
+                    padding: const EdgeInsets.only(top: 20),
                     child: Card(
                       elevation: 4,
                       shape: RoundedRectangleBorder(

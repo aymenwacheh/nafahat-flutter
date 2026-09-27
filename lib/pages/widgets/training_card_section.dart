@@ -1,3 +1,4 @@
+import 'package:nafahat/pages/widgets/shared_navigation_shell.dart';
 // lib/widgets/training_card.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -183,7 +184,7 @@ class _TrainingCardState extends State<TrainingCard> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
+                NafahatPageRoute(
                   builder: (context) => FormationDetailPage(
                     formationId: widget.training.id.toString(),
                   ),
@@ -477,7 +478,7 @@ class _TrainingCardState extends State<TrainingCard> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
+                NafahatPageRoute(
                   builder: (context) => FormationDetailPage(
                     formationId: widget.training.id.toString(),
                   ),

@@ -1,8 +1,8 @@
+import 'package:nafahat/pages/widgets/shared_navigation_shell.dart';
 // lib/pages/landing/landing_page.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/models/bull_model.dart';
-import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
 
 import 'package:provider/provider.dart';
 
@@ -58,6 +58,13 @@ class LandingPage extends StatefulWidget {
 class _LandingPageState extends State<LandingPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final _trainingSectionKey = GlobalKey<_TrainingCyclesSectionState>();
+  final ScrollController _pageScrollController = ScrollController();
+  final Map<String, GlobalKey> _sectionKeys = {};
+  @override
+  void dispose() {
+    _pageScrollController.dispose();
+    super.dispose();
+  }
 
   // États pour les sections dynamiques
   List<SectionOrderModel> _sections = [];
@@ -74,9 +81,15 @@ class _LandingPageState extends State<LandingPage> {
   // ============================================================
   Future<void> _loadSections() async {
     final sections = await SectionOrderService.loadSections();
+    if (!mounted) return;
     setState(() {
       _sections = sections.where((s) => s.isActive).toList();
       _sectionsLoaded = true;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is Map && args['section'] is String) _scrollToSection(args['section'] as String);
     });
   }
 
@@ -157,22 +170,21 @@ class _LandingPageState extends State<LandingPage> {
   // SCROLL VERS UNE SECTION
   // ============================================================
   void _scrollToSection(String sectionKey) {
-    final sectionIndex = _sections.indexWhere((s) => s.sectionKey == sectionKey);
-    if (sectionIndex != -1) {
-      print('   📍 Section trouvée à l\'index: $sectionIndex');
-      
-      final scrollable = Scrollable.of(context);
-      if (scrollable != null) {
-        final double position = sectionIndex * 400.0;
-        scrollable.position.animateTo(
-          position,
-          duration: const Duration(milliseconds: 600),
-          curve: Curves.easeInOut,
-        );
+    for (final section in _sections) {
+      if (section.sectionKey != sectionKey) continue;
+      final target = _sectionKeys[section.id]?.currentContext;
+      if (target != null) {
+        // La marge réservée au Navbar fixe évite de cacher le titre ciblé.
+        Scrollable.ensureVisible(target,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut, alignment: 0.18);
+        return;
       }
-    } else {
-      print('   ⚠️ Section non trouvée: $sectionKey');
     }
+    final isArabic = context.read<LanguageProvider>().isArabic;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(
+      isArabic ? 'هذا القسم غير متاح حالياً.' : 'Cette section n’est pas disponible actuellement.',
+    )));
   }
 
   // ============================================================
@@ -314,14 +326,18 @@ class _LandingPageState extends State<LandingPage> {
                 child: Stack(
                   children: [
                     SingleChildScrollView(
+                      controller: _pageScrollController,
                       physics: const BouncingScrollPhysics(),
                       child: Column(
                         children: [
-                          const SizedBox(height: 90),
+                          const SizedBox(height: 12),
 
                           // ✅ SECTIONS DYNAMIQUES (selon l'ordre défini dans l'admin)
                           ..._sections.map((section) {
-                            return _buildSection(section, isMobile, isArabic);
+                            return KeyedSubtree(
+                              key: _sectionKeys.putIfAbsent(section.id, () => GlobalKey()),
+                              child: _buildSection(section, isMobile, isArabic),
+                            );
                           }).toList(),
 
                           const SizedBox(height: 40),
@@ -334,6 +350,7 @@ class _LandingPageState extends State<LandingPage> {
                       right: 0,
                       child: Navbar(isMobile: isMobile, scaffoldKey: _scaffoldKey),
                     ),
+
                   ],
                 ),
               ),
@@ -530,7 +547,7 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
+                            NafahatPageRoute(
                               builder: (context) => const AllTrainingsPage(),
                             ),
                           );
@@ -596,7 +613,7 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
+                          NafahatPageRoute(
                             builder: (context) => const AllTrainingsPage(),
                           ),
                         );
@@ -728,7 +745,7 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
+                      NafahatPageRoute(
                         builder: (context) => const AllTrainingsPage(),
                       ),
                     );
@@ -792,7 +809,7 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
+                  NafahatPageRoute(
                     builder: (context) => const AllTrainingsPage(),
                   ),
                 );
@@ -914,7 +931,7 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
+                NafahatPageRoute(
                   builder: (context) => const AddTrainingCardPage(),
                 ),
               ).then((_) {
@@ -1185,7 +1202,6 @@ class _AllTrainingsPageState extends State<AllTrainingsPage> {
           // ============================================================
           // ✅ MOBILE BOTTOM NAVIGATION
           // ============================================================
-          const MobileBottomNav(),
         ],
       ),
     );

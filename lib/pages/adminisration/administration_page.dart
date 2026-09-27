@@ -1,3 +1,4 @@
+import 'package:nafahat/pages/widgets/shared_navigation_shell.dart';
 // lib/pages/adminisration/administration_page.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -34,7 +35,7 @@ import 'package:nafahat/models/cible_model.dart';
 import 'package:http/http.dart' as http;
 import 'package:nafahat/pages/adminisration/add_typeFormation.dart';
 import 'add_about.dart';
-import 'package:nafahat/pages/adminisration/creerUserPage.dart';
+import 'package:nafahat/pages/adminisration/CreerUserPage.dart';
 import 'apparence_card_formateur.dart';
 import 'package:nafahat/pages/users/inscription_adherent.dart';
 import '../../services/navigation_service.dart';
@@ -1338,7 +1339,7 @@ class _FormationsManagementPageState extends State<FormationsManagementPage> {
                             Navigator.pop(context);
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
+                              NafahatPageRoute(
                                 builder:
                                     (context) => EditFormationPage(
                                       formationId: formation.id,
@@ -1393,7 +1394,7 @@ class _FormationsManagementPageState extends State<FormationsManagementPage> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
+                        NafahatPageRoute(
                           builder: (context) => const AddTrainingCardPage(),
                         ),
                       ).then((_) => _loadFormations());
@@ -1502,7 +1503,7 @@ class _FormationsManagementPageState extends State<FormationsManagementPage> {
                                   onPressed: () {
                                     Navigator.push(
                                       context,
-                                      MaterialPageRoute(
+                                      NafahatPageRoute(
                                         builder:
                                             (context) => EditFormationPage(
                                               formationId: formation.id,
@@ -1677,7 +1678,7 @@ class _CategoriesManagementPageState extends State<CategoriesManagementPage> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
+                    NafahatPageRoute(
                       builder: (context) => const AddCategoriePage(),
                     ),
                   ).then((_) => _loadCategories());
@@ -1766,7 +1767,7 @@ class _CategoriesManagementPageState extends State<CategoriesManagementPage> {
                                   onPressed: () {
                                     Navigator.push(
                                       context,
-                                      MaterialPageRoute(
+                                      NafahatPageRoute(
                                         builder:
                                             (context) => EditCategoriePage(
                                               itemId: cat['id'].toString(),
@@ -1856,7 +1857,7 @@ class _FormateursManagementPageState extends State<FormateursManagementPage> {
 
     Navigator.push(
       context,
-      MaterialPageRoute(
+      NafahatPageRoute(
         builder: (context) => EditFormateurScreen(formateur: formateur),
       ),
     ).then((result) {
@@ -1963,7 +1964,7 @@ class _FormateursManagementPageState extends State<FormateursManagementPage> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
+                    NafahatPageRoute(
                       builder: (context) => const AddFormateurPage(),
                     ),
                   ).then((_) => _loadFormateurs());
@@ -2223,7 +2224,7 @@ class _VideosManagementPageState extends State<VideosManagementPage> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
+                    NafahatPageRoute(
                       builder: (context) => const AddVideoFavPage(),
                     ),
                   ).then((_) => _loadVideos());
@@ -2455,7 +2456,7 @@ class _AdherentsManagementPageState extends State<AdherentsManagementPage> {
                             Navigator.pop(context);
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
+                              NafahatPageRoute(
                                 builder:
                                     (context) => EditProfilePage(
                                       adherentId: adherent.id.toString(),
@@ -2609,7 +2610,7 @@ class _AdherentsManagementPageState extends State<AdherentsManagementPage> {
                                   onPressed: () {
                                     Navigator.push(
                                       context,
-                                      MaterialPageRoute(
+                                      NafahatPageRoute(
                                         builder:
                                             (context) => EditProfilePage(
                                               adherentId:
@@ -2789,7 +2790,7 @@ class _DureesManagementPageState extends State<DureesManagementPage> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
+                    NafahatPageRoute(
                       builder: (context) => const AddDureePage(),
                     ),
                   ).then((_) => _loadDurees());
@@ -2875,7 +2876,7 @@ class _DureesManagementPageState extends State<DureesManagementPage> {
                                   onPressed: () {
                                     Navigator.push(
                                       context,
-                                      MaterialPageRoute(
+                                      NafahatPageRoute(
                                         builder:
                                             (context) =>
                                                 AddDureePage(dureeToEdit: d),
@@ -3059,7 +3060,7 @@ class _TypesFormationManagementPageState
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
+                    NafahatPageRoute(
                       builder: (context) => const AddTypeFormationPage(),
                     ),
                   ).then((_) => _loadTypesFormation());
@@ -3205,7 +3206,7 @@ class _TypesFormationManagementPageState
                                   onPressed: () {
                                     Navigator.push(
                                       context,
-                                      MaterialPageRoute(
+                                      NafahatPageRoute(
                                         builder:
                                             (context) => AddTypeFormationPage(
                                               typeToEdit: type,
@@ -3337,7 +3338,7 @@ class _CiblesManagementPageState extends State<CiblesManagementPage> {
   void _navigateToAddCible({CibleModel? cible}) async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => AddCiblePage(cible: cible)),
+      NafahatPageRoute(builder: (context) => AddCiblePage(cible: cible)),
     );
     if (result == true) {
       _loadCibles();
