@@ -1077,6 +1077,7 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
       child: Scaffold(
         key: _scaffoldKey,  // ✅ Utilisation du scaffoldKey
         backgroundColor: Colors.grey.shade50,
+        bottomNavigationBar: const MobileBottomNav(),
         // ✅ Drawer mobile géré par la Navbar
         drawer: isMobile ? Navbar(isMobile: true, scaffoldKey: _scaffoldKey).buildDrawer(context) : null,
         body: SafeArea(

@@ -213,6 +213,7 @@ class _AuthPageState extends State<AuthPage> {
         child: Scaffold(
           key: _scaffoldKey,
           backgroundColor: AppColors.surface,
+          bottomNavigationBar: const MobileBottomNav(),
           // ✅ Drawer mobile géré par la Navbar
           drawer: isMobile ? Navbar(isMobile: true, scaffoldKey: _scaffoldKey).buildDrawer(context) : null,
           body: SafeArea(

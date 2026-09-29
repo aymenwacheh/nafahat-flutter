@@ -1,6 +1,7 @@
 import 'package:nafahat/pages/widgets/shared_navigation_shell.dart';
 // lib/pages/landing/landing_page.dart
 import 'package:flutter/material.dart';
+import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/models/bull_model.dart';
 
@@ -357,7 +358,7 @@ class _LandingPageState extends State<LandingPage> {
               // ============================================================
               // ✅ MOBILE BOTTOM NAVIGATION
               // ============================================================
-              // const MobileBottomNav(),
+              const MobileBottomNav(),
             ],
           ),
         ),
@@ -1106,6 +1107,7 @@ class AllTrainingsPage extends StatefulWidget {
 class _AllTrainingsPageState extends State<AllTrainingsPage> {
   List<TrainingModel> _trainings = [];
   bool _isLoading = true;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
@@ -1132,78 +1134,87 @@ class _AllTrainingsPageState extends State<AllTrainingsPage> {
   Widget build(BuildContext context) {
     final isArabic = Provider.of<LanguageProvider>(context).isArabic;
     final isMobile = MediaQuery.of(context).size.width < 600;
+    final navbar = Navbar(isMobile: isMobile, scaffoldKey: _scaffoldKey);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          isArabic ? 'جميع التكوينات' : 'Toutes les formations',
-          style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadAllTrainings,
-            tooltip: isArabic ? 'تحديث' : 'Rafraîchir',
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _trainings.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.school_outlined,
-                              size: 80,
-                              color: AppColors.primary.withOpacity(0.3),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              isArabic
-                                  ? 'لا توجد تكوينات حالياً'
-                                  : 'Aucune formation disponible',
-                              style: GoogleFonts.cairo(
-                                color: AppColors.textMuted,
-                                fontSize: 16,
+    return Column(
+      children: [
+        navbar,
+        Expanded(
+          child: Scaffold(
+            key: _scaffoldKey,
+            drawer: isMobile ? navbar.buildDrawer(context) : null,
+            appBar: AppBar(
+              title: Text(
+                isArabic ? 'جميع التكوينات' : 'Toutes les formations',
+                style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+              ),
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: _loadAllTrainings,
+                  tooltip: isArabic ? 'تحديث' : 'Rafraîchir',
+                ),
+              ],
+            ),
+            body: Column(
+              children: [
+                Expanded(
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : _trainings.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.school_outlined,
+                                    size: 80,
+                                    color: AppColors.primary.withOpacity(0.3),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    isArabic
+                                        ? 'لا توجد تكوينات حالياً'
+                                        : 'Aucune formation disponible',
+                                    style: GoogleFonts.cairo(
+                                      color: AppColors.textMuted,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : Padding(
+                              padding: EdgeInsets.all(isMobile ? 12 : 24),
+                              child: GridView.builder(
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: isMobile ? 2 : 3,
+                                  childAspectRatio: isMobile ? 9 / 16 : 0.85,
+                                  crossAxisSpacing: 16,
+                                  mainAxisSpacing: 16,
+                                ),
+                                itemCount: _trainings.length,
+                                itemBuilder: (context, index) {
+                                  return TrainingCard(
+                                    training: _trainings[index],
+                                    isArabic: isArabic,
+                                    onRefresh: _loadAllTrainings,
+                                    isMobile: isMobile,
+                                  );
+                                },
                               ),
                             ),
-                          ],
-                        ),
-                      )
-                    : Padding(
-                        padding: EdgeInsets.all(isMobile ? 12 : 24),
-                        child: GridView.builder(
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: isMobile ? 2 : 3,
-                            childAspectRatio: isMobile ? 9 / 16 : 0.85,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                          ),
-                          itemCount: _trainings.length,
-                          itemBuilder: (context, index) {
-                            return TrainingCard(
-                              training: _trainings[index],
-                              isArabic: isArabic,
-                              onRefresh: _loadAllTrainings,
-                              isMobile: isMobile,
-                            );
-                          },
-                        ),
-                      ),
+                ),
+                const MobileBottomNav(),
+              ],
+            ),
           ),
-          // ============================================================
-          // ✅ MOBILE BOTTOM NAVIGATION
-          // ============================================================
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

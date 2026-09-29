@@ -1,4 +1,5 @@
 import 'package:nafahat/pages/widgets/shared_navigation_shell.dart';
+import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
 // lib/main.dart
 import 'dart:ui';
 
@@ -83,7 +84,7 @@ class _MyAppState extends State<MyApp> {
     final String path = uri.path;
 
     if (path == '/' || path.isEmpty) {
-      return const SharedNavigationShell(child: ComingSoonPage());
+      return const ComingSoonPage();
     } else if (path == '/project') {
       return ChatbotGlobalWrapper(child: const SplashScreen());
     } else if (path == '/reset-password') {
@@ -92,7 +93,7 @@ class _MyAppState extends State<MyApp> {
         child: ResetPasswordPage(),
       );
     } else {
-      return const SharedNavigationShell(child: ComingSoonPage());
+      return const ComingSoonPage();
     }
   }
 
@@ -181,6 +182,12 @@ class _MyAppState extends State<MyApp> {
               return const Locale('ar');
             },
             navigatorObservers: [ChatbotRouteObserver()],
+            builder: (context, child) {
+              return NotificationListener<ScrollNotification>(
+                onNotification: MobileBottomNavController.handleScroll,
+                child: child ?? const SizedBox.shrink(),
+              );
+            },
             home: _getInitialPage(),
             routes: {
               '/landing': (context) => const ChatbotGlobalWrapper(
@@ -357,6 +364,7 @@ class ChatbotRouteObserver extends NavigatorObserver {
   }
 
   void _updateChatbotVisibility(String? routeName) {
+    MobileBottomNavController.reset();
     final context = navigator?.context;
     if (context != null) {
       final chatbotProvider = Provider.of<ChatbotProvider>(context, listen: false);
@@ -510,7 +518,8 @@ class _ChatbotGlobalWrapperState extends State<ChatbotGlobalWrapper> {
     }
 
     if (widget.child is SplashScreen) return widget.child;
-    return SharedNavigationShell(child: Stack(
+
+    return Stack(
       children: [
         widget.child,
         if (showChatbot)
@@ -520,6 +529,6 @@ class _ChatbotGlobalWrapperState extends State<ChatbotGlobalWrapper> {
             primaryColor: const Color(0xffd57653),
           ),
       ],
-    ));
+    );
   }
 }

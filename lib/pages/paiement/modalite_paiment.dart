@@ -3,6 +3,8 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
+import 'package:nafahat/pages/widgets/navbar.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io';
 import 'dart:typed_data';
@@ -33,6 +35,7 @@ class ModalitePaimentPage extends StatefulWidget {
 }
 
 class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   // ============================================================
   // ÉTATS
   // ============================================================
@@ -1739,8 +1742,21 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
     final isTablet = MediaQuery.of(context).size.width >= 600 &&
         MediaQuery.of(context).size.width < 1200;
 
-    return Scaffold(
-      backgroundColor: const Color(0xfff8f9fa),
+    final navbar = Navbar(
+      isMobile: MediaQuery.of(context).size.width < 850,
+      scaffoldKey: _scaffoldKey,
+    );
+
+    return Column(
+      children: [
+        navbar,
+        Expanded(
+          child: Scaffold(
+            key: _scaffoldKey,
+            drawer: MediaQuery.of(context).size.width < 850
+                ? navbar.buildDrawer(context)
+                : null,
+            backgroundColor: const Color(0xfff8f9fa),
       appBar: AppBar(
         title: Text(
           _isArabic ? 'طرق الدفع' : 'Modalités de Paiement',
@@ -1861,6 +1877,10 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
                 ),
               ),
             ),
+            bottomNavigationBar: const MobileBottomNav(),
+          ),
+        ),
+      ],
     );
   }
 

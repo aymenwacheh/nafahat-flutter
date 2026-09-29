@@ -1,6 +1,7 @@
 // lib/pages/users/cmpl_info_form.dart
 
 import 'package:flutter/material.dart';
+import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/language_provider.dart';
@@ -261,6 +262,7 @@ class _CmplInfoFormState extends State<CmplInfoForm> {
       child: Scaffold(
         key: _scaffoldKey,
         backgroundColor: Colors.grey.shade50,
+        bottomNavigationBar: const MobileBottomNav(),
         body: SafeArea(
           top: false,
           child: Stack(

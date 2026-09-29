@@ -1,5 +1,7 @@
 // lib/pages/videos/video_detail_page.dart
 import 'package:flutter/material.dart';
+import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
+import 'package:nafahat/pages/widgets/navbar.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/models/video_model.dart';
 import 'package:nafahat/services/video_service.dart';
@@ -14,6 +16,7 @@ class VideoDetailPage extends StatefulWidget {
 }
 
 class _VideoDetailPageState extends State<VideoDetailPage> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   VideoModel? _video;
   bool _isLoading = true;
 
@@ -41,38 +44,52 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_video?.titleFr ?? 'Détail vidéo'),
-        backgroundColor: const Color(0xffd57653),
-        foregroundColor: Colors.white,
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _video == null
-              ? const Center(child: Text('Vidéo non trouvée'))
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Afficher la vidéo ici
-                      Text(
-                        _video!.titleFr,
-                        style: GoogleFonts.cairo(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
+    final width = MediaQuery.of(context).size.width;
+    final navbar = Navbar(
+      isMobile: width < 850,
+      scaffoldKey: _scaffoldKey,
+    );
+
+    return Column(
+      children: [
+        navbar,
+        Expanded(
+          child: Scaffold(
+            key: _scaffoldKey,
+            drawer: width < 850 ? navbar.buildDrawer(context) : null,
+            appBar: AppBar(
+              title: Text(_video?.titleFr ?? 'Détail vidéo'),
+              backgroundColor: const Color(0xffd57653),
+              foregroundColor: Colors.white,
+            ),
+            body: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _video == null
+                    ? const Center(child: Text('Vidéo non trouvée'))
+                    : SingleChildScrollView(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _video!.titleFr,
+                              style: GoogleFonts.cairo(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              _video!.descriptionFr ?? '',
+                              style: GoogleFonts.cairo(fontSize: 16),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _video!.descriptionFr ?? '',
-                        style: GoogleFonts.cairo(fontSize: 16),
-                      ),
-                    ],
-                  ),
-                  
-                ),
+            bottomNavigationBar: const MobileBottomNav(),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -7,6 +7,7 @@ import 'package:nafahat/providers/language_provider.dart';
 import 'package:nafahat/providers/about_provider.dart';
 import 'package:nafahat/models/about_model.dart';
 import 'package:nafahat/pages/widgets/navbar.dart';
+import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
 
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
@@ -76,6 +77,7 @@ class AboutPage extends StatelessWidget {
           // ============================================================
           // ✅ MOBILE BOTTOM NAVIGATION
           // ============================================================
+          const MobileBottomNav(),
         ],
       ),
     );

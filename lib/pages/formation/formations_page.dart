@@ -231,7 +231,7 @@ class _FormationsPageState extends State<FormationsPage> {
             // ============================================================
             // ✅ MOBILE BOTTOM NAVIGATION
             // ============================================================
-            // const MobileBottomNav(),
+            const MobileBottomNav(),
           ],
         ),
       ),

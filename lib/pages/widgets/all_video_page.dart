@@ -1,5 +1,6 @@
 // lib/pages/landing/widgets/all_video_page.dart
 import 'package:flutter/material.dart';
+import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:nafahat/providers/language_provider.dart';
@@ -55,6 +56,7 @@ class _AllVideoPageState extends State<AllVideoPage> {
               ),
             ),
           ),
+          const MobileBottomNav(),
         ],
       ),
     );

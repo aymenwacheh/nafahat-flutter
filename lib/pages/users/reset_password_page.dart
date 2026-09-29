@@ -1,6 +1,7 @@
 import 'package:nafahat/pages/widgets/shared_navigation_shell.dart';
 // lib/pages/users/reset_password_page.dart
 import 'package:flutter/material.dart';
+import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
@@ -52,6 +53,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       key: _scaffoldKey,
       drawer: isMobile ? Navbar(isMobile: true, scaffoldKey: _scaffoldKey).buildDrawer(context) : null,
       backgroundColor: Colors.grey.shade50,
+      bottomNavigationBar: const MobileBottomNav(),
       body: SafeArea(
         top: false,
         child: Column(

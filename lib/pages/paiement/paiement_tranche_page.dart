@@ -1,6 +1,8 @@
 // lib/pages/paiement/paiement_tranche_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
+import 'package:nafahat/pages/widgets/navbar.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io';
 import 'dart:typed_data';
@@ -34,6 +36,7 @@ class PaiementTranchePage extends StatefulWidget {
 }
 
 class _PaiementTranchePageState extends State<PaiementTranchePage> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _isArabic = true;
   String? _selectedPaymentMethod;
 
@@ -200,8 +203,21 @@ class _PaiementTranchePageState extends State<PaiementTranchePage> {
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
-    return Scaffold(
-      backgroundColor: const Color(0xfff8f9fa),
+    final navbar = Navbar(
+      isMobile: MediaQuery.of(context).size.width < 850,
+      scaffoldKey: _scaffoldKey,
+    );
+
+    return Column(
+      children: [
+        navbar,
+        Expanded(
+          child: Scaffold(
+            key: _scaffoldKey,
+            drawer: MediaQuery.of(context).size.width < 850
+                ? navbar.buildDrawer(context)
+                : null,
+            backgroundColor: const Color(0xfff8f9fa),
       appBar: AppBar(
         title: Text(
           _isArabic
@@ -245,6 +261,10 @@ class _PaiementTranchePageState extends State<PaiementTranchePage> {
           ),
         ),
       ),
+            bottomNavigationBar: const MobileBottomNav(),
+          ),
+        ),
+      ],
     );
   }
 

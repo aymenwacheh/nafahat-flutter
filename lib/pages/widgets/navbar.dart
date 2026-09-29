@@ -1,4 +1,3 @@
-import 'package:nafahat/pages/widgets/shared_navigation_scope.dart';
 import 'package:nafahat/pages/widgets/shared_navigation_shell.dart';
 // lib/pages/landing/widgets/navbar.dart
 import 'dart:convert';
@@ -122,7 +121,6 @@ class Navbar extends StatelessWidget {
   // ============================================================
   @override
   Widget build(BuildContext context) {
-    if (SharedNavigationScope.contains(context)) return const SizedBox.shrink();
     final languageProvider = Provider.of<LanguageProvider>(context);
     final userProvider = Provider.of<UserProvider>(context);
     final isArabic = languageProvider.isArabic;

@@ -1,6 +1,7 @@
 import 'package:nafahat/pages/widgets/shared_navigation_shell.dart';
 // lib/pages/users/profile_dashboard_page.dart
 import 'package:flutter/material.dart';
+import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/pages/users/edit_profile_page.dart';
@@ -438,7 +439,18 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage>
                 // ============================================================
                 // ✅ NAVBAR EN HAUT (JAMAIS RECOUVERT, TOUJOURS CLIQUABLE)
                 // ============================================================
-
+                Material(
+                  color: Colors.white,
+                  elevation: 4,
+                  shadowColor: Colors.black.withOpacity(0.08),
+                  child: SizedBox(
+                    height: 85,
+                    child: Navbar(
+                      isMobile: isMobile,
+                      scaffoldKey: _scaffoldKey,
+                    ),
+                  ),
+                ),
 
                 // ============================================================
                 // ✅ CONTENU SCROLLABLE (SOUS LE NAVBAR)
@@ -556,6 +568,7 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage>
                           ),
                   ),
                 ),
+                const MobileBottomNav(),
               ],
             ),
           ),

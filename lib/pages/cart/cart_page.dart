@@ -1,6 +1,8 @@
 import 'package:nafahat/pages/widgets/shared_navigation_shell.dart';
 // lib/pages/cart/cart_page.dart
 import 'package:flutter/material.dart';
+import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
+import 'package:nafahat/pages/widgets/navbar.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/services/cart_service.dart';
 import 'package:nafahat/services/auth_service.dart';
@@ -21,6 +23,7 @@ class CartPage extends StatefulWidget {
 }
 
 class _CartPageState extends State<CartPage> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   List<Map<String, dynamic>> _cartItems = [];
   bool _isLoading = true;
   bool _isProcessingPayment = false;
@@ -296,8 +299,20 @@ class _CartPageState extends State<CartPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xfffcfbfa),
+    final width = MediaQuery.of(context).size.width;
+    final navbar = Navbar(
+      isMobile: width < 850,
+      scaffoldKey: _scaffoldKey,
+    );
+
+    return Column(
+      children: [
+        navbar,
+        Expanded(
+          child: Scaffold(
+            key: _scaffoldKey,
+            drawer: width < 850 ? navbar.buildDrawer(context) : null,
+            backgroundColor: const Color(0xfffcfbfa),
       appBar: AppBar(
         title: Text(
           _isArabic ? '🛒 سلة التسوق' : '🛒 Panier',
@@ -319,7 +334,16 @@ class _CartPageState extends State<CartPage> {
           : _cartItems.isEmpty
               ? _buildEmptyCart()
               : _buildCartContent(),
-      bottomNavigationBar: _cartItems.isNotEmpty ? _buildBottomBar() : null,
+            bottomNavigationBar: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_cartItems.isNotEmpty) _buildBottomBar(),
+                const MobileBottomNav(),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 

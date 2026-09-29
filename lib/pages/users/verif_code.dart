@@ -1,6 +1,7 @@
 // lib/pages/users/verif_code.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/language_provider.dart';
@@ -530,6 +531,7 @@ class _VerifCodePageState extends State<VerifCodePage> {
       primaryColor: nafahatGreen,
       child: Scaffold(
         backgroundColor: Colors.grey.shade50,
+        bottomNavigationBar: const MobileBottomNav(),
         body: SafeArea(
           top: false,
           child: Stack(

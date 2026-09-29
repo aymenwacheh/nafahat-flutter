@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../../providers/language_provider.dart';
 import '../../services/training_service.dart';
 import '../widgets/formateur_section.dart';
+import '../widgets/navbar.dart';
+import '../widgets/mobile_bottom_nav_bar.dart';
 
 class FormateursPage extends StatefulWidget {
   const FormateursPage({super.key});
@@ -14,6 +16,7 @@ class FormateursPage extends StatefulWidget {
 }
 
 class _FormateursPageState extends State<FormateursPage> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> _formateurs = [];
   bool _isLoading = true;
@@ -85,12 +88,25 @@ class _FormateursPageState extends State<FormateursPage> {
 
     final columns = isMobile ? 1 : (isTablet ? 2 : 4);
 
+    final navbar = Navbar(
+      isMobile: width < 850,
+      scaffoldKey: _scaffoldKey,
+    );
+
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: const Color(0xFFFCFBFA),
-      body: RefreshIndicator(
-        onRefresh: _loadFormateurs,
-        color: const Color(0xff0D443E),
-        child: CustomScrollView(
+      drawer: width < 850 ? navbar.buildDrawer(context) : null,
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+          navbar,
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _loadFormateurs,
+              color: const Color(0xff0D443E),
+              child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             SliverToBoxAdapter(
@@ -224,6 +240,11 @@ class _FormateursPageState extends State<FormateursPage> {
                   ),
                 ),
               ),
+                ],
+              ),
+            ),
+          ),
+          const MobileBottomNav(),
           ],
         ),
       ),
