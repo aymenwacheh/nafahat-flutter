@@ -7,7 +7,7 @@ import '../models/enfant.dart';
 import '../models/role.dart';
 
 class AdminUserService {
-  static const String baseUrl = ApiConfig.baseUrl;
+  static String get baseUrl => ApiConfig.apiUrl;
 
   // ============================================================
   // RÉCUPÉRER LA LISTE DES RÔLES ✅ CORRIGÉ

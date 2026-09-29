@@ -5,7 +5,7 @@ import 'package:nafahat/models/about_model.dart';
 import 'package:nafahat/config/api_config.dart';
 
 class AboutService {
-  static const String baseUrl = ApiConfig.baseUrl;
+  static String get baseUrl => ApiConfig.apiUrl;
 
   // Récupérer les données "À propos"
   static Future<AboutModel> getAbout() async {

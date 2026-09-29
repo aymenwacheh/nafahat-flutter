@@ -12,7 +12,7 @@ class PaiementValidationService {
       path = '/$path';
     }
     final String cleanPath = path.replaceFirst('/api/', '/');
-    return '${ApiConfig.baseUrl}$cleanPath';
+    return '${ApiConfig.apiUrl}$cleanPath';
   }
 
   // ✅ Récupérer la liste paginée des paiements

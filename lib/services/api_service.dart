@@ -5,8 +5,8 @@ import '../models/training_model.dart';
 import '../config/api_config.dart'; // <-- Importer la config
 
 class ApiService {
-  // Utiliser ApiConfig.baseUrl au lieu de la constante en dur
-  static String get baseUrl => ApiConfig.baseUrl;
+  // Utiliser ApiConfig.apiUrl au lieu de la constante en dur
+  static String get baseUrl => ApiConfig.apiUrl;
 
   // Récupérer toutes les formations
   static Future<List<TrainingModel>> getFormations() async {

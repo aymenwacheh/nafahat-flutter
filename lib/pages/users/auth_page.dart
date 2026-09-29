@@ -207,7 +207,7 @@ class _AuthPageState extends State<AuthPage> {
     return Directionality(
       textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
       child: ChatbotWrapper(
-        apiBaseUrl: ApiConfig.baseUrl,
+        apiBaseUrl: ApiConfig.apiUrl,
         langue: isArabic ? 'ar' : 'fr',
         primaryColor: nafahatGreen,
         child: Scaffold(

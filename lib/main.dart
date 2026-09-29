@@ -524,7 +524,7 @@ class _ChatbotGlobalWrapperState extends State<ChatbotGlobalWrapper> {
         widget.child,
         if (showChatbot)
           ChatbotWidget(
-            apiBaseUrl: ApiConfig.baseUrl,
+            apiBaseUrl: ApiConfig.apiUrl,
             langue: isArabic ? 'ar' : 'fr',
             primaryColor: const Color(0xffd57653),
           ),

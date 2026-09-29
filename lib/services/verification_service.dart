@@ -6,7 +6,7 @@ import '../models/adherent.dart';
 import '../models/enfant.dart';
 
 class VerificationService {
-  static String get baseUrl => ApiConfig.baseUrl;
+  static String get baseUrl => ApiConfig.apiUrl;
 
   // ============================================================
   // ENVOYER LE CODE DE VÉRIFICATION

@@ -5,8 +5,8 @@ import 'package:nafahat/models/video_model.dart';
 import '../config/api_config.dart'; // <-- Importer la config
 
 class VideoService {
-  // Utiliser ApiConfig.baseUrl
-  static String get baseUrl => ApiConfig.baseUrl;
+  // Utiliser ApiConfig.apiUrl
+  static String get baseUrl => ApiConfig.apiUrl;
 
   static Future<List<VideoModel>> getVideos() async {
     try {

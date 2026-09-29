@@ -287,7 +287,7 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
     try {
       final response = await http.get(
         Uri.parse(
-          '${ApiConfig.baseUrl}/adherents/check-whatsapp?whatsapp=${Uri.encodeComponent(fullWhatsapp)}',
+          '${ApiConfig.apiUrl}/adherents/check-whatsapp?whatsapp=${Uri.encodeComponent(fullWhatsapp)}',
         ),
         headers: {'Content-Type': 'application/json'},
       );
@@ -369,7 +369,7 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
     try {
       final response = await http.get(
         Uri.parse(
-          '${ApiConfig.baseUrl}/adherents/check-email?email=${Uri.encodeComponent(value)}',
+          '${ApiConfig.apiUrl}/adherents/check-email?email=${Uri.encodeComponent(value)}',
         ),
         headers: {'Content-Type': 'application/json'},
       );
@@ -1071,7 +1071,7 @@ class _InscriptionAdherentPageState extends State<InscriptionAdherentPage> {
     final double fontSize = isMobile ? 14 : 16;
 
     return ChatbotWrapper(
-      apiBaseUrl: ApiConfig.baseUrl,
+      apiBaseUrl: ApiConfig.apiUrl,
       langue: isArabic ? 'ar' : 'fr',
       primaryColor: const Color(0xff0D443E),
       child: Scaffold(

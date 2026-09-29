@@ -5,7 +5,7 @@ import 'package:nafahat/config/api_config.dart';
 import 'package:nafahat/models/cible_model.dart';
 
 class CibleService {
-  static String get apiBaseUrl => ApiConfig.baseUrl;
+  static String get apiBaseUrl => ApiConfig.apiUrl;
 
   // =============================================
   // ✅ GET - Récupérer toutes les cibles

@@ -387,7 +387,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     try {
       // ✅ Appel à l'API
       final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/adherents/reset-password-direct'),
+        Uri.parse('${ApiConfig.apiUrl}/adherents/reset-password-direct'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
@@ -423,7 +423,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
         try {
           // 1. Récupérer les données de l'utilisateur par email
           final userResponse = await http.get(
-            Uri.parse('${ApiConfig.baseUrl}/adherents/by-email?email=${Uri.encodeComponent(email)}'),
+            Uri.parse('${ApiConfig.apiUrl}/adherents/by-email?email=${Uri.encodeComponent(email)}'),
             headers: {'Content-Type': 'application/json'},
           );
 

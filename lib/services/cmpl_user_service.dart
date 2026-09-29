@@ -6,7 +6,7 @@ import '../config/api_config.dart';
 import '../models/cmpl_user_model.dart';
 
 class CmplUserService {
-  static String get baseUrl => ApiConfig.baseUrl;
+  static String get baseUrl => ApiConfig.apiUrl;
 
   // ============================================================
   // VÉRIFIER SI L'UTILISATEUR A DÉJÀ COMPLÉTÉ SES INFOS
