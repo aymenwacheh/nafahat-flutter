@@ -9,7 +9,8 @@ import '../config/api_config.dart';
 
 class AdherentService {
   // ✅ Utilisation de ApiConfig
-  static String get apiBaseUrl => ApiConfig.baseUrl;
+  
+  static String get apiBaseUrl => ApiConfig.apiUrl;
 
   // ============================================================
   // AUTHENTIFICATION
