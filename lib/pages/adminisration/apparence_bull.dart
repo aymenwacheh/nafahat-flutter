@@ -47,6 +47,16 @@ class _ApparitionBullPageState extends State<ApparitionBullPage> {
     {'id': 'page_admin', 'path': '/admin', 'label': 'Administration', 'labelAr': 'لوحة التحكم'},
   ];
 
+  // Sections réellement disponibles sur la LandingPage.
+  final List<Map<String, dynamic>> _sections = [
+    {'id': 'hero', 'path': '/section/hero', 'label': 'Hero', 'labelAr': 'الواجهة الرئيسية'},
+    {'id': 'bulls', 'path': '/section/bulls', 'label': 'Bulls', 'labelAr': 'الروابط السريعة'},
+    {'id': 'trainings', 'path': '/section/trainings', 'label': 'Formations', 'labelAr': 'التكوينات'},
+    {'id': 'videos', 'path': '/section/videos', 'label': 'Vidéos', 'labelAr': 'الفيديوهات'},
+    {'id': 'formateurs', 'path': '/section/formateurs', 'label': 'Formateurs', 'labelAr': 'المكونون'},
+    {'id': 'inscription', 'path': '/section/inscription', 'label': 'Inscription', 'labelAr': 'التسجيل'},
+  ];
+
   // Données pour les listes déroulantes
   List<Map<String, dynamic>> _formateurs = [];
   List<Map<String, dynamic>> _categories = [];
@@ -1145,8 +1155,7 @@ Widget _buildColorPicker({
                   // ============================================================
                   // SÉLECTION DE L'ÉLÉMENT
                   // ============================================================
-                  if (selectedType != 'section') ...[
-                    _buildItemSelector(
+                  _buildItemSelector(
                       type: selectedType,
                       isArabic: isArabic,
                       selectedItemId: selectedItemId,
@@ -1171,31 +1180,21 @@ Widget _buildColorPicker({
                               if (selectedPage.isNotEmpty) {
                                 linkController.text = selectedPage['path'] ?? '/';
                               }
+                            } else if (selectedType == 'section') {
+                              final selectedSection = _sections.firstWhere(
+                                (section) => section['id'] == id,
+                                orElse: () => {},
+                              );
+                              if (selectedSection.isNotEmpty) {
+                                linkController.text =
+                                    selectedSection['path'] ?? '/section/$id';
+                              }
                             }
                           }
                         });
                       },
                     ),
-                    const SizedBox(height: 12),
-                  ],
-
-                  // ============================================================
-                  // LIEN MANUEL
-                  // ============================================================
-                  if (selectedType == 'section') ...[
-                    TextField(
-                      controller: linkController,
-                      decoration: InputDecoration(
-                        labelText: isArabic ? 'الرابط' : 'Lien',
-                        hintText: '/section/hero',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        prefixIcon: Icon(Icons.link_rounded, color: const Color(0xffd57653)),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
+                  const SizedBox(height: 12),
 
                   // ============================================================
                   // TITRES
@@ -1398,6 +1397,12 @@ Widget _buildColorPicker({
                     titleAr: titleArController.text.isNotEmpty ? titleArController.text : null,
                     titleFr: titleFrController.text.isNotEmpty ? titleFrController.text : null,
                     link: linkController.text,
+                    targetType: selectedType,
+                    targetId: const {'formateur', 'categorie', 'formation', 'video'}
+                            .contains(selectedType) &&
+                        selectedItemId.isNotEmpty
+                        ? selectedItemId
+                        : null,
                     backgroundColor: bgColor,
                     textColor: textColor,
                     borderColor: borderColor,
@@ -1515,6 +1520,12 @@ Widget _buildColorPicker({
       labelAr = 'اختر صفحة';
       icon = Icons.web_outlined;
       _log('   📄 Type: PAGE, items: ${items.length}');
+    } else if (type == 'section') {
+      items = _sections;
+      label = 'Sélectionnez une section';
+      labelAr = 'اختر قسماً';
+      icon = Icons.dashboard_outlined;
+      _log('   🧩 Type: SECTION, items: ${items.length}');
     }
 
     if (items.isNotEmpty) {
@@ -1537,7 +1548,7 @@ Widget _buildColorPicker({
         } else if (type == 'video') {
           nameFR = item['titleFr'] ?? 'N/A';
           nameAR = item['titleAr'] ?? 'N/A';
-        } else if (type == 'page') {
+        } else if (type == 'page' || type == 'section') {
           nameFR = item['label'] ?? 'N/A';
           nameAR = item['labelAr'] ?? 'N/A';
         }
@@ -1727,11 +1738,11 @@ Widget _buildColorPicker({
                  item['title_fr']?.toString() ?? 
                  'Vidéo $id';
         }
-      } else if (type == 'page') {
+      } else if (type == 'page' || type == 'section') {
         if (isArabic) {
-          name = item['labelAr']?.toString() ?? item['label']?.toString() ?? 'Page $id';
+          name = item['labelAr']?.toString() ?? item['label']?.toString() ?? '${_capitalize(type)} $id';
         } else {
-          name = item['label']?.toString() ?? item['labelAr']?.toString() ?? 'Page $id';
+          name = item['label']?.toString() ?? item['labelAr']?.toString() ?? '${_capitalize(type)} $id';
         }
         if (item['path'] != null) {
           name = '$name (${item['path']})';

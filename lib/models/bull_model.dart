@@ -7,6 +7,8 @@ class BullModel {
   final String? titleAr;
   final String? titleFr;
   final String link;
+  final String? targetType;
+  final String? targetId;
   final Color backgroundColor;
   final Color textColor;
   final Color borderColor;
@@ -20,6 +22,8 @@ class BullModel {
     this.titleAr,
     this.titleFr,
     required this.link,
+    this.targetType,
+    this.targetId,
     required this.backgroundColor,
     required this.textColor,
     required this.borderColor,
@@ -84,6 +88,8 @@ class BullModel {
       titleAr: json['titleAr'],
       titleFr: json['titleFr'],
       link: json['link'] ?? '#',
+      targetType: json['targetType']?.toString(),
+      targetId: json['targetId']?.toString(),
       backgroundColor: _parseColor(json['backgroundColor'], const Color(0xff0D443E)),
       textColor: _parseColor(json['textColor'], const Color(0xffFFFFFF)),
       borderColor: _parseColor(json['borderColor'], const Color(0xffC4A46C)),
@@ -100,6 +106,8 @@ class BullModel {
       'titleAr': titleAr,
       'titleFr': titleFr,
       'link': link,
+      'targetType': targetType,
+      'targetId': targetId,
       'backgroundColor': backgroundColor.value.toString(),
       'textColor': textColor.value.toString(),
       'borderColor': borderColor.value.toString(),
@@ -115,6 +123,8 @@ class BullModel {
     String? titleAr,
     String? titleFr,
     String? link,
+    String? targetType,
+    String? targetId,
     Color? backgroundColor,
     Color? textColor,
     Color? borderColor,
@@ -128,6 +138,8 @@ class BullModel {
       titleAr: titleAr ?? this.titleAr,
       titleFr: titleFr ?? this.titleFr,
       link: link ?? this.link,
+      targetType: targetType ?? this.targetType,
+      targetId: targetId ?? this.targetId,
       backgroundColor: backgroundColor ?? this.backgroundColor,
       textColor: textColor ?? this.textColor,
       borderColor: borderColor ?? this.borderColor,

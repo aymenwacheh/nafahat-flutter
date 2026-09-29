@@ -47,15 +47,15 @@ class _FormationsPageState extends State<FormationsPage> {
       List<TrainingModel> trainings = await TrainingService.getTrainings();
       
       if (widget.categorieId != null && widget.categorieId!.isNotEmpty) {
-        trainings = trainings.where((t) => 
-          t.categorieId == widget.categorieId
-        ).toList();
+        trainings = trainings
+            .where((t) => t.categorieId?.toString() == widget.categorieId)
+            .toList();
       }
       
       if (widget.formateurId != null && widget.formateurId!.isNotEmpty) {
-        trainings = trainings.where((t) => 
-          t.formateurId == widget.formateurId
-        ).toList();
+        trainings = trainings
+            .where((t) => t.formateurId?.toString() == widget.formateurId)
+            .toList();
       }
 
       setState(() {

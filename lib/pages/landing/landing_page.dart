@@ -31,6 +31,9 @@ import 'package:nafahat/pages/widgets/formateur_section.dart';
 
 import 'package:nafahat/pages/widgets/all_video_page.dart';
 import 'package:nafahat/pages/widgets/bull_lien_section.dart';
+import 'package:nafahat/pages/widgets/about.dart';
+import 'package:nafahat/pages/formateur/formateur_detail_page.dart';
+import 'package:nafahat/pages/formation/video_detail_page.dart';
 
 
 // Admin pages
@@ -116,16 +119,20 @@ class _LandingPageState extends State<LandingPage> {
       return;
     }
     
-    // ✅ Si c'est un lien vers un formateur
+    // ✅ Si c'est un lien vers un formateur : ouvrir sa fiche d'information.
     if (link.startsWith('/formateur/')) {
-      final formateurId = link.replaceAll('/formateur/', '');
-      print('   👤 Navigation vers formateur: $formateurId');
-      
-      Navigator.pushNamed(
-        context,
-        '/formations',
-        arguments: {'formateurId': formateurId},
-      );
+      final formateurId = link.replaceAll('/formateur/', '').trim();
+      print('   👤 Navigation vers la fiche formateur: $formateurId');
+
+      if (formateurId.isNotEmpty) {
+        Navigator.push(
+          context,
+          NafahatPageRoute(
+            builder: (context) =>
+                FormateurDetailPage(formateurId: formateurId),
+          ),
+        );
+      }
       return;
     }
     
@@ -141,15 +148,19 @@ class _LandingPageState extends State<LandingPage> {
       return;
     }
     
-    // ✅ Si c'est un lien vers une vidéo
+    // ✅ Si c'est un lien vers une vidéo : ouvrir directement sa fiche.
     if (link.startsWith('/video/')) {
-      final videoId = link.replaceAll('/video/', '');
+      final videoId = link.replaceAll('/video/', '').trim();
       print('   🎬 Navigation vers vidéo: $videoId');
-      
-      Navigator.pushNamed(
-        context,
-        '/video/$videoId',
-      );
+
+      if (videoId.isNotEmpty) {
+        Navigator.push(
+          context,
+          NafahatPageRoute(
+            builder: (context) => VideoDetailPage(videoId: videoId),
+          ),
+        );
+      }
       return;
     }
     
@@ -162,7 +173,25 @@ class _LandingPageState extends State<LandingPage> {
       return;
     }
     
-    // ✅ Navigation normale (page)
+    // ✅ Pages gérées sans modifier la table des routes de l'application.
+    if (link == '/' || link == '/landing') {
+      _pageScrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeOutCubic,
+      );
+      return;
+    }
+
+    if (link == '/about' || link == '/contact') {
+      Navigator.push(
+        context,
+        NafahatPageRoute(builder: (context) => const AboutPage()),
+      );
+      return;
+    }
+
+    // ✅ Navigation standard pour les routes déjà existantes.
     print('   🔗 Navigation normale vers: $link');
     Navigator.pushNamed(context, link);
   }

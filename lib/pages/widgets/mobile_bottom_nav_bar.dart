@@ -262,6 +262,11 @@ class _MobileBottomNavState extends State<MobileBottomNav> {
     Navigator.pushNamed(context, route);
   }
 
+  void _goHome() {
+    MobileBottomNavController.hide();
+    Navigator.pushNamedAndRemoveUntil(context, '/landing', (route) => false);
+  }
+
   Widget _iconButton({
     required String tooltip,
     required Widget icon,
@@ -441,6 +446,14 @@ class _MobileBottomNavState extends State<MobileBottomNav> {
                                     const Color(0xFF1877F2),
                                   ),
                                   onTap: () => _goTo('/formateurs'),
+                                ),
+                                _iconButton(
+                                  tooltip: isArabic ? 'الرئيسية' : 'Accueil',
+                                  icon: _coloredIcon(
+                                    Icons.home_rounded,
+                                    const Color(0xFF0D443E),
+                                  ),
+                                  onTap: _goHome,
                                 ),
                                 _iconButton(
                                   tooltip:

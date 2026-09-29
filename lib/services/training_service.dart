@@ -792,4 +792,22 @@ class TrainingService {
       return null;
     }
   }
+  static Future<Map<String, dynamic>?> getFormateurById(
+  String formateurId,
+) async {
+  try {
+    final formateurs = await getFormateurs();
+
+    for (final formateur in formateurs) {
+      if (formateur['id']?.toString() == formateurId.toString()) {
+        return formateur;
+      }
+    }
+
+    return null;
+  } catch (e) {
+    print('Erreur getFormateurById: $e');
+    return null;
+  }
+}
 }

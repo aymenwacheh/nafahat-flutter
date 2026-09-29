@@ -26,7 +26,7 @@ class HeroProvider extends ChangeNotifier {
       titleAr: 'صمّم مستقبلك بأكاديميّتنا الرقمية',
       subtitleFr: 'Des cursus d\'élite conçus par des experts.',
       subtitleAr: 'برامج تعليمية متميزة مصممة خصيصاً لقادة الغد.',
-      imagePath: 'assets/images/slide1.jpg',
+imagePath: 'assets/images/slide1.png',
       isAsset: true,
     ),
     SlideItem(

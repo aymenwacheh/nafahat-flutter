@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/models/bull_model.dart';
 import 'package:nafahat/providers/language_provider.dart';
+import 'package:nafahat/pages/formateur/formateur_detail_page.dart';
+import 'package:nafahat/pages/formation/video_detail_page.dart';
+import 'package:nafahat/pages/widgets/about.dart';
+import 'package:nafahat/pages/widgets/shared_navigation_shell.dart';
 import 'package:provider/provider.dart';
 
 class BullLien extends StatelessWidget {
@@ -83,31 +87,72 @@ class BullLien extends StatelessWidget {
       return;
     }
     
-    // ✅ Si c'est un lien vers un formateur
+    // ✅ Si c'est un lien vers un formateur : ouvrir sa fiche d'information.
     if (link.startsWith('/formateur/')) {
-      final formateurId = link.replaceAll('/formateur/', '');
-      print('   👤 Navigation vers formateur: $formateurId');
-      
-      Navigator.pushNamed(
-        context,
-        '/formations',
-        arguments: {'formateurId': formateurId},
-      );
+      final formateurId = link.replaceAll('/formateur/', '').trim();
+      print('   👤 Navigation vers la fiche formateur: $formateurId');
+
+      if (formateurId.isNotEmpty) {
+        Navigator.push(
+          context,
+          NafahatPageRoute(
+            builder: (context) =>
+                FormateurDetailPage(formateurId: formateurId),
+          ),
+        );
+      }
       return;
     }
     
-    // ✅ Si c'est un lien vers une vidéo
+    // ✅ Si c'est un lien vers une vidéo : ouvrir directement sa fiche.
     if (link.startsWith('/video/')) {
-      final videoId = link.replaceAll('/video/', '');
+      final videoId = link.replaceAll('/video/', '').trim();
       print('   🎬 Navigation vers vidéo: $videoId');
-      
-      Navigator.pushNamed(
-        context,
-        '/video/$videoId',
-      );
+
+      if (videoId.isNotEmpty) {
+        Navigator.push(
+          context,
+          NafahatPageRoute(
+            builder: (context) => VideoDetailPage(videoId: videoId),
+          ),
+        );
+      }
       return;
     }
     
+    // ✅ Si c'est un lien vers une formation
+    if (link.startsWith('/formation/')) {
+      final formationId = link.replaceAll('/formation/', '').trim();
+      if (formationId.isNotEmpty) {
+        Navigator.pushNamed(context, '/formation/$formationId');
+      }
+      return;
+    }
+
+    // ✅ Section de la landing page.
+    if (link.startsWith('/section/')) {
+      final section = link.replaceAll('/section/', '').trim();
+      Navigator.pushNamed(
+        context,
+        '/landing',
+        arguments: {'section': section},
+      );
+      return;
+    }
+
+    if (link == '/' || link == '/landing') {
+      Navigator.pushNamedAndRemoveUntil(context, '/landing', (route) => false);
+      return;
+    }
+
+    if (link == '/about' || link == '/contact') {
+      Navigator.push(
+        context,
+        NafahatPageRoute(builder: (context) => const AboutPage()),
+      );
+      return;
+    }
+
     // ✅ Navigation standard
     print('   🔗 Navigation normale vers: $link');
     Navigator.pushNamed(context, link);
