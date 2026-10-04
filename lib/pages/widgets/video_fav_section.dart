@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/models/video_model.dart';
 
 import 'package:nafahat/services/video_service.dart';
+import 'package:nafahat/services/landing_appearance_manager.dart';
 
 import 'youtube_player.dart';
 
@@ -156,7 +157,7 @@ class _VideoFavSectionState extends State<VideoFavSection> {
 
                   IconButton(
 
-                    icon: const Icon(Icons.refresh, color: Color(0xffd57653)),
+                    icon: Icon(Icons.refresh, color: LandingAppearanceManager().config.accentColor),
 
                     onPressed: refreshVideos,
 

@@ -3,6 +3,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:nafahat/theme/app_theme_tokens.dart';
 import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
 import 'package:nafahat/pages/widgets/navbar.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -56,6 +57,7 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
 
   // ✅ NOUVEAU : Types de paiement autorisés pour cette formation
   List<String> _typesPaiementAutorises = ['formation'];
+  List<Map<String, dynamic>> _echeancierTranches = [];
 
   // ✅ Types de paiement avec config (filtrés selon la formation)
   List<Map<String, dynamic>> _paymentTypes = [];
@@ -72,8 +74,8 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
   bool _isSubmitting = false;
   String? _errorMessage;
 
-  static const Color primaryColor = Color(0xff0D443E);
-  static const Color primaryColorLight = Color(0xff1a6b60);
+  static Color get primaryColor => AppThemeTokens.primary;
+  static Color get primaryColorLight => AppThemeTokens.primary.withOpacity(.82);
 
   // ============================================================
   // CONFIGURATION DES 7 TYPES DE PAIEMENT
@@ -122,6 +124,12 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
       'labelAr': 'دفع بالساعة',
       'isPeriodic': true,
     },
+    'tranche': {
+      'icon': '🧾',
+      'labelFr': 'Paiement par tranche',
+      'labelAr': 'الدفع بالأقساط',
+      'isPeriodic': true,
+    },
   };
 
   // ============================================================
@@ -140,6 +148,9 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
 
   double get _montantAPayer {
     final total = _montantTotal;
+    if (_selectedPaymentType == 'tranche' && _echeancierTranches.isNotEmpty) {
+      return double.tryParse((_echeancierTranches.first['montant'] ?? '0').toString()) ?? 0;
+    }
     if (_isPeriodic && _nombrePeriodes > 0) {
       return total / _nombrePeriodes;
     }
@@ -158,6 +169,9 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
   @override
   void initState() {
     super.initState();
+    // La barre inférieure doit être cachée à l'ouverture de cette page.
+    // Elle réapparaîtra uniquement quand l'utilisateur fera défiler vers le bas.
+    MobileBottomNavController.reset();
     _loadLanguage();
     _loadData();
     print('🔵 [ModalitePaiment] Page initialisée - paymentId: ${widget.paymentId}');
@@ -274,6 +288,12 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
           final List<String> typesAutorises = _parseTypesPaiement(
             formationData['types_paiement_autorises'],
           );
+          final rawTranches = formationData['paiement_tranches_json'];
+          List<Map<String, dynamic>> echeancier = [];
+          try {
+            final decoded = rawTranches is String ? jsonDecode(rawTranches) : rawTranches;
+            if (decoded is List) echeancier = decoded.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+          } catch (_) {}
 
           if (mounted) {
             setState(() {
@@ -286,6 +306,7 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
               _nbrSeance = nbrSeance;
               _nbrJour = nbrJour;
               _typesPaiementAutorises = typesAutorises;
+              _echeancierTranches = echeancier;
             });
           }
 
@@ -424,6 +445,9 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
 
       case 'annee':
         return _calculerNombreAnnees();
+
+      case 'tranche':
+        return _echeancierTranches.isNotEmpty ? _echeancierTranches.length : 1;
 
       default:
         return 1;
@@ -665,6 +689,9 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
         nombreMois: _selectedPaymentType == 'mois' ? _nombrePeriodes : 1,
         montantMensuel:
             _selectedPaymentType == 'mois' ? montantParPeriode : null,
+        nombrePeriodes: _nombrePeriodes,
+        montantParPeriode: _selectedPaymentType == 'tranche' ? _montantAPayer : montantParPeriode,
+        echeancierTranches: _selectedPaymentType == 'tranche' ? _echeancierTranches : null,
       );
 
       if (confirmResult['success'] != true) {
@@ -763,7 +790,7 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
                   color: primaryColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.schedule_rounded,
                   color: primaryColor,
                   size: 22,
@@ -826,9 +853,9 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
 
     final nombrePeriodes = isPeriodic ? _calculerNombrePeriodes(value) : 1;
 
-    final double montantAffiche = isPeriodic && nombrePeriodes > 0
-        ? _montantTotal / nombrePeriodes
-        : _montantTotal;
+    final double montantAffiche = value == 'tranche' && _echeancierTranches.isNotEmpty
+        ? (double.tryParse((_echeancierTranches.first['montant'] ?? '0').toString()) ?? 0)
+        : (isPeriodic && nombrePeriodes > 0 ? _montantTotal / nombrePeriodes : _montantTotal);
 
     return GestureDetector(
       onTap: () {
@@ -869,7 +896,7 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
                       child: Container(
                         width: 10,
                         height: 10,
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: primaryColor,
                         ),
@@ -1360,7 +1387,7 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
               ),
               TextButton.icon(
                 onPressed: () => _pickFile(_selectedPaymentMethod!),
-                icon: const Icon(
+                icon: Icon(
                   Icons.upload_file,
                   color: primaryColor,
                   size: 18,
@@ -1395,7 +1422,7 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
     return Container(
       padding: EdgeInsets.all(isMobile ? 20 : 28),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [primaryColor, primaryColorLight],
@@ -1636,7 +1663,7 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
             onPressed: () => Navigator.pop(context),
             child: Text(
               _isArabic ? 'حسناً' : 'OK',
-              style: const TextStyle(color: primaryColor),
+              style: TextStyle(color: primaryColor),
             ),
           ),
         ],
@@ -1738,12 +1765,12 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-    final isTablet = MediaQuery.of(context).size.width >= 600 &&
-        MediaQuery.of(context).size.width < 1200;
+    final width = MediaQuery.of(context).size.width;
+    final isMobile = width < 600;
+    final isTablet = width >= 600 && width < 1200;
 
     final navbar = Navbar(
-      isMobile: MediaQuery.of(context).size.width < 850,
+      isMobile: width < 850,
       scaffoldKey: _scaffoldKey,
     );
 
@@ -1753,131 +1780,162 @@ class _ModalitePaimentPageState extends State<ModalitePaimentPage> {
         Expanded(
           child: Scaffold(
             key: _scaffoldKey,
-            drawer: MediaQuery.of(context).size.width < 850
-                ? navbar.buildDrawer(context)
-                : null,
-            backgroundColor: const Color(0xfff8f9fa),
-      appBar: AppBar(
-        title: Text(
-          _isArabic ? 'طرق الدفع' : 'Modalités de Paiement',
-          style: GoogleFonts.cairo(
-            fontWeight: FontWeight.bold,
-            fontSize: isMobile ? 18 : 22,
-          ),
-        ),
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: primaryColor))
-          : SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: EdgeInsets.all(isMobile ? 16 : 32),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: isTablet ? 800 : 700),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildModernHeader(),
-                      const SizedBox(height: 24),
-
-                      // ÉTAPE 1 : Type
-                      _buildStepIndicator(
-                        step: 1,
-                        isActive: true,
-                        isCompleted: _selectedPaymentType != null,
-                        label: _isArabic
-                            ? 'اختر نوع الدفع'
-                            : 'Type de paiement',
-                      ),
-                      const SizedBox(height: 12),
-                      _buildPaymentTypeSelector(),
-                      const SizedBox(height: 24),
-
-                      // ÉTAPE 2 : Mode
-                      _buildStepIndicator(
-                        step: 2,
-                        isActive: _selectedPaymentType != null,
-                        isCompleted: _selectedPaymentMethod != null,
-                        label: _isArabic
-                            ? 'اختر طريقة الدفع'
-                            : 'Mode de paiement',
-                      ),
-                      const SizedBox(height: 12),
-
-                      _buildModernPaymentCard(
-                        title: _isArabic
-                            ? '🏦 تحويل بنكي'
-                            : '🏦 Versement Bancaire',
-                        icon: Icons.account_balance,
-                        color: const Color(0xff1a8a6a),
-                        bgColor: const Color(0xff1a8a6a),
-                        method: 'bancaire',
-                        description: _isArabic
-                            ? 'تحويل بنكي عبر حسابنا الجاري'
-                            : 'Virement bancaire',
-                        bankInfo: _isArabic
-                            ? '🏦 حساب BNA: 1000123456789'
-                            : '🏦 Compte BNA : 1000123456789',
-                      ),
-
-                      _buildModernPaymentCard(
-                        title: _isArabic
-                            ? '📮 تحويل بريدي'
-                            : '📮 Versement Postal',
-                        icon: Icons.local_post_office,
-                        color: const Color(0xffe88b2a),
-                        bgColor: const Color(0xffe88b2a),
-                        method: 'postal',
-                        description: _isArabic
-                            ? 'تحويل بريدي عبر مكتب البريد'
-                            : 'Virement postal',
-                        bankInfo: _isArabic
-                            ? '📮 حساب بريدي: 123456789'
-                            : '📮 Compte postal : 123456789',
-                      ),
-
-                      _buildModernPaymentCard(
-                        title: _isArabic
-                            ? '💳 دفع عبر الإنترنت'
-                            : '💳 Paiement en Ligne',
-                        icon: Icons.payment,
-                        color: Colors.grey.shade600,
-                        bgColor: Colors.grey.shade600,
-                        method: 'en_ligne',
-                        description: _isArabic
-                            ? 'بطاقة بنكية'
-                            : 'Carte bancaire',
-                        bankInfo: '',
-                        isDisabled: true,
-                      ),
-
-                      const SizedBox(height: 16),
-                      _buildAmountSummary(),
-                      const SizedBox(height: 24),
-
-                      if (_errorMessage != null) ...[
-                        _buildModernErrorMessage(),
-                        const SizedBox(height: 16),
-                      ],
-
-                      _buildModernValidateButton(),
-                      const SizedBox(height: 20),
-                      _buildModernFooter(),
-                      const SizedBox(height: 16),
-                    ],
-                  ),
+            drawer: width < 850 ? navbar.buildDrawer(context) : null,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            appBar: AppBar(
+              title: Text(
+                _isArabic ? 'طرق الدفع' : 'Modalités de Paiement',
+                style: GoogleFonts.cairo(
+                  fontWeight: FontWeight.bold,
+                  fontSize: isMobile ? 18 : 22,
                 ),
               ),
+              backgroundColor: primaryColor,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              centerTitle: true,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: () => Navigator.pop(context),
+              ),
             ),
-            bottomNavigationBar: const MobileBottomNav(),
+
+            // IMPORTANT : la barre inférieure est superposée au contenu au lieu
+            // d'être utilisée comme Scaffold.bottomNavigationBar. Ainsi son
+            // apparition pendant le scroll ne redimensionne plus la page de
+            // paiement et n'entraîne plus d'écran blanc / saut de layout.
+            body: Stack(
+              children: [
+                Positioned.fill(
+                  child: _isLoading
+                      ? Center(
+                          child: CircularProgressIndicator(
+                            color: primaryColor,
+                          ),
+                        )
+                      : SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          padding: EdgeInsets.fromLTRB(
+                            isMobile ? 16 : 32,
+                            isMobile ? 16 : 32,
+                            isMobile ? 16 : 32,
+                            // Espace de sécurité pour que le dernier contenu ne
+                            // soit jamais masqué quand la barre apparaît.
+                            isMobile ? 105 : 40,
+                          ),
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: isTablet ? 800 : 700,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildModernHeader(),
+                                  const SizedBox(height: 24),
+
+                                  // ÉTAPE 1 : Type
+                                  _buildStepIndicator(
+                                    step: 1,
+                                    isActive: true,
+                                    isCompleted: _selectedPaymentType != null,
+                                    label: _isArabic
+                                        ? 'اختر نوع الدفع'
+                                        : 'Type de paiement',
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _buildPaymentTypeSelector(),
+                                  const SizedBox(height: 24),
+
+                                  // ÉTAPE 2 : Mode
+                                  _buildStepIndicator(
+                                    step: 2,
+                                    isActive: _selectedPaymentType != null,
+                                    isCompleted: _selectedPaymentMethod != null,
+                                    label: _isArabic
+                                        ? 'اختر طريقة الدفع'
+                                        : 'Mode de paiement',
+                                  ),
+                                  const SizedBox(height: 12),
+
+                                  _buildModernPaymentCard(
+                                    title: _isArabic
+                                        ? '🏦 تحويل بنكي'
+                                        : '🏦 Versement Bancaire',
+                                    icon: Icons.account_balance,
+                                    color: const Color(0xff1a8a6a),
+                                    bgColor: const Color(0xff1a8a6a),
+                                    method: 'bancaire',
+                                    description: _isArabic
+                                        ? 'تحويل بنكي عبر حسابنا الجاري'
+                                        : 'Virement bancaire',
+                                    bankInfo: _isArabic
+                                        ? '🏦 حساب BNA: 1000123456789'
+                                        : '🏦 Compte BNA : 1000123456789',
+                                  ),
+
+                                  _buildModernPaymentCard(
+                                    title: _isArabic
+                                        ? '📮 تحويل بريدي'
+                                        : '📮 Versement Postal',
+                                    icon: Icons.local_post_office,
+                                    color: const Color(0xffe88b2a),
+                                    bgColor: const Color(0xffe88b2a),
+                                    method: 'postal',
+                                    description: _isArabic
+                                        ? 'تحويل بريدي عبر مكتب البريد'
+                                        : 'Virement postal',
+                                    bankInfo: _isArabic
+                                        ? '📮 حساب بريدي: 123456789'
+                                        : '📮 Compte postal : 123456789',
+                                  ),
+
+                                  _buildModernPaymentCard(
+                                    title: _isArabic
+                                        ? '💳 دفع عبر الإنترنت'
+                                        : '💳 Paiement en Ligne',
+                                    icon: Icons.payment,
+                                    color: Colors.grey.shade600,
+                                    bgColor: Colors.grey.shade600,
+                                    method: 'en_ligne',
+                                    description: _isArabic
+                                        ? 'بطاقة بنكية'
+                                        : 'Carte bancaire',
+                                    bankInfo: '',
+                                    isDisabled: true,
+                                  ),
+
+                                  const SizedBox(height: 16),
+                                  _buildAmountSummary(),
+                                  const SizedBox(height: 24),
+
+                                  if (_errorMessage != null) ...[
+                                    _buildModernErrorMessage(),
+                                    const SizedBox(height: 16),
+                                  ],
+
+                                  _buildModernValidateButton(),
+                                  const SizedBox(height: 20),
+                                  _buildModernFooter(),
+                                  const SizedBox(height: 16),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                ),
+
+                // La barre reste physiquement collée au bas de la zone visible.
+                // Sa visibilité continue d'être pilotée par le contrôleur global
+                // au scroll, sans modifier la hauteur du body.
+                const Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: MobileBottomNav(),
+                ),
+              ],
+            ),
           ),
         ),
       ],

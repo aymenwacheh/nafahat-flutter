@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:nafahat/providers/language_provider.dart';
 import 'package:nafahat/providers/user_provider.dart';
 import 'package:nafahat/services/payment_notification_service.dart';
+import 'package:nafahat/services/landing_appearance_manager.dart';
 
 /// Contrôle uniquement la visibilité de la barre inférieure.
 ///
@@ -296,15 +297,14 @@ class _MobileBottomNavState extends State<MobileBottomNav> {
       height: 38,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: color.withOpacity(0.10),
+        color: color.withOpacity(0.12),
         shape: BoxShape.circle,
       ),
       child: Icon(icon, color: color, size: 25),
     );
   }
 
-  Widget _notificationIcon() {
-    const color = Color(0xFFD62828);
+  Widget _notificationIcon(Color color, Color surface) {
     final count = _notifications.length;
 
     return SizedBox(
@@ -326,7 +326,7 @@ class _MobileBottomNavState extends State<MobileBottomNav> {
                 decoration: BoxDecoration(
                   color: const Color(0xFFD00000),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white, width: 1.5),
+                  border: Border.all(color: surface, width: 1.5),
                 ),
                 child: Text(
                   count > 99 ? '99+' : '$count',
@@ -344,8 +344,7 @@ class _MobileBottomNavState extends State<MobileBottomNav> {
     );
   }
 
-  Widget _profileIcon(UserProvider user) {
-    const green = Color(0xFF168A62);
+  Widget _profileIcon(UserProvider user, Color primary) {
     final displayName = user.displayName.trim();
     final initial = user.isLoggedIn && displayName.isNotEmpty
         ? displayName.substring(0, 1).toUpperCase()
@@ -357,13 +356,13 @@ class _MobileBottomNavState extends State<MobileBottomNav> {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: green.withOpacity(0.12),
-        border: Border.all(color: green, width: 2),
+        color: primary.withOpacity(0.12),
+        border: Border.all(color: primary, width: 2),
       ),
       child: Text(
         initial,
-        style: const TextStyle(
-          color: green,
+        style: TextStyle(
+          color: primary,
           fontWeight: FontWeight.w800,
           fontSize: 15,
         ),
@@ -378,6 +377,11 @@ class _MobileBottomNavState extends State<MobileBottomNav> {
 
     final user = context.watch<UserProvider>();
     final isArabic = context.watch<LanguageProvider>().isArabic;
+    final appearance = LandingAppearanceManager().config;
+    final surface = appearance.sectionBackgroundColor;
+    final primary = appearance.primaryColor;
+    final accent = appearance.accentColor;
+    final muted = appearance.mutedTextColor;
 
     if (_observedUserId != user.userId) {
       _observedUserId = user.userId;
@@ -413,67 +417,55 @@ class _MobileBottomNavState extends State<MobileBottomNav> {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: surface,
                               borderRadius: BorderRadius.circular(22),
                               border: Border.all(
-                                color: const Color(0xFFE5E7EB),
+                                color: muted.withOpacity(.22),
                               ),
-                              boxShadow: const [
+                              boxShadow: [
                                 BoxShadow(
-                                  color: Color(0x24000000),
+                                  color: Colors.black.withOpacity(
+                                    appearance.themeMode == 'dark' ? .28 : .10,
+                                  ),
                                   blurRadius: 18,
-                                  offset: Offset(0, 6),
+                                  offset: const Offset(0, 6),
                                 ),
                               ],
                             ),
                             child: Row(
                               textDirection: TextDirection.ltr,
                               children: [
-                                _iconButton(
-                                  tooltip:
-                                      isArabic ? 'الفيديوهات' : 'Vidéos',
-                                  icon: _coloredIcon(
-                                    Icons.play_circle_outline_rounded,
-                                    const Color(0xFFF28C28),
-                                  ),
-                                  onTap: () => _goTo('/videos'),
-                                ),
-                                _iconButton(
-                                  tooltip:
-                                      isArabic ? 'المكونون' : 'Formateurs',
-                                  icon: _coloredIcon(
-                                    Icons.groups_2_outlined,
-                                    const Color(0xFF1877F2),
-                                  ),
-                                  onTap: () => _goTo('/formateurs'),
-                                ),
-                                _iconButton(
-                                  tooltip: isArabic ? 'الرئيسية' : 'Accueil',
-                                  icon: _coloredIcon(
-                                    Icons.home_rounded,
-                                    const Color(0xFF0D443E),
-                                  ),
-                                  onTap: _goHome,
-                                ),
+                                // 1. Formation
                                 _iconButton(
                                   tooltip:
                                       isArabic ? 'التكوينات' : 'Formations',
                                   icon: _coloredIcon(
                                     Icons.school_outlined,
-                                    const Color(0xFFE0A800),
+                                    accent,
                                   ),
                                   onTap: () => _goTo('/formations'),
                                 ),
+                                // 2. Accueil
+                                _iconButton(
+                                  tooltip: isArabic ? 'الرئيسية' : 'Accueil',
+                                  icon: _coloredIcon(
+                                    Icons.home_rounded,
+                                    primary,
+                                  ),
+                                  onTap: _goHome,
+                                ),
+                                // 3. Notifications
                                 _iconButton(
                                   tooltip:
                                       isArabic ? 'إشعارات الدفع' : 'Paiements',
-                                  icon: _notificationIcon(),
+                                  icon: _notificationIcon(accent, surface),
                                   onTap: _openNotifications,
                                 ),
+                                // 4. Profil
                                 _iconButton(
                                   tooltip:
                                       isArabic ? 'الملف الشخصي' : 'Profil',
-                                  icon: _profileIcon(user),
+                                  icon: _profileIcon(user, primary),
                                   onTap: () => _goTo(
                                     user.isLoggedIn ? '/profile' : '/auth',
                                   ),

@@ -29,6 +29,7 @@ import 'package:nafahat/services/auth_service.dart';
 import 'package:nafahat/services/cart_service.dart';
 import 'package:provider/provider.dart';
 import 'package:nafahat/services/training_service.dart';
+import 'package:nafahat/services/landing_appearance_manager.dart';
 import 'package:nafahat/pages/widgets/cart_popup.dart';
 import 'package:nafahat/pages/adminisration/add_about.dart';
 import 'package:nafahat/pages/adminisration/apparence_hero.dart';
@@ -45,8 +46,8 @@ class Navbar extends StatelessWidget {
   final bool isMobile;
   final GlobalKey<ScaffoldState>? scaffoldKey;
 
-  static const Color nafahatGreen = Color(0xff0D443E);
-  static const Color nafahatGold = Color(0xffC4A46C);
+  static Color get nafahatGreen => LandingAppearanceManager().config.primaryColor;
+  static Color get nafahatGold => LandingAppearanceManager().config.accentColor;
 
   const Navbar({super.key, required this.isMobile, this.scaffoldKey});
 
@@ -136,7 +137,7 @@ class Navbar extends StatelessWidget {
             vertical: 8,
           ),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.92),
+            color: LandingAppearanceManager().config.sectionBackgroundColor.withOpacity(0.96),
             border: Border(
               bottom: BorderSide(
                 color: nafahatGreen.withOpacity(0.06),
@@ -233,7 +234,7 @@ class Navbar extends StatelessWidget {
         Container(
           width: 6,
           height: 6,
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: nafahatGold,
             shape: BoxShape.circle,
           ),
@@ -259,9 +260,9 @@ class Navbar extends StatelessWidget {
       width: 220,
       height: 40,
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: LandingAppearanceManager().config.pageBackgroundColor,
         borderRadius: BorderRadius.circular(25),
-        border: Border.all(color: Colors.grey.shade200, width: 1),
+        border: Border.all(color: LandingAppearanceManager().config.mutedTextColor.withOpacity(.18), width: 1),
       ),
       child: Row(
         children: [
@@ -342,7 +343,7 @@ class Navbar extends StatelessWidget {
                 child: Container(
                   width: isMobile ? 20 : 18,
                   height: isMobile ? 20 : 18,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: nafahatGold,
                     shape: BoxShape.circle,
                   ),
@@ -1024,7 +1025,7 @@ class Navbar extends StatelessWidget {
   // ============================================================
   Widget _buildMobileMenuButton() {
     return IconButton(
-      icon: const Icon(Icons.menu_rounded, color: nafahatGreen, size: 28),
+      icon: Icon(Icons.menu_rounded, color: nafahatGreen, size: 28),
       onPressed: _openDrawer,
       tooltip: 'Menu',
       splashColor: nafahatGreen.withOpacity(0.2),
@@ -1042,7 +1043,7 @@ class Navbar extends StatelessWidget {
     final canViewAdmin = _canViewAdmin(context);
 
     return Drawer(
-      backgroundColor: Colors.white.withOpacity(0.95),
+      backgroundColor: LandingAppearanceManager().config.sectionBackgroundColor.withOpacity(0.98),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Column(
@@ -1090,7 +1091,7 @@ class Navbar extends StatelessWidget {
                     },
                   ),
 
-                  const Divider(height: 30, thickness: 1.5, color: nafahatGreen),
+                  Divider(height: 30, thickness: 1.5, color: nafahatGreen),
 
                   // Section Admin - COMPLETE
                   if (canViewAdmin) _buildDrawerAdminSection(context, isArabic),
@@ -1101,7 +1102,7 @@ class Navbar extends StatelessWidget {
                   // Bouton Langue
                   const SizedBox(height: 10),
                   ListTile(
-                    leading: const Icon(Icons.language, color: nafahatGreen),
+                    leading: Icon(Icons.language, color: nafahatGreen),
                     title: Text(
                       isArabic ? "Changer en Français" : "تغيير إلى العربية",
                       style: GoogleFonts.cairo(
@@ -1166,7 +1167,7 @@ class Navbar extends StatelessWidget {
                   Container(
                     width: 5,
                     height: 5,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       color: nafahatGold,
                       shape: BoxShape.circle,
                     ),

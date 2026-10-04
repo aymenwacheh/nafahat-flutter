@@ -88,6 +88,7 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
       'labelAr': 'بالحصة',
       'color': Colors.pink,
     },
+      'tranche': {'icon': '🧾', 'labelFr': 'Par tranche', 'labelAr': 'بالأقساط', 'color': Colors.teal},
   };
 
   @override
@@ -1282,6 +1283,7 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
     final trimestriels = _parseInt(_stats['paiements_trimestriels']);
     final annuels = _parseInt(_stats['paiements_annuels']);
     final seances = _parseInt(_stats['paiements_seances']);
+    final parTranches = _parseInt(_stats['paiements_tranches']);
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -1313,6 +1315,8 @@ class _EtatPaiementPageState extends State<EtatPaiementPage> {
               _buildModernStatItem('🗓️', '$annuels', 'Annuel', Colors.deepPurple),
             if (seances > 0)
               _buildModernStatItem('🎯', '$seances', 'Séances', Colors.pink),
+            if (parTranches > 0)
+              _buildModernStatItem('🧾', '$parTranches', 'Par tranche', Colors.teal),
             if (tranchesEnAttente > 0)
               _buildModernStatItem(
                 '⌛',

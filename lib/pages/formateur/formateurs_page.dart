@@ -95,7 +95,7 @@ class _FormateursPageState extends State<FormateursPage> {
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFFCFBFA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       drawer: width < 850 ? navbar.buildDrawer(context) : null,
       body: SafeArea(
         top: false,

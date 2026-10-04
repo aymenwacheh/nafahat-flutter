@@ -1,5 +1,6 @@
 // lib/pages/adminisration/apparence_bull.dart
 import 'package:flutter/material.dart';
+import 'package:nafahat/pages/widgets/painter_color_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/models/bull_model.dart';
 import 'package:nafahat/services/bull_service.dart';
@@ -152,136 +153,15 @@ Widget _buildColorPicker({
   required Color selectedColor,
   required Function(Color) onColorSelected,
 }) {
-  // Couleurs de base pour l'aperçu rapide
-  final List<Color> baseColors = [
-    Colors.red,
-    Colors.pink,
-    Colors.purple,
-    Colors.deepPurple,
-    Colors.indigo,
-    Colors.blue,
-    Colors.lightBlue,
-    Colors.cyan,
-    Colors.teal,
-    Colors.green,
-    Colors.lightGreen,
-    Colors.lime,
-    Colors.yellow,
-    Colors.amber,
-    Colors.orange,
-    Colors.deepOrange,
-    Colors.brown,
-    Colors.grey,
-    Colors.blueGrey,
-  ];
-
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        label,
-        style: GoogleFonts.cairo(fontWeight: FontWeight.w500),
-      ),
-      const SizedBox(height: 8),
-      // Afficher la couleur sélectionnée avec un aperçu
-      Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: selectedColor,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: Colors.grey[300]!,
-            width: 1,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              _getColorName(selectedColor),
-              style: GoogleFonts.cairo(
-                color: _getContrastColor(selectedColor),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: _getContrastColor(selectedColor).withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                '#${selectedColor.value.toRadixString(16).padLeft(8, '0').substring(2)}',
-                style: GoogleFonts.cairo(
-                  fontSize: 12,
-                  color: _getContrastColor(selectedColor),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      const SizedBox(height: 12),
-      // Bouton pour ouvrir la palette
-      SizedBox(
-        width: double.infinity,
-        child: ElevatedButton.icon(
-          onPressed: () => _showColorPalette(
-            context,
-            selectedColor,
-            onColorSelected,
-          ),
-          icon: const Icon(Icons.palette_outlined, size: 20),
-          label: Text(
-            '🎨 Ouvrir la palette de couleurs',
-            style: GoogleFonts.cairo(),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xffd57653),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-        ),
-      ),
-      const SizedBox(height: 8),
-      // Aperçu des couleurs rapides
-      Wrap(
-        spacing: 6,
-        runSpacing: 6,
-        children: [
-          ...baseColors.map((color) {
-            return GestureDetector(
-              onTap: () => onColorSelected(color),
-              child: Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: selectedColor == color ? Colors.black : Colors.transparent,
-                    width: 3,
-                  ),
-                ),
-                child: selectedColor == color
-                    ? const Icon(Icons.check, color: Colors.white, size: 16)
-                    : null,
-              ),
-            );
-          }),
-        ],
-      ),
-    ],
+  final isArabic = Provider.of<LanguageProvider>(context, listen: false).isArabic;
+  return PainterColorPickerField(
+    label: label,
+    color: selectedColor,
+    onChanged: onColorSelected,
+    isArabic: isArabic,
   );
 }
 
-  // ============================================================
-  // PALETTE DE COULEURS COMPLÈTE
-  // ============================================================
   void _showColorPalette(
     BuildContext context,
     Color currentColor,
@@ -1238,6 +1118,62 @@ Widget _buildColorPicker({
                   // ============================================================
                   // COULEURS AVEC PALETTE
                   // ============================================================
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ActionChip(
+                        label: const Text('Nafahat'),
+                        avatar: const CircleAvatar(backgroundColor: Color(0xff0D443E)),
+                        onPressed: () {
+                          setStateDialog(() {
+                            bgColor = const Color(0xff0D443E);
+                            textColor = Colors.white;
+                            borderColor = const Color(0xffC4A46C);
+                            fontSize = 14;
+                          });
+                        },
+                      ),
+                      ActionChip(
+                        label: const Text('Terracotta'),
+                        avatar: const CircleAvatar(backgroundColor: Color(0xffD57653)),
+                        onPressed: () {
+                          setStateDialog(() {
+                            bgColor = const Color(0xffD57653);
+                            textColor = Colors.white;
+                            borderColor = const Color(0xff994A2B);
+                            fontSize = 14;
+                          });
+                        },
+                      ),
+                      ActionChip(
+                        label: const Text('Minimal'),
+                        avatar: const CircleAvatar(backgroundColor: Colors.white),
+                        onPressed: () {
+                          setStateDialog(() {
+                            bgColor = Colors.white;
+                            textColor = const Color(0xff0D443E);
+                            borderColor = const Color(0xffD1D5DB);
+                            fontSize = 14;
+                          });
+                        },
+                      ),
+                      ActionChip(
+                        label: const Text('Nuit'),
+                        avatar: const CircleAvatar(backgroundColor: Color(0xff111827)),
+                        onPressed: () {
+                          setStateDialog(() {
+                            bgColor = const Color(0xff111827);
+                            textColor = const Color(0xffF9FAFB);
+                            borderColor = const Color(0xff374151);
+                            fontSize = 14;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
                   _buildColorPicker(
                     label: isArabic ? 'لون الخلفية' : 'Couleur de fond',
                     selectedColor: bgColor,
@@ -1918,7 +1854,7 @@ Widget _buildColorPicker({
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
-      backgroundColor: const Color(0xfffcfbfa),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           isArabic ? '🎨 إدارة الروابط' : '🎨 Gestion des liens',

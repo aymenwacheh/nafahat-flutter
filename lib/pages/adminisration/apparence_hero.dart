@@ -686,6 +686,55 @@ class _ApparenceHeroState extends State<ApparenceHero> {
               ],
             ),
             const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                ActionChip(
+                  avatar: const Icon(Icons.play_arrow_rounded, size: 18),
+                  label: const Text('Doux'),
+                  onPressed: () {
+                    setState(() {
+                      _animationType = 'fade';
+                      _animationDirection = 'leftToRight';
+                      _slideDuration = 6.0;
+                      _transitionDuration = 1.2;
+                      _durationController.text = '6.0';
+                      _transitionController.text = '1.2';
+                    });
+                  },
+                ),
+                ActionChip(
+                  avatar: const Icon(Icons.speed_rounded, size: 18),
+                  label: const Text('Dynamique'),
+                  onPressed: () {
+                    setState(() {
+                      _animationType = 'slide';
+                      _animationDirection = 'leftToRight';
+                      _slideDuration = 4.0;
+                      _transitionDuration = 0.55;
+                      _durationController.text = '4.0';
+                      _transitionController.text = '0.55';
+                    });
+                  },
+                ),
+                ActionChip(
+                  avatar: const Icon(Icons.auto_awesome_rounded, size: 18),
+                  label: const Text('Cinématique'),
+                  onPressed: () {
+                    setState(() {
+                      _animationType = 'scroll';
+                      _animationDirection = 'rightToLeft';
+                      _slideDuration = 7.0;
+                      _transitionDuration = 1.0;
+                      _durationController.text = '7.0';
+                      _transitionController.text = '1.0';
+                    });
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
             DropdownButtonFormField<String>(
               value: _animationType,
               decoration: InputDecoration(

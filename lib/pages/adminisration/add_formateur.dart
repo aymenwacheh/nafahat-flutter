@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:nafahat/theme/app_theme_tokens.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:nafahat/pages/adminisration/admin_page_wrapper.dart';
@@ -39,8 +40,8 @@ class _AddFormateurPageState extends State<AddFormateurPage> {
   bool _isLoading = false;
   bool _isArabic = false;
 
-  static const Color nafahatGreen = Color(0xff0D443E);
-  static const Color nafahatOrange = Color(0xffd57653);
+  static Color get nafahatGreen => AppThemeTokens.primary;
+  static Color get nafahatOrange => AppThemeTokens.accent;
 
   @override
   void initState() {
@@ -526,8 +527,8 @@ class _AddFormateurPageState extends State<AddFormateurPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (_isUploadingPhoto)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 4),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
                         child: LinearProgressIndicator(color: nafahatGreen),
                       ),
                     Wrap(
@@ -638,7 +639,7 @@ class _AddFormateurPageState extends State<AddFormateurPage> {
       ),
       child:
           _isImageLoading
-              ? const Center(
+              ? Center(
                 child: SizedBox(
                   width: 24,
                   height: 24,
@@ -780,7 +781,7 @@ class _AddFormateurPageState extends State<AddFormateurPage> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: nafahatGreen, width: 2),
+              borderSide: BorderSide(color: nafahatGreen, width: 2),
             ),
           ),
           validator: (value) {

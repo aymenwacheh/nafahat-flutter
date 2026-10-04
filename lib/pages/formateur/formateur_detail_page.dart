@@ -91,7 +91,7 @@ class _FormateurDetailPageState extends State<FormateurDetailPage> {
       textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         key: _scaffoldKey,
-        backgroundColor: const Color(0xFFFCFBFA),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         drawer: width < 850 ? navbar.buildDrawer(context) : null,
         body: SafeArea(
           top: false,

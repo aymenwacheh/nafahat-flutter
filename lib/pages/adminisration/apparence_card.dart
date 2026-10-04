@@ -1,5 +1,6 @@
 // lib/pages/adminisration/apparence_card.dart
 import 'package:flutter/material.dart';
+import 'package:nafahat/pages/widgets/painter_color_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/models/training_model.dart';
 import 'package:nafahat/services/training_service.dart';
@@ -244,6 +245,10 @@ void _resetToDefault() {
 
                     // ✅ NOUVELLE SECTION : Paramètres d'affichage mobile
                     _buildMobileDisplaySettings(isMobile),
+
+                    const SizedBox(height: 24),
+
+                    _buildCardStyleSettings(isMobile),
 
                     const SizedBox(height: 24),
 
@@ -604,6 +609,185 @@ void _resetToDefault() {
   }
 
   // ✅ NOUVELLE SECTION : Paramètres d'affichage mobile
+  Widget _buildCardStyleSettings(bool isMobile) {
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(isMobile ? 16 : 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _isArabic ? '🎨 Style de la carte' : '🎨 Style de la carte',
+              style: GoogleFonts.cairo(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xff0D443E),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              _isArabic
+                  ? 'ألوان، حدود، زوايا وظل البطاقة'
+                  : 'Couleurs, bordure, arrondi et profondeur.',
+              style: GoogleFonts.cairo(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 18),
+            _buildColorPicker(
+              label: _isArabic ? 'لون الخلفية' : 'Fond de carte',
+              currentColor: _config.cardBackgroundColor,
+              onChanged: (color) {
+                setState(() => _config.cardBackgroundColor = color);
+              },
+              isArabic: _isArabic,
+            ),
+            const SizedBox(height: 14),
+            _buildColorPicker(
+              label: _isArabic ? 'لون الحدود' : 'Couleur de bordure',
+              currentColor: _config.cardBorderColor,
+              onChanged: (color) {
+                setState(() => _config.cardBorderColor = color);
+              },
+              isArabic: _isArabic,
+            ),
+            const SizedBox(height: 14),
+            _buildColorPicker(
+              label: _isArabic ? 'لون التمييز' : 'Couleur d’accent',
+              currentColor: _config.accentColor,
+              onChanged: (color) {
+                setState(() => _config.accentColor = color);
+              },
+              isArabic: _isArabic,
+            ),
+            const SizedBox(height: 16),
+            _buildNumberSlider(
+              label: _isArabic ? 'تقويس الزوايا' : 'Arrondi',
+              value: _config.cardBorderRadius,
+              minValue: 0,
+              maxValue: 36,
+              onChanged: (value) {
+                setState(() => _config.cardBorderRadius = value);
+              },
+            ),
+            const SizedBox(height: 12),
+            _buildNumberSlider(
+              label: _isArabic ? 'قوة الظل' : 'Intensité de l’ombre',
+              value: _config.cardShadowStrength * 100,
+              minValue: 0,
+              maxValue: 25,
+              onChanged: (value) {
+                setState(() => _config.cardShadowStrength = value / 100);
+              },
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _stylePresetChip(
+                  'Minimal',
+                  Colors.white,
+                  const Color(0xffE5E7EB),
+                  const Color(0xff0D443E),
+                  12,
+                  0.03,
+                ),
+                _stylePresetChip(
+                  'Nafahat',
+                  Colors.white,
+                  const Color(0xffE7E1DD),
+                  const Color(0xffD57653),
+                  16,
+                  0.08,
+                ),
+                _stylePresetChip(
+                  'Soft',
+                  const Color(0xffFFF8F5),
+                  const Color(0xffF0D6CB),
+                  const Color(0xff994A2B),
+                  22,
+                  0.10,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _stylePresetChip(
+    String label,
+    Color background,
+    Color border,
+    Color accent,
+    double radius,
+    double shadow,
+  ) {
+    return ActionChip(
+      avatar: CircleAvatar(backgroundColor: accent, radius: 7),
+      label: Text(label, style: GoogleFonts.cairo(fontSize: 12)),
+      onPressed: () {
+        setState(() {
+          _config.cardBackgroundColor = background;
+          _config.cardBorderColor = border;
+          _config.accentColor = accent;
+          _config.cardBorderRadius = radius;
+          _config.cardShadowStrength = shadow;
+        });
+      },
+    );
+  }
+
+  Widget _buildNumberSlider({
+    required String label,
+    required double value,
+    required double minValue,
+    required double maxValue,
+    required ValueChanged<double> onChanged,
+  }) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: GoogleFonts.cairo(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[700],
+            ),
+          ),
+        ),
+        SizedBox(
+          width: 230,
+          child: Slider(
+            value: value.clamp(minValue, maxValue).toDouble(),
+            min: minValue,
+            max: maxValue,
+            divisions: (maxValue - minValue).round(),
+            label: value.toStringAsFixed(value < 1 ? 2 : 0),
+            activeColor: const Color(0xff0D443E),
+            onChanged: onChanged,
+          ),
+        ),
+        SizedBox(
+          width: 48,
+          child: Text(
+            value.toStringAsFixed(value < 1 ? 2 : 0),
+            textAlign: TextAlign.end,
+            style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildMobileDisplaySettings(bool isMobile) {
     return Card(
       elevation: 4,
@@ -1014,17 +1198,28 @@ void _resetToDefault() {
             const SizedBox(height: 16),
             Container(
               constraints: const BoxConstraints(maxWidth: 400),
-              child: Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: _config.cardBackgroundColor,
+                  borderRadius: BorderRadius.circular(_config.cardBorderRadius),
+                  border: Border.all(color: _config.cardBorderColor),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(
+                        _config.cardShadowStrength.clamp(0.0, 0.30).toDouble(),
+                      ),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
+                clipBehavior: Clip.antiAlias,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(16),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(_config.cardBorderRadius),
                       ),
                       child: Image.network(
                         'https://picsum.photos/seed/preview/400/200',
@@ -1143,7 +1338,7 @@ void _resetToDefault() {
                                         style: GoogleFonts.cairo(
                                           fontSize: 14,
                                           fontWeight: FontWeight.bold,
-                                          color: const Color(0xffd57653),
+                                          color: _config.accentColor,
                                         ),
                                       ),
                                     ],
@@ -1318,96 +1513,11 @@ void _resetToDefault() {
     required ValueChanged<Color> onChanged,
     required bool isArabic,
   }) {
-    final colors = [
-      Colors.black,
-      Colors.grey[900]!,
-      Colors.grey[800]!,
-      Colors.grey[700]!,
-      Colors.grey[600]!,
-      Colors.grey[500]!,
-      Colors.grey[400]!,
-      Colors.white,
-      const Color(0xff0D443E),
-      const Color(0xff1A6B63),
-      const Color(0xff2E9E94),
-      const Color(0xffd57653),
-      const Color(0xffE8926E),
-      const Color(0xffC45A35),
-      const Color(0xffC4A46C),
-      Colors.blue[900]!,
-      Colors.blue[700]!,
-      Colors.blue[500]!,
-      Colors.blue[300]!,
-      Colors.red[900]!,
-      Colors.red[700]!,
-      Colors.red[500]!,
-      Colors.green[900]!,
-      Colors.green[700]!,
-      Colors.green[500]!,
-      Colors.purple[900]!,
-      Colors.purple[700]!,
-      Colors.purple[500]!,
-      Colors.pink[900]!,
-      Colors.pink[700]!,
-      Colors.pink[500]!,
-      Colors.orange[900]!,
-      Colors.orange[700]!,
-      Colors.orange[500]!,
-      Colors.teal[900]!,
-      Colors.teal[700]!,
-      Colors.teal[500]!,
-      Colors.indigo[900]!,
-      Colors.indigo[700]!,
-      Colors.indigo[500]!,
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.cairo(
-            fontWeight: FontWeight.w600,
-            color: Colors.grey[700],
-            fontSize: 13,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children:
-              colors.map((color) {
-                final isSelected = currentColor == color;
-                return GestureDetector(
-                  onTap: () => onChanged(color),
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: color,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color:
-                            isSelected
-                                ? const Color(0xff0D443E)
-                                : Colors.grey[300]!,
-                        width: isSelected ? 3 : 1,
-                      ),
-                    ),
-                    child:
-                        isSelected
-                            ? const Icon(
-                              Icons.check,
-                              color: Colors.white,
-                              size: 16,
-                            )
-                            : null,
-                  ),
-                );
-              }).toList(),
-        ),
-      ],
+    return PainterColorPickerField(
+      label: label,
+      color: currentColor,
+      onChanged: onChanged,
+      isArabic: isArabic,
     );
   }
 

@@ -332,7 +332,7 @@ class _AdministrationPageState extends State<AdministrationPage> {
 
     // Version web - avec menus déroulants
     return Scaffold(
-      backgroundColor: const Color(0xfffcfbfa),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Row(
         children: [
           _buildSideMenuWeb(),

@@ -1,5 +1,6 @@
 // lib/pages/adminisration/add_video_fav_page.dart
 import 'package:flutter/material.dart';
+import 'package:nafahat/theme/app_theme_tokens.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/models/video_model.dart';
 import 'package:nafahat/services/video_service.dart';
@@ -24,7 +25,7 @@ class _AddVideoFavPageState extends State<AddVideoFavPage> {
   final _descriptionArController = TextEditingController();
   final _videoIdController = TextEditingController();
 
-  static const Color nafahatGreen = Color(0xff0D443E);
+  static Color get nafahatGreen => AppThemeTokens.primary;
 
   @override
   void dispose() {
@@ -423,7 +424,7 @@ class _AddVideoFavPageState extends State<AddVideoFavPage> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: nafahatGreen, width: 2),
+              borderSide: BorderSide(color: nafahatGreen, width: 2),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,

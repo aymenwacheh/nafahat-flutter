@@ -1,5 +1,6 @@
 // lib/pages/administration/edit_categorie.dart
 import 'package:flutter/material.dart';
+import 'package:nafahat/theme/app_theme_tokens.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:nafahat/services/training_service.dart';
@@ -39,8 +40,8 @@ class _EditCategoriePageState extends State<EditCategoriePage> {
   bool _isLoadingData = true;
   bool _isArabic = false;
 
-  static const Color nafahatGreen = Color(0xff0D443E);
-  static const Color nafahatOrange = Color(0xffd57653);
+  static Color get nafahatGreen => AppThemeTokens.primary;
+  static Color get nafahatOrange => AppThemeTokens.accent;
 
   @override
   void initState() {
@@ -310,7 +311,7 @@ class _EditCategoriePageState extends State<EditCategoriePage> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: nafahatGreen, width: 2),
+              borderSide: BorderSide(color: nafahatGreen, width: 2),
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12),
           ),
@@ -392,7 +393,7 @@ class _EditCategoriePageState extends State<EditCategoriePage> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: nafahatGreen, width: 2),
+          borderSide: BorderSide(color: nafahatGreen, width: 2),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
@@ -497,7 +498,7 @@ class _EditCategoriePageState extends State<EditCategoriePage> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: nafahatGreen, width: 2),
+              borderSide: BorderSide(color: nafahatGreen, width: 2),
             ),
           ),
           validator: (value) {

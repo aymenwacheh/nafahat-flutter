@@ -1,17 +1,18 @@
 import 'package:nafahat/pages/widgets/shared_navigation_shell.dart';
 // lib/widgets/inscription_section.dart
 import 'package:flutter/material.dart';
+import 'package:nafahat/theme/app_theme_tokens.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/pages/users/inscription_adherent.dart';
 
 // --- PALETTE DE COULEURS (même que landing) ---
 class AppColors {
-  static const Color primary = Color(0xffd57653);
-  static const Color primaryDark = Color(0xff994a2b);
-  static const Color primaryLight = Color(0xfffae6de);
-  static const Color surface = Color(0xfffcfbfa);
-  static const Color textDark = Color(0xff2c221e);
-  static const Color textMuted = Color(0xff7c6e68);
+  static Color get primary => AppThemeTokens.accent;
+  static Color get primaryDark => AppThemeTokens.title;
+  static Color get primaryLight => AppThemeTokens.accentSoft;
+  static Color get surface => AppThemeTokens.background;
+  static Color get textDark => AppThemeTokens.text;
+  static Color get textMuted => AppThemeTokens.muted;
 }
 
 class InscriptionSection extends StatefulWidget {

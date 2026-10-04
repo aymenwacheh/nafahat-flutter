@@ -22,30 +22,31 @@ class SectionOrderModel {
     this.isDuplicate = false,
   });
 
-  // ✅ Convertir IconData en String pour le JSON
+  // Stocker un nom stable au lieu du codePoint. Le codePoint seul ne permettait
+  // pas de reconstruire correctement l'icône au prochain chargement.
   String _iconToString(IconData icon) {
-    // Utiliser le code point pour identifier l'icône
-    return icon.codePoint.toString();
+    for (final entry in _iconMap.entries) {
+      if (entry.value.codePoint == icon.codePoint) return entry.key;
+    }
+    return 'Icons.circle_outlined';
   }
 
-  // ✅ Convertir String en IconData
-  IconData _stringToIcon(String iconString) {
-    // Mapper les icônes connues
-    final iconMap = {
-      'Icons.home_outlined': Icons.home_outlined,
-      'Icons.school_outlined': Icons.school_outlined,
-      'Icons.person_outline': Icons.person_outline,
-      'Icons.video_library_outlined': Icons.video_library_outlined,
-      'Icons.link_rounded': Icons.link_rounded,
-      'Icons.assignment_outlined': Icons.assignment_outlined,
-      'Icons.home_work_outlined': Icons.home_work_outlined,
-      'Icons.palette_outlined': Icons.palette_outlined,
-      'Icons.people_outline': Icons.people_outline,
-      'Icons.info_outline': Icons.info_outline,
-    };
-    
-    return iconMap[iconString] ?? Icons.circle_outlined;
-  }
+  static const Map<String, IconData> _iconMap = {
+    'Icons.home_outlined': Icons.home_outlined,
+    'Icons.school_outlined': Icons.school_outlined,
+    'Icons.person_outline': Icons.person_outline,
+    'Icons.video_library_outlined': Icons.video_library_outlined,
+    'Icons.link_rounded': Icons.link_rounded,
+    'Icons.assignment_outlined': Icons.assignment_outlined,
+    'Icons.home_work_outlined': Icons.home_work_outlined,
+    'Icons.palette_outlined': Icons.palette_outlined,
+    'Icons.people_outline': Icons.people_outline,
+    'Icons.info_outline': Icons.info_outline,
+    'Icons.view_carousel_outlined': Icons.view_carousel_outlined,
+    'Icons.bubble_chart_outlined': Icons.bubble_chart_outlined,
+    'Icons.app_registration_outlined': Icons.app_registration_outlined,
+    'Icons.circle_outlined': Icons.circle_outlined,
+  };
 
   factory SectionOrderModel.fromJson(Map<String, dynamic> json) {
     // ✅ Récupérer l'icône comme String et la convertir
@@ -54,32 +55,44 @@ class SectionOrderModel {
     
     return SectionOrderModel(
       id: json['id']?.toString() ?? '',
-      sectionKey: json['sectionKey'] ?? '',
-      title: json['title'] ?? '',
-      titleAr: json['titleAr'] ?? '',
+      sectionKey: json['sectionKey']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      titleAr: json['titleAr']?.toString() ?? '',
       icon: icon,
-      order: json['order'] as int? ?? 0,
-      isActive: json['isActive'] ?? true,
-      isDuplicate: json['isDuplicate'] ?? false,
+      order: _toInt(json['order']),
+      isActive: _toBool(json['isActive'], fallback: true),
+      isDuplicate: _toBool(json['isDuplicate']),
     );
+  }
+
+
+  static int _toInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  static bool _toBool(dynamic value, {bool fallback = false}) {
+    if (value is bool) return value;
+    final s = value?.toString().toLowerCase().trim();
+    if (s == '1' || s == 'true') return true;
+    if (s == '0' || s == 'false') return false;
+    return fallback;
   }
 
   // ✅ Méthode statique pour la conversion
   static IconData _stringToIconStatic(String iconString) {
-    final iconMap = {
-      'Icons.home_outlined': Icons.home_outlined,
-      'Icons.school_outlined': Icons.school_outlined,
-      'Icons.person_outline': Icons.person_outline,
-      'Icons.video_library_outlined': Icons.video_library_outlined,
-      'Icons.link_rounded': Icons.link_rounded,
-      'Icons.assignment_outlined': Icons.assignment_outlined,
-      'Icons.home_work_outlined': Icons.home_work_outlined,
-      'Icons.palette_outlined': Icons.palette_outlined,
-      'Icons.people_outline': Icons.people_outline,
-      'Icons.info_outline': Icons.info_outline,
-      // Ajouter d'autres icônes si nécessaire
-    };
-    return iconMap[iconString] ?? Icons.circle_outlined;
+    // Compatibilité avec les anciennes valeurs sauvegardées comme codePoint.
+    final direct = _iconMap[iconString];
+    if (direct != null) return direct;
+
+    final codePoint = int.tryParse(iconString);
+    if (codePoint != null) {
+      for (final icon in _iconMap.values) {
+        if (icon.codePoint == codePoint) return icon;
+      }
+    }
+    return Icons.circle_outlined;
   }
 
   // ✅ Convertir en JSON

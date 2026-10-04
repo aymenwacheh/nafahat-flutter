@@ -1,6 +1,7 @@
 // lib/pages/users/verif_code.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:nafahat/theme/app_theme_tokens.dart';
 import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -47,7 +48,7 @@ class _VerifCodePageState extends State<VerifCodePage> {
 
   String? _errorMessage;
 
-  static const Color nafahatGreen = Color(0xff0D443E);
+  static Color get nafahatGreen => AppThemeTokens.primary;
 
   @override
   void initState() {

@@ -28,6 +28,7 @@ import 'package:nafahat/pages/cart/cart_page.dart';
 import 'services/navigation_service.dart';
 import 'services/cart_service.dart';
 import 'services/card_config_manager.dart';
+import 'services/landing_appearance_manager.dart';
 import 'package:nafahat/pages/widgets/all_video_page.dart';
 import 'pages/formation/formation_detail_page.dart';
 import 'package:nafahat/pages/users/reset_password_page.dart';
@@ -68,6 +69,11 @@ class _MyAppState extends State<MyApp> {
     _heroProvider = HeroProvider();
     await _heroProvider!.init();
     print('✅ HeroProvider initialisé avec ${_heroProvider!.slides.length} slides');
+
+    // Charger le thème global sauvegardé dans Apparence Landing.
+    // Le même manager pilote maintenant toute l'application.
+    await LandingAppearanceManager().load();
+    print('✅ Thème global chargé');
     
     setState(() {
       _isInitialized = true;
@@ -147,26 +153,221 @@ class _MyAppState extends State<MyApp> {
           print('📍 Config chargée: ${cardConfigManager.isInitialized}');
           print('📍 Hero chargé: ${heroProvider.isInitialized} - ${heroProvider.slides.length} slides');
 
-          return MaterialApp(
+          return AnimatedBuilder(
+            animation: LandingAppearanceManager(),
+            builder: (context, _) {
+              final appearance = LandingAppearanceManager().config;
+              final brightness = appearance.themeMode == 'dark'
+                  ? Brightness.dark
+                  : Brightness.light;
+
+              final colorScheme = ColorScheme.fromSeed(
+                seedColor: appearance.primaryColor,
+                brightness: brightness,
+              ).copyWith(
+                primary: appearance.primaryColor,
+                secondary: appearance.accentColor,
+                surface: appearance.sectionBackgroundColor,
+              );
+
+              final baseTextTheme = GoogleFonts.cairoTextTheme(
+                ThemeData(brightness: brightness).textTheme,
+              ).apply(
+                bodyColor: appearance.textColor,
+                displayColor: appearance.titleColor,
+              );
+
+              return MaterialApp(
             title: 'Nafahat Platform',
             debugShowCheckedModeBanner: false,
             locale: languageProvider.locale,
             navigatorKey: NavigationService.navigatorKey,
             theme: ThemeData(
-              textTheme: GoogleFonts.cairoTextTheme(),
+              useMaterial3: true,
+              brightness: brightness,
+              colorScheme: colorScheme,
+              scaffoldBackgroundColor: appearance.pageBackgroundColor,
+              canvasColor: appearance.pageBackgroundColor,
+              cardColor: appearance.sectionBackgroundColor,
+              dialogBackgroundColor: appearance.sectionBackgroundColor,
+              dividerColor: appearance.mutedTextColor.withOpacity(.22),
+              disabledColor: appearance.mutedTextColor.withOpacity(.45),
+              textTheme: baseTextTheme,
+              iconTheme: IconThemeData(color: appearance.primaryColor),
               appBarTheme: AppBarTheme(
+                backgroundColor: appearance.sectionBackgroundColor,
+                foregroundColor: appearance.textColor,
+                surfaceTintColor: Colors.transparent,
+                elevation: 0,
+                iconTheme: IconThemeData(color: appearance.primaryColor),
                 titleTextStyle: GoogleFonts.cairo(
                   fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  color: appearance.titleColor,
                 ),
                 toolbarTextStyle: GoogleFonts.cairo(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: Colors.white,
+                  color: appearance.textColor,
                 ),
               ),
-              primarySwatch: Colors.indigo,
+              navigationBarTheme: NavigationBarThemeData(
+                backgroundColor: appearance.sectionBackgroundColor,
+                indicatorColor: appearance.primaryColor.withOpacity(.12),
+                iconTheme: WidgetStateProperty.resolveWith((states) {
+                  return IconThemeData(
+                    color: states.contains(WidgetState.selected)
+                        ? appearance.primaryColor
+                        : appearance.mutedTextColor,
+                  );
+                }),
+                labelTextStyle: WidgetStatePropertyAll(
+                  GoogleFonts.cairo(color: appearance.textColor),
+                ),
+              ),
+              bottomNavigationBarTheme: BottomNavigationBarThemeData(
+                backgroundColor: appearance.sectionBackgroundColor,
+                selectedItemColor: appearance.primaryColor,
+                unselectedItemColor: appearance.mutedTextColor,
+              ),
+              drawerTheme: DrawerThemeData(
+                backgroundColor: appearance.sectionBackgroundColor,
+                surfaceTintColor: Colors.transparent,
+              ),
+              listTileTheme: ListTileThemeData(
+                textColor: appearance.textColor,
+                iconColor: appearance.primaryColor,
+                selectedColor: appearance.primaryColor,
+                selectedTileColor: appearance.primaryColor.withOpacity(.08),
+                tileColor: Colors.transparent,
+              ),
+              menuTheme: MenuThemeData(
+                style: MenuStyle(
+                  backgroundColor: WidgetStatePropertyAll(
+                    appearance.sectionBackgroundColor,
+                  ),
+                
+                  surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+                ),
+              ),
+              popupMenuTheme: PopupMenuThemeData(
+                color: appearance.sectionBackgroundColor,
+                surfaceTintColor: Colors.transparent,
+                textStyle: GoogleFonts.cairo(color: appearance.textColor),
+              ),
+              dropdownMenuTheme: DropdownMenuThemeData(
+                textStyle: GoogleFonts.cairo(color: appearance.textColor),
+                menuStyle: MenuStyle(
+                  backgroundColor: WidgetStatePropertyAll(
+                    appearance.sectionBackgroundColor,
+                  ),
+                ),
+              ),
+              chipTheme: ChipThemeData(
+                backgroundColor: appearance.sectionBackgroundColor,
+                selectedColor: appearance.primaryColor.withOpacity(.14),
+                disabledColor: appearance.mutedTextColor.withOpacity(.10),
+                side: BorderSide(color: appearance.mutedTextColor.withOpacity(.20)),
+                labelStyle: GoogleFonts.cairo(color: appearance.textColor),
+                secondaryLabelStyle: GoogleFonts.cairo(color: appearance.primaryColor),
+                iconTheme: IconThemeData(color: appearance.primaryColor),
+              ),
+              checkboxTheme: CheckboxThemeData(
+                fillColor: WidgetStateProperty.resolveWith((states) =>
+                    states.contains(WidgetState.selected)
+                        ? appearance.primaryColor
+                        : Colors.transparent),
+                checkColor: WidgetStatePropertyAll(
+                  ThemeData.estimateBrightnessForColor(appearance.primaryColor) == Brightness.dark
+                      ? Colors.white
+                      : Colors.black,
+                ),
+                side: BorderSide(color: appearance.mutedTextColor),
+              ),
+              radioTheme: RadioThemeData(
+                fillColor: WidgetStatePropertyAll(appearance.primaryColor),
+              ),
+              switchTheme: SwitchThemeData(
+                thumbColor: WidgetStateProperty.resolveWith((states) =>
+                    states.contains(WidgetState.selected)
+                        ? appearance.primaryColor
+                        : appearance.mutedTextColor),
+                trackColor: WidgetStateProperty.resolveWith((states) =>
+                    states.contains(WidgetState.selected)
+                        ? appearance.primaryColor.withOpacity(.28)
+                        : appearance.mutedTextColor.withOpacity(.18)),
+              ),
+              tabBarTheme: TabBarThemeData(
+                labelColor: appearance.primaryColor,
+                unselectedLabelColor: appearance.mutedTextColor,
+                indicatorColor: appearance.accentColor,
+                dividerColor: appearance.mutedTextColor.withOpacity(.18),
+                labelStyle: GoogleFonts.cairo(fontWeight: FontWeight.w700),
+                unselectedLabelStyle: GoogleFonts.cairo(),
+              ),
+              tooltipTheme: TooltipThemeData(
+                decoration: BoxDecoration(
+                  color: appearance.primaryColor,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                textStyle: GoogleFonts.cairo(
+                  color: ThemeData.estimateBrightnessForColor(appearance.primaryColor) == Brightness.dark
+                      ? Colors.white
+                      : Colors.black87,
+                ),
+              ),
+              dividerTheme: DividerThemeData(
+                color: appearance.mutedTextColor.withOpacity(.18),
+              ),
+              inputDecorationTheme: InputDecorationTheme(
+                filled: true,
+                fillColor: appearance.sectionBackgroundColor,
+                labelStyle: TextStyle(color: appearance.mutedTextColor),
+                hintStyle: TextStyle(color: appearance.mutedTextColor),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: appearance.mutedTextColor.withOpacity(.25),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: appearance.primaryColor,
+                    width: 1.5,
+                  ),
+                ),
+              ),
+              elevatedButtonTheme: ElevatedButtonThemeData(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: appearance.primaryColor,
+                  foregroundColor: Colors.white,
+                  textStyle: GoogleFonts.cairo(fontWeight: FontWeight.w700),
+                ),
+              ),
+              filledButtonTheme: FilledButtonThemeData(
+                style: FilledButton.styleFrom(
+                  backgroundColor: appearance.primaryColor,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+              textButtonTheme: TextButtonThemeData(
+                style: TextButton.styleFrom(
+                  foregroundColor: appearance.primaryColor,
+                ),
+              ),
+              floatingActionButtonTheme: FloatingActionButtonThemeData(
+                backgroundColor: appearance.accentColor,
+                foregroundColor: Colors.white,
+              ),
+              snackBarTheme: SnackBarThemeData(
+                backgroundColor: appearance.primaryColor,
+                contentTextStyle: GoogleFonts.cairo(color: Colors.white),
+                behavior: SnackBarBehavior.floating,
+              ),
+              progressIndicatorTheme: ProgressIndicatorThemeData(
+                color: appearance.accentColor,
+              ),
             ),
             localizationsDelegates: const [
               GlobalMaterialLocalizations.delegate,
@@ -332,6 +533,8 @@ class _MyAppState extends State<MyApp> {
                   hideOnRoute: false,
                   child: AuthPage(),
                 ),
+              );
+            },
               );
             },
           );
@@ -526,7 +729,7 @@ class _ChatbotGlobalWrapperState extends State<ChatbotGlobalWrapper> {
           ChatbotWidget(
             apiBaseUrl: ApiConfig.apiUrl,
             langue: isArabic ? 'ar' : 'fr',
-            primaryColor: const Color(0xffd57653),
+            primaryColor: LandingAppearanceManager().config.accentColor,
           ),
       ],
     );

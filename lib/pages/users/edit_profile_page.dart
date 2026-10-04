@@ -436,9 +436,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
                             ),
                             child:
                                 _isDataLoading
-                                    ? const Center(
+                                    ? Center(
                                       child: Padding(
-                                        padding: EdgeInsets.all(40.0),
+                                        padding: const EdgeInsets.all(40.0),
                                         child: CircularProgressIndicator(
                                           color: AppColors.primary,
                                         ),
@@ -511,7 +511,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                                                       .primary,
                                                             ),
                                                           )
-                                                          : const Icon(
+                                                          : Icon(
                                                             Icons
                                                                 .person_rounded,
                                                             size: 55,
@@ -1134,7 +1134,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -1191,7 +1191,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -1236,7 +1236,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),

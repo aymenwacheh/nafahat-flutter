@@ -31,7 +31,7 @@ class _AllVideoPageState extends State<AllVideoPage> {
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xfffcfbfa),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       // ============================================================
       // DRAWER MOBILE - POUR QUE LE MENU FONCTIONNE
       // ============================================================

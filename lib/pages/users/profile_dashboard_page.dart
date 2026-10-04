@@ -1,6 +1,7 @@
 import 'package:nafahat/pages/widgets/shared_navigation_shell.dart';
 // lib/pages/users/profile_dashboard_page.dart
 import 'package:flutter/material.dart';
+import 'package:nafahat/theme/app_theme_tokens.dart';
 import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -20,15 +21,15 @@ import 'package:url_launcher/url_launcher.dart';
 // PALETTE MODERNE
 // ============================================================
 class UXColors {
-  static const Color bgStart = Color(0xFFF8FAFC);
-  static const Color bgEnd = Color(0xFFEEF2F7);
-  static const Color surface = Colors.white;
-  static const Color primary = Color(0xFF0D443E);
-  static const Color primaryLight = Color(0xFF1A6B60);
-  static const Color primarySoft = Color(0xFFE6F0EE);
-  static const Color accent = Color(0xFFD57653);
-  static const Color accentLight = Color(0xFFF4A484);
-  static const Color accentSoft = Color(0xFFFDF2EC);
+  static Color get bgStart => AppThemeTokens.background;
+  static Color get bgEnd => AppThemeTokens.background;
+  static Color get surface => AppThemeTokens.surface;
+  static Color get primary => AppThemeTokens.primary;
+  static Color get primaryLight => AppThemeTokens.primary.withOpacity(.82);
+  static Color get primarySoft => AppThemeTokens.primarySoft;
+  static Color get accent => AppThemeTokens.accent;
+  static Color get accentLight => AppThemeTokens.accent.withOpacity(.80);
+  static Color get accentSoft => AppThemeTokens.accentSoft;
   static const Color success = Color(0xFF10B981);
   static const Color successSoft = Color(0xFFD1FAE5);
   static const Color warning = Color(0xFFF59E0B);
@@ -37,10 +38,10 @@ class UXColors {
   static const Color dangerSoft = Color(0xFFFEE2E2);
   static const Color info = Color(0xFF3B82F6);
   static const Color infoSoft = Color(0xFFDBEAFE);
-  static const Color textDark = Color(0xFF0F172A);
-  static const Color textMuted = Color(0xFF64748B);
-  static const Color textLight = Color(0xFF94A3B8);
-  static const Color border = Color(0xFFE2E8F0);
+  static Color get textDark => AppThemeTokens.text;
+  static Color get textMuted => AppThemeTokens.muted;
+  static Color get textLight => AppThemeTokens.muted.withOpacity(.72);
+  static Color get border => AppThemeTokens.border;
 }
 
 // ============================================================
@@ -53,7 +54,7 @@ class FormationAvecPaiement {
   FormationAvecPaiement({required this.formation, required this.paiement});
 
   String get typePaiement => paiement['type_paiement'] ?? 'formation';
-  bool get isMensuel => typePaiement == 'mois';
+  bool get isMensuel => typePaiement != 'formation'; // compat: tous les paiements périodiques, y compris par tranche
   String get statut => paiement['statut_paiement'] ?? 'en_attente';
 
   double get montantTotal =>
@@ -63,7 +64,7 @@ class FormationAvecPaiement {
   double get montantRestant =>
       double.tryParse(paiement['montant_restant']?.toString() ?? '0') ?? 0;
   double get montantMensuel =>
-      double.tryParse(paiement['montant_mensuel']?.toString() ?? '0') ?? 0;
+      double.tryParse((paiement['montant_a_payer'] ?? paiement['montant_par_periode'] ?? paiement['montant_mensuel'] ?? '0').toString()) ?? 0;
 
   int get paiementsEffectues {
     final v = paiement['paiements_effectues'];
@@ -72,7 +73,7 @@ class FormationAvecPaiement {
   }
 
   int get nombreMois {
-    final v = paiement['nombre_mois'];
+    final v = paiement['nombre_periodes'] ?? paiement['nombre_mois'];
     if (v is int) return v;
     return int.tryParse(v?.toString() ?? '1') ?? 1;
   }
@@ -457,7 +458,7 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage>
                 // ============================================================
                 Expanded(
                   child: Container(
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
@@ -465,7 +466,7 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage>
                       ),
                     ),
                     child: _isLoading
-                        ? const Center(
+                        ? Center(
                             child: CircularProgressIndicator(
                               color: UXColors.primary,
                             ),
@@ -595,7 +596,7 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage>
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [UXColors.primary, UXColors.primaryLight],
@@ -1033,39 +1034,40 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage>
       return _buildEmptyState(isArabic);
     }
 
+    // Les cartes contiennent un contenu dynamique (paiement, retard, boutons,
+    // progression...). Un GridView avec childAspectRatio imposait une hauteur
+    // fixe et provoquait des RenderFlex overflow. Wrap laisse chaque carte
+    // prendre sa hauteur naturelle tout en restant responsive.
     return LayoutBuilder(
       builder: (context, constraints) {
-        final screenWidth = MediaQuery.of(context).size.width;
+        final width = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : MediaQuery.of(context).size.width;
+
         int cols = 1;
-        if (screenWidth >= 1200) {
+        if (width >= 1180) {
           cols = 3;
-        } else if (screenWidth >= 850) {
+        } else if (width >= 760) {
           cols = 2;
         }
 
-        if (cols == 1) {
-          return Column(
-            children: formations
-                .map((f) => Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: _buildFormationCard(f, isArabic),
-                    ))
-                .toList(),
-          );
-        }
+        final spacing = cols == 1 ? 0.0 : 16.0;
+        final cardWidth = cols == 1
+            ? width
+            : (width - (spacing * (cols - 1))) / cols;
 
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: cols,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 0.85,
-          ),
-          itemCount: formations.length,
-          itemBuilder: (context, index) =>
-              _buildFormationCard(formations[index], isArabic),
+        return Wrap(
+          spacing: spacing,
+          runSpacing: 16,
+          alignment: WrapAlignment.start,
+          children: formations
+              .map(
+                (f) => SizedBox(
+                  width: cardWidth,
+                  child: _buildFormationCard(f, isArabic),
+                ),
+              )
+              .toList(),
         );
       },
     );
@@ -1304,7 +1306,7 @@ class _ProfileDashboardPageState extends State<ProfileDashboardPage>
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(Icons.person_rounded,
+                      Icon(Icons.person_rounded,
                           size: 13, color: UXColors.textMuted),
                       const SizedBox(width: 4),
                       Expanded(

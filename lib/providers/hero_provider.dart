@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../pages/widgets/slide_item.dart';
+import '../services/appearance_config_service.dart';
 
 class HeroProvider extends ChangeNotifier {
   String _animationType = 'scroll';
@@ -115,6 +116,13 @@ imagePath: 'assets/images/slide1.png',
         await prefs.setDouble('hero_transition_duration', transitionDuration);
       }
       
+      await AppearanceConfigService.save('hero_config', {
+        'animationType': _animationType,
+        'animationDirection': _animationDirection,
+        'slideDuration': _slideDuration,
+        'transitionDuration': _transitionDuration,
+      });
+
       notifyListeners();
       print('✅ [HeroProvider] Config mise à jour');
     } catch (e) {

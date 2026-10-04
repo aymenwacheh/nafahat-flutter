@@ -586,7 +586,7 @@ class _FormationDetailPageState extends State<FormationDetailPage> {
       primaryColor: const Color(0xffd57653),
       child: Scaffold(
         key: _scaffoldKey,
-        backgroundColor: const Color(0xfffcfbfa),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         // ============================================================
         // DRAWER MOBILE - AJOUTÉ ICI POUR QUE LE MENU FONCTIONNE
         // ============================================================

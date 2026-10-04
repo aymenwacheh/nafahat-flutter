@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:nafahat/models/card_config_model.dart';
+import 'package:nafahat/services/appearance_config_service.dart';
 
 class CardConfigManager extends ChangeNotifier {
   static final CardConfigManager _instance = CardConfigManager._internal();
@@ -18,11 +19,20 @@ class CardConfigManager extends ChangeNotifier {
   Future<void> init() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final configJson = prefs.getString('card_config_apparence');
-      if (configJson != null && configJson.isNotEmpty) {
-        _config = CardConfig.fromJson(json.decode(configJson));
+      final remote = await AppearanceConfigService.load('training_card');
+      if (remote != null && remote.isNotEmpty) {
+        _config = CardConfig.fromJson(remote);
+        await prefs.setString(
+          'card_config_apparence',
+          json.encode(remote),
+        );
       } else {
-        _config = CardConfig.defaultConfig();
+        final configJson = prefs.getString('card_config_apparence');
+        if (configJson != null && configJson.isNotEmpty) {
+          _config = CardConfig.fromJson(json.decode(configJson));
+        } else {
+          _config = CardConfig.defaultConfig();
+        }
       }
       _isInitialized = true;
       notifyListeners();
@@ -46,11 +56,13 @@ class CardConfigManager extends ChangeNotifier {
   Future<void> _saveConfig() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      final jsonMap = _config.toJson();
       await prefs.setString(
         'card_config_apparence',
-        json.encode(_config.toJson()),
+        json.encode(jsonMap),
       );
-      print('✅ Configuration sauvegardée dans SharedPreferences');
+      await AppearanceConfigService.save('training_card', jsonMap);
+      print('✅ Configuration sauvegardée localement et synchronisée');
     } catch (e) {
       print('❌ Erreur lors de la sauvegarde: $e');
     }
@@ -60,6 +72,7 @@ class CardConfigManager extends ChangeNotifier {
     print('🔄 Réinitialisation à la configuration par défaut');
     _config = CardConfig.defaultConfig();
     _saveConfig();
+    AppearanceConfigService.delete('training_card');
     notifyListeners();
   }
 

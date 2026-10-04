@@ -30,7 +30,14 @@ class CardConfig {
   FontWeight titleFontWeight;
   Color titleColor;
 
-  // ✅ NOUVEAUX CHAMPS : Paramètres d'affichage mobile
+  // Style du conteneur de carte
+  Color cardBackgroundColor;
+  Color cardBorderColor;
+  Color accentColor;
+  double cardBorderRadius;
+  double cardShadowStrength;
+
+  // ✅ Paramètres d'affichage mobile
   int mobileDisplayCount;
   List<String> mobileSelectedTrainings;
   bool showSeeMoreButton;
@@ -49,6 +56,11 @@ class CardConfig {
     required this.titleFontSize,
     required this.titleFontWeight,
     required this.titleColor,
+    this.cardBackgroundColor = Colors.white,
+    this.cardBorderColor = const Color(0xffE5E7EB),
+    this.accentColor = const Color(0xffD57653),
+    this.cardBorderRadius = 16,
+    this.cardShadowStrength = 0.08,
     this.mobileDisplayCount = 3,
     this.mobileSelectedTrainings = const [],
     this.showSeeMoreButton = true,
@@ -76,6 +88,11 @@ class CardConfig {
       titleFontSize: 14,
       titleFontWeight: FontWeight.bold,
       titleColor: const Color(0xff2c221e),
+      cardBackgroundColor: Colors.white,
+      cardBorderColor: const Color(0xffE7E1DD),
+      accentColor: const Color(0xffD57653),
+      cardBorderRadius: 16,
+      cardShadowStrength: 0.08,
       mobileDisplayCount: 3,
       mobileSelectedTrainings: [],
       showSeeMoreButton: true,
@@ -97,6 +114,12 @@ class CardConfig {
       titleFontSize: (json['titleFontSize'] ?? 14).toDouble(),
       titleFontWeight: _getFontWeight(json['titleFontWeight'] ?? 700),
       titleColor: _getColor(json['titleColor'] ?? '#2c221e'),
+      cardBackgroundColor:
+          _getColor(json['cardBackgroundColor'] ?? '#FFFFFF'),
+      cardBorderColor: _getColor(json['cardBorderColor'] ?? '#E7E1DD'),
+      accentColor: _getColor(json['accentColor'] ?? '#D57653'),
+      cardBorderRadius: (json['cardBorderRadius'] ?? 16).toDouble(),
+      cardShadowStrength: (json['cardShadowStrength'] ?? 0.08).toDouble(),
       mobileDisplayCount: json['mobileDisplayCount'] ?? 3,
       mobileSelectedTrainings: List<String>.from(
         json['mobileSelectedTrainings'] ?? [],
@@ -120,6 +143,11 @@ class CardConfig {
       'titleFontSize': titleFontSize,
       'titleFontWeight': titleFontWeight.index,
       'titleColor': _colorToString(titleColor),
+      'cardBackgroundColor': _colorToString(cardBackgroundColor),
+      'cardBorderColor': _colorToString(cardBorderColor),
+      'accentColor': _colorToString(accentColor),
+      'cardBorderRadius': cardBorderRadius,
+      'cardShadowStrength': cardShadowStrength,
       'mobileDisplayCount': mobileDisplayCount,
       'mobileSelectedTrainings': mobileSelectedTrainings,
       'showSeeMoreButton': showSeeMoreButton,

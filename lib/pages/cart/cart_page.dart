@@ -312,7 +312,7 @@ class _CartPageState extends State<CartPage> {
           child: Scaffold(
             key: _scaffoldKey,
             drawer: width < 850 ? navbar.buildDrawer(context) : null,
-            backgroundColor: const Color(0xfffcfbfa),
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           _isArabic ? '🛒 سلة التسوق' : '🛒 Panier',

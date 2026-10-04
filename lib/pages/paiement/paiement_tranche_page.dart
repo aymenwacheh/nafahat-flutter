@@ -1,6 +1,7 @@
 // lib/pages/paiement/paiement_tranche_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:nafahat/theme/app_theme_tokens.dart';
 import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
 import 'package:nafahat/pages/widgets/navbar.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -47,8 +48,8 @@ class _PaiementTranchePageState extends State<PaiementTranchePage> {
   bool _isSubmitting = false;
   String? _errorMessage;
 
-  static const Color primaryColor = Color(0xff0D443E);
-  static const Color primaryColorLight = Color(0xff1a6b60);
+  static Color get primaryColor => AppThemeTokens.primary;
+  static Color get primaryColorLight => AppThemeTokens.primary.withOpacity(.82);
 
   @override
   void initState() {
@@ -276,7 +277,7 @@ class _PaiementTranchePageState extends State<PaiementTranchePage> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           colors: [primaryColor, primaryColorLight],
         ),
         borderRadius: BorderRadius.circular(20),
@@ -413,7 +414,7 @@ class _PaiementTranchePageState extends State<PaiementTranchePage> {
             Container(
               width: 28,
               height: 28,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: primaryColor,
               ),
@@ -503,7 +504,7 @@ class _PaiementTranchePageState extends State<PaiementTranchePage> {
                       child: Container(
                         width: 10,
                         height: 10,
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: primaryColor,
                         ),
@@ -555,7 +556,7 @@ class _PaiementTranchePageState extends State<PaiementTranchePage> {
             Container(
               width: 28,
               height: 28,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: primaryColor,
               ),

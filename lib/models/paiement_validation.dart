@@ -104,7 +104,7 @@ class PaiementValidation {
       // ✅ Nouveaux champs
       typePaiement: json['type_paiement']?.toString() ?? 'formation',
       montantAPayer: _toDouble(json['montant_a_payer']),
-      nombreMois: _toInt(json['nombre_mois'], defaultValue: 1),
+      nombreMois: _toInt(json['nombre_periodes'] ?? json['nombre_mois'], defaultValue: 1),
       montantMensuel: json['montant_mensuel'] != null
           ? _toDouble(json['montant_mensuel'])
           : null,
@@ -209,6 +209,8 @@ class PaiementValidation {
         return isArabic ? 'دفع سنوي' : 'Paiement annuel';
       case 'seance':
         return isArabic ? 'دفع بالحصة' : 'Paiement par séance';
+      case 'tranche':
+        return isArabic ? 'الدفع بالأقساط' : 'Paiement par tranche';
       default:
         return isArabic ? 'دفع' : 'Paiement';
     }
@@ -229,6 +231,8 @@ class PaiementValidation {
         return '🗓️';
       case 'seance':
         return '🎯';
+      case 'tranche':
+        return '🧾';
       default:
         return '💳';
     }

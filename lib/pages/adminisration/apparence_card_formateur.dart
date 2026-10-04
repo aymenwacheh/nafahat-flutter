@@ -1,7 +1,9 @@
 // lib/pages/adminisration/apparence_card_formateur.dart
 import 'package:flutter/material.dart';
+import 'package:nafahat/pages/widgets/painter_color_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:nafahat/services/formateur_card_config_manager.dart';
 import 'package:nafahat/pages/adminisration/admin_page_wrapper.dart';
 import 'dart:convert';
 
@@ -135,6 +137,9 @@ class _ApparenceCardFormateurPageState
         json.encode(_config.toJson()),
       );
 
+      // Application immédiate sur les cartes déjà affichées.
+      await FormateurCardConfigManager().saveConfig(_config);
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -203,6 +208,10 @@ class _ApparenceCardFormateurPageState
                     _buildMobileDisplaySettings(isMobile),
                     const SizedBox(height: 24),
 
+                    // Style avancé du conteneur
+                    _buildCardContainerStyle(isMobile),
+                    const SizedBox(height: 24),
+
                     // Champs à afficher
                     _buildFieldsSection(isMobile),
                     const SizedBox(height: 24),
@@ -226,6 +235,118 @@ class _ApparenceCardFormateurPageState
   // ============================================================
   // SECTION : CHAMPS À AFFICHER
   // ============================================================
+  Widget _buildCardContainerStyle(bool isMobile) {
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(isMobile ? 16 : 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _isArabic ? '🎨 Style de la carte' : '🎨 Style de la carte',
+              style: GoogleFonts.cairo(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xff0D443E),
+              ),
+            ),
+            const SizedBox(height: 14),
+            _buildColorPicker(
+              label: _isArabic ? 'الخلفية' : 'Fond',
+              currentColor: _config.cardBackgroundColor,
+              onChanged: (c) => setState(() => _config.cardBackgroundColor = c),
+              isArabic: _isArabic,
+            ),
+            const SizedBox(height: 14),
+            _buildColorPicker(
+              label: _isArabic ? 'الحدود' : 'Bordure',
+              currentColor: _config.cardBorderColor,
+              onChanged: (c) => setState(() => _config.cardBorderColor = c),
+              isArabic: _isArabic,
+            ),
+            const SizedBox(height: 14),
+            _buildColorPicker(
+              label: _isArabic ? 'اللون المميز' : 'Accent',
+              currentColor: _config.accentColor,
+              onChanged: (c) => setState(() => _config.accentColor = c),
+              isArabic: _isArabic,
+            ),
+            const SizedBox(height: 16),
+            _simpleSlider(
+              label: _isArabic ? 'تقويس الزوايا' : 'Arrondi',
+              value: _config.cardBorderRadius,
+              min: 0,
+              max: 36,
+              onChanged: (v) => setState(() => _config.cardBorderRadius = v),
+            ),
+            _simpleSlider(
+              label: _isArabic ? 'قوة الظل' : 'Intensité de l’ombre',
+              value: _config.shadowStrength * 100,
+              min: 0,
+              max: 25,
+              onChanged: (v) =>
+                  setState(() => _config.shadowStrength = v / 100),
+            ),
+            _simpleSlider(
+              label: _isArabic ? 'حجم الصورة' : 'Taille de la photo',
+              value: _config.photoScale * 100,
+              min: 70,
+              max: 140,
+              onChanged: (v) =>
+                  setState(() => _config.photoScale = v / 100),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _simpleSlider({
+    required String label,
+    required double value,
+    required double min,
+    required double max,
+    required ValueChanged<double> onChanged,
+  }) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: GoogleFonts.cairo(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[700],
+            ),
+          ),
+        ),
+        SizedBox(
+          width: 240,
+          child: Slider(
+            value: value.clamp(min, max).toDouble(),
+            min: min,
+            max: max,
+            divisions: (max - min).round(),
+            activeColor: const Color(0xff0D443E),
+            onChanged: onChanged,
+          ),
+        ),
+        SizedBox(
+          width: 46,
+          child: Text(
+            value.toStringAsFixed(0),
+            textAlign: TextAlign.end,
+            style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildFieldsSection(bool isMobile) {
     return Card(
       elevation: 4,
@@ -656,17 +777,28 @@ class _ApparenceCardFormateurPageState
             const SizedBox(height: 16),
             Container(
               constraints: const BoxConstraints(maxWidth: 400),
-              child: Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: _config.cardBackgroundColor,
+                  borderRadius: BorderRadius.circular(_config.cardBorderRadius),
+                  border: Border.all(color: _config.cardBorderColor),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(
+                        _config.shadowStrength.clamp(0.0, 0.30).toDouble(),
+                      ),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
+                clipBehavior: Clip.antiAlias,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(16),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(_config.cardBorderRadius),
                       ),
                       child: Image.network(
                         'https://picsum.photos/seed/formateur/400/200',
@@ -951,96 +1083,11 @@ class _ApparenceCardFormateurPageState
     required ValueChanged<Color> onChanged,
     required bool isArabic,
   }) {
-    final colors = [
-      Colors.black,
-      Colors.grey[900]!,
-      Colors.grey[800]!,
-      Colors.grey[700]!,
-      Colors.grey[600]!,
-      Colors.grey[500]!,
-      Colors.grey[400]!,
-      Colors.white,
-      const Color(0xff0D443E),
-      const Color(0xff1A6B63),
-      const Color(0xff2E9E94),
-      const Color(0xffd57653),
-      const Color(0xffE8926E),
-      const Color(0xffC45A35),
-      const Color(0xffC4A46C),
-      Colors.blue[900]!,
-      Colors.blue[700]!,
-      Colors.blue[500]!,
-      Colors.blue[300]!,
-      Colors.red[900]!,
-      Colors.red[700]!,
-      Colors.red[500]!,
-      Colors.green[900]!,
-      Colors.green[700]!,
-      Colors.green[500]!,
-      Colors.purple[900]!,
-      Colors.purple[700]!,
-      Colors.purple[500]!,
-      Colors.pink[900]!,
-      Colors.pink[700]!,
-      Colors.pink[500]!,
-      Colors.orange[900]!,
-      Colors.orange[700]!,
-      Colors.orange[500]!,
-      Colors.teal[900]!,
-      Colors.teal[700]!,
-      Colors.teal[500]!,
-      Colors.indigo[900]!,
-      Colors.indigo[700]!,
-      Colors.indigo[500]!,
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.cairo(
-            fontWeight: FontWeight.w600,
-            color: Colors.grey[700],
-            fontSize: 13,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children:
-              colors.map((color) {
-                final isSelected = currentColor == color;
-                return GestureDetector(
-                  onTap: () => onChanged(color),
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: color,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color:
-                            isSelected
-                                ? const Color(0xff0D443E)
-                                : Colors.grey[300]!,
-                        width: isSelected ? 3 : 1,
-                      ),
-                    ),
-                    child:
-                        isSelected
-                            ? const Icon(
-                              Icons.check,
-                              color: Colors.white,
-                              size: 16,
-                            )
-                            : null,
-                  ),
-                );
-              }).toList(),
-        ),
-      ],
+    return PainterColorPickerField(
+      label: label,
+      color: currentColor,
+      onChanged: onChanged,
+      isArabic: isArabic,
     );
   }
 
@@ -1140,6 +1187,14 @@ class FormateurCardConfig {
   FontWeight fieldsFontWeight;
   Color fieldsColor;
 
+  // Style du conteneur
+  Color cardBackgroundColor;
+  Color cardBorderColor;
+  Color accentColor;
+  double cardBorderRadius;
+  double shadowStrength;
+  double photoScale;
+
   // Paramètres d'affichage mobile
   int mobileDisplayCount;
   bool showSeeMoreButton;
@@ -1155,7 +1210,13 @@ class FormateurCardConfig {
     this.fieldsFontWeight = FontWeight.w500,
     this.fieldsColor = const Color(
       0xff616161,
-    ), // ✅ Couleur gris 700 en hexadécimal
+    ),
+    this.cardBackgroundColor = Colors.white,
+    this.cardBorderColor = const Color(0xffE5E7EB),
+    this.accentColor = const Color(0xffD57653),
+    this.cardBorderRadius = 16,
+    this.shadowStrength = 0.06,
+    this.photoScale = 1.0,
     this.mobileDisplayCount = 4,
     this.showSeeMoreButton = true,
   });
@@ -1177,6 +1238,14 @@ class FormateurCardConfig {
       fieldsFontSize: (json['fieldsFontSize'] ?? 12).toDouble(),
       fieldsFontWeight: _fontWeightFromValue(json['fieldsFontWeight'] ?? 500),
       fieldsColor: _colorFromJson(json['fieldsColor']),
+      cardBackgroundColor:
+          _colorFromJson(json['cardBackgroundColor'] ?? '#FFFFFFFF'),
+      cardBorderColor:
+          _colorFromJson(json['cardBorderColor'] ?? '#FFE5E7EB'),
+      accentColor: _colorFromJson(json['accentColor'] ?? '#FFD57653'),
+      cardBorderRadius: (json['cardBorderRadius'] ?? 16).toDouble(),
+      shadowStrength: (json['shadowStrength'] ?? 0.06).toDouble(),
+      photoScale: (json['photoScale'] ?? 1.0).toDouble(),
       mobileDisplayCount: json['mobileDisplayCount'] ?? 4,
       showSeeMoreButton: json['showSeeMoreButton'] ?? true,
     );
@@ -1193,6 +1262,12 @@ class FormateurCardConfig {
       'fieldsFontSize': fieldsFontSize,
       'fieldsFontWeight': fieldsFontWeight.index,
       'fieldsColor': _colorToJson(fieldsColor),
+      'cardBackgroundColor': _colorToJson(cardBackgroundColor),
+      'cardBorderColor': _colorToJson(cardBorderColor),
+      'accentColor': _colorToJson(accentColor),
+      'cardBorderRadius': cardBorderRadius,
+      'shadowStrength': shadowStrength,
+      'photoScale': photoScale,
       'mobileDisplayCount': mobileDisplayCount,
       'showSeeMoreButton': showSeeMoreButton,
     };
@@ -1224,8 +1299,12 @@ class FormateurCardConfig {
   }
 
   static Color _colorFromJson(dynamic value) {
+    if (value is int) return Color(value);
     if (value is String) {
-      return Color(int.parse(value.replaceFirst('#', '0xff')));
+      var hex = value.trim().replaceAll('#', '').replaceAll('0x', '');
+      if (hex.length == 6) hex = 'FF$hex';
+      final parsed = int.tryParse(hex, radix: 16);
+      if (parsed != null) return Color(parsed);
     }
     return Colors.grey[700]!;
   }

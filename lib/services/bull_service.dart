@@ -1,12 +1,19 @@
 // lib/services/bull_service.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:nafahat/models/bull_model.dart';
 import 'package:nafahat/config/api_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class BullService {
+  static final ValueNotifier<int> revision = ValueNotifier<int>(0);
+
+  static void _notifyChanged() {
+    revision.value = revision.value + 1;
+  }
+
   // ✅ Utilisation de ApiConfig au lieu de l'URL codée en dur
   static String get apiBaseUrl => ApiConfig.apiUrl;
   static const String _storageKey = 'bulls_data';
@@ -50,7 +57,9 @@ class BullService {
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         final data = json.decode(response.body);
-        return data['success'] == true;
+        final success = data['success'] == true;
+        if (success) _notifyChanged();
+        return success;
       }
       return false;
     } catch (e) {
@@ -71,7 +80,9 @@ class BullService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return data['success'] == true;
+        final success = data['success'] == true;
+        if (success) _notifyChanged();
+        return success;
       }
       return false;
     } catch (e) {
@@ -93,7 +104,9 @@ class BullService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return data['success'] == true;
+        final success = data['success'] == true;
+        if (success) _notifyChanged();
+        return success;
       }
       return false;
     } catch (e) {
@@ -122,7 +135,9 @@ class BullService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return data['success'] == true;
+        final success = data['success'] == true;
+        if (success) _notifyChanged();
+        return success;
       }
       return false;
     } catch (e) {

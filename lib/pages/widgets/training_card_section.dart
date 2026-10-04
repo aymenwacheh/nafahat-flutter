@@ -195,7 +195,7 @@ class _TrainingCardState extends State<TrainingCard> {
               width: cardWidth,
               height: cardHeight,
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(config.cardBorderRadius),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -494,20 +494,24 @@ class _TrainingCardState extends State<TrainingCard> {
                   ? Matrix4.translationValues(0.0, -4.0, 0.0)
                   : Matrix4.identity(),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                color: config.cardBackgroundColor,
+                borderRadius: BorderRadius.circular(config.cardBorderRadius),
                 border: Border.all(
                   color: isHovered
-                      ? const Color(0xffd57653)
-                      : const Color(0xffd57653).withOpacity(0.05),
-                  width: 1.5,
+                      ? config.accentColor
+                      : config.cardBorderColor,
+                  width: isHovered ? 1.8 : 1.0,
                 ),
                 boxShadow: [
                   BoxShadow(
                     color: isHovered
-                        ? const Color(0xff994a2b).withOpacity(0.12)
-                        : Colors.black.withOpacity(0.04),
-                    blurRadius: isHovered ? 20 : 8,
+                        ? config.accentColor.withOpacity(
+                            (config.cardShadowStrength + 0.06).clamp(0.0, 0.35).toDouble(),
+                          )
+                        : Colors.black.withOpacity(
+                            config.cardShadowStrength.clamp(0.0, 0.30).toDouble(),
+                          ),
+                    blurRadius: isHovered ? 20 : 10,
                     offset: const Offset(0, 4),
                   ),
                 ],

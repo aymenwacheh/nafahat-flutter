@@ -69,6 +69,9 @@ class PaymentService {
     double? montantAPayer,
     int? nombreMois,
     double? montantMensuel,
+    int? nombrePeriodes,
+    double? montantParPeriode,
+    List<Map<String, dynamic>>? echeancierTranches,
   }) async {
     try {
       print('🔵 [PaymentService] Confirmation paiement...');
@@ -91,6 +94,9 @@ class PaymentService {
       if (montantAPayer != null) body['montant_a_payer'] = montantAPayer;
       if (nombreMois != null) body['nombre_mois'] = nombreMois;
       if (montantMensuel != null) body['montant_mensuel'] = montantMensuel;
+      if (nombrePeriodes != null) body['nombre_periodes'] = nombrePeriodes;
+      if (montantParPeriode != null) body['montant_par_periode'] = montantParPeriode;
+      if (echeancierTranches != null) body['echeancier_tranches'] = echeancierTranches;
 
       print('   📋 Body: ${jsonEncode(body)}');
 

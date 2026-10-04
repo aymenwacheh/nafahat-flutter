@@ -25,11 +25,22 @@ class _FormateurCardState extends State<FormateurCard> {
   @override
   void initState() {
     super.initState();
+    _configManager = FormateurCardConfigManager();
+    _configManager.addListener(_onConfigChanged);
     _loadConfig();
   }
 
+  void _onConfigChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _configManager.removeListener(_onConfigChanged);
+    super.dispose();
+  }
+
   Future<void> _loadConfig() async {
-    _configManager = FormateurCardConfigManager();
     await _configManager.loadConfig();
     setState(() {
       _isConfigLoaded = true;
@@ -135,7 +146,9 @@ class _FormateurCardState extends State<FormateurCard> {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     // ✅ CORRECTION : utiliser des doubles
-    final photoSize = isMobile ? 60.0 : 80.0; // ← Ajout de .0 pour être double
+    final config = _configManager.config;
+    final basePhotoSize = isMobile ? 60.0 : 80.0;
+    final photoSize = basePhotoSize * config.photoScale;
 
     final photoUrl = _getPhotoUrl();
     final nom = _getNom();
@@ -145,12 +158,15 @@ class _FormateurCardState extends State<FormateurCard> {
     return Container(
       padding: EdgeInsets.all(isMobile ? 8.0 : 12.0), // ← Ajout de .0
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: config.cardBackgroundColor,
+        borderRadius: BorderRadius.circular(config.cardBorderRadius),
+        border: Border.all(color: config.cardBorderColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 10,
+            color: Colors.black.withOpacity(
+              config.shadowStrength.clamp(0.0, 0.30).toDouble(),
+            ),
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
@@ -164,7 +180,7 @@ class _FormateurCardState extends State<FormateurCard> {
             height: photoSize,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xffd57653).withOpacity(0.1),
+              color: config.accentColor.withOpacity(0.1),
             ),
             child: ClipOval(
               child:
@@ -185,7 +201,7 @@ class _FormateurCardState extends State<FormateurCard> {
                                           loadingProgress.expectedTotalBytes!
                                       : null,
                               strokeWidth: 2,
-                              color: const Color(0xffd57653),
+                              color: config.accentColor,
                             ),
                           );
                         },

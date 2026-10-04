@@ -251,7 +251,7 @@ class _EditFormateurScreenState extends State<EditFormateurScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Modifier le formateur'),
-        backgroundColor: const Color(0xff0D443E),
+        backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [

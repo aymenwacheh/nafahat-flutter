@@ -1,6 +1,7 @@
 import 'package:nafahat/pages/widgets/shared_navigation_shell.dart';
 // lib/pages/users/reset_password_page.dart
 import 'package:flutter/material.dart';
+import 'package:nafahat/theme/app_theme_tokens.dart';
 import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -35,7 +36,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
-  static const Color nafahatGreen = Color(0xff0D443E);
+  static Color get nafahatGreen => AppThemeTokens.primary;
 
   // ✅ Méthode utilitaire pour les traductions
   String _t(String ar, String fr) {

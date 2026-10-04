@@ -1,6 +1,7 @@
 import 'package:nafahat/pages/widgets/shared_navigation_shell.dart';
 // lib/pages/landing/landing_page.dart
 import 'package:flutter/material.dart';
+import 'package:nafahat/theme/app_theme_tokens.dart';
 import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nafahat/models/bull_model.dart';
@@ -17,6 +18,7 @@ import 'package:nafahat/services/training_service.dart';
 import 'package:nafahat/services/bull_service.dart';
 import 'package:nafahat/services/card_config_manager.dart';
 import 'package:nafahat/services/SectionOrderService.dart';
+import 'package:nafahat/services/landing_appearance_manager.dart';
 
 // Providers
 import 'package:nafahat/providers/language_provider.dart';
@@ -41,12 +43,12 @@ import 'package:nafahat/pages/adminisration/add_training_card.dart';
 
 // --- PALETTE DE COULEURS ---
 class AppColors {
-  static const Color primary = Color(0xffd57653);
-  static const Color primaryDark = Color(0xff994a2b);
-  static const Color primaryLight = Color(0xfffae6de);
-  static const Color surface = Color(0xfffcfbfa);
-  static const Color textDark = Color(0xff2c221e);
-  static const Color textMuted = Color(0xff7c6e68);
+  static Color get primary => AppThemeTokens.accent;
+  static Color get primaryDark => AppThemeTokens.title;
+  static Color get primaryLight => AppThemeTokens.accentSoft;
+  static Color get surface => AppThemeTokens.background;
+  static Color get textDark => AppThemeTokens.text;
+  static Color get textMuted => AppThemeTokens.muted;
 }
 
 // ============================================================
@@ -64,19 +66,41 @@ class _LandingPageState extends State<LandingPage> {
   final _trainingSectionKey = GlobalKey<_TrainingCyclesSectionState>();
   final ScrollController _pageScrollController = ScrollController();
   final Map<String, GlobalKey> _sectionKeys = {};
+  final LandingAppearanceManager _appearanceManager = LandingAppearanceManager();
+
+  void _onAppearanceChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _onSectionsChanged() {
+    _loadSections();
+  }
+
+  void _onBullsChanged() {
+    if (mounted) setState(() {});
+  }
   @override
   void dispose() {
+    _appearanceManager.removeListener(_onAppearanceChanged);
+    SectionOrderService.revision.removeListener(_onSectionsChanged);
+    BullService.revision.removeListener(_onBullsChanged);
     _pageScrollController.dispose();
     super.dispose();
   }
 
   // États pour les sections dynamiques
-  List<SectionOrderModel> _sections = [];
-  bool _sectionsLoaded = false;
+  List<SectionOrderModel> _sections = SectionOrderService.getDefaultSections()
+      .where((s) => s.isActive)
+      .toList();
+  bool _sectionsLoaded = true;
 
   @override
   void initState() {
     super.initState();
+    _appearanceManager.addListener(_onAppearanceChanged);
+    SectionOrderService.revision.addListener(_onSectionsChanged);
+    BullService.revision.addListener(_onBullsChanged);
+    _appearanceManager.load();
     _loadSections();
   }
 
@@ -84,16 +108,44 @@ class _LandingPageState extends State<LandingPage> {
   // CHARGEMENT DES SECTIONS
   // ============================================================
   Future<void> _loadSections() async {
-    final sections = await SectionOrderService.loadSections();
-    if (!mounted) return;
-    setState(() {
-      _sections = sections.where((s) => s.isActive).toList();
-      _sectionsLoaded = true;
-    });
+    try {
+      final sections = await SectionOrderService.loadSections();
+      if (!mounted) return;
+
+      final activeSections = sections.where((s) => s.isActive).toList()
+        ..sort((a, b) => a.order.compareTo(b.order));
+
+      // Une configuration vide/mal formée ne doit jamais rendre la landing vide.
+      final safeSections = activeSections.isNotEmpty
+          ? activeSections
+          : SectionOrderService.getDefaultSections()
+              .where((s) => s.isActive)
+              .toList();
+
+      setState(() {
+        _sections = safeSections;
+        final activeIds = safeSections.map((s) => s.id).toSet();
+        _sectionKeys.removeWhere((id, _) => !activeIds.contains(id));
+        _sectionsLoaded = true;
+      });
+    } catch (e) {
+      debugPrint('LandingPage._loadSections: $e');
+      if (mounted) {
+        setState(() {
+          _sections = SectionOrderService.getDefaultSections()
+              .where((s) => s.isActive)
+              .toList();
+          _sectionsLoaded = true;
+        });
+      }
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final args = ModalRoute.of(context)?.settings.arguments;
-      if (args is Map && args['section'] is String) _scrollToSection(args['section'] as String);
+      if (args is Map && args['section'] is String) {
+        _scrollToSection(args['section'] as String);
+      }
     });
   }
 
@@ -230,7 +282,7 @@ class _LandingPageState extends State<LandingPage> {
         future: BullService.getBulls(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const SizedBox(
+            return SizedBox(
               height: 50,
               child: Center(
                 child: SizedBox(
@@ -319,6 +371,81 @@ class _LandingPageState extends State<LandingPage> {
     }
   }
 
+  Widget _buildStyledSection(
+    SectionOrderModel section,
+    bool isMobile,
+    bool isArabic,
+  ) {
+    final cfg = _appearanceManager.config;
+    final content = _buildSection(section, isMobile, isArabic);
+    final shouldDecorate =
+        cfg.showSectionCards && section.sectionKey != PredefinedSections.hero;
+
+    final title = isArabic ? section.titleAr : section.title;
+    final header = cfg.showSectionTitles &&
+            section.sectionKey != PredefinedSections.hero &&
+            title.trim().isNotEmpty
+        ? Padding(
+            padding: EdgeInsets.fromLTRB(
+              isMobile ? 16 : cfg.horizontalPadding,
+              10,
+              isMobile ? 16 : cfg.horizontalPadding,
+              8,
+            ),
+            child: Align(
+              alignment:
+                  isArabic ? Alignment.centerRight : Alignment.centerLeft,
+              child: Text(
+                title,
+                style: cfg.titleStyle(
+                  size: isMobile
+                      ? (cfg.titleFontSize - 4).clamp(18, 36).toDouble()
+                      : cfg.titleFontSize,
+                ),
+              ),
+            ),
+          )
+        : const SizedBox.shrink();
+
+    return Padding(
+      padding: EdgeInsets.only(
+        left: shouldDecorate && !isMobile ? cfg.horizontalPadding : 0,
+        right: shouldDecorate && !isMobile ? cfg.horizontalPadding : 0,
+        bottom: cfg.compactMode
+            ? cfg.sectionSpacing * 0.5
+            : cfg.sectionSpacing,
+      ),
+      child: Container(
+        decoration: shouldDecorate
+            ? BoxDecoration(
+                color: cfg.sectionBackgroundColor,
+                borderRadius: BorderRadius.circular(cfg.sectionRadius),
+                boxShadow: cfg.enableSectionShadow
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(
+                            cfg.themeMode == 'dark' ? 0.24 : 0.08,
+                          ),
+                          blurRadius: 22,
+                          offset: const Offset(0, 8),
+                        ),
+                      ]
+                    : null,
+              )
+            : null,
+        clipBehavior:
+            shouldDecorate ? Clip.antiAlias : Clip.none,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            header,
+            content,
+          ],
+        ),
+      ),
+    );
+  }
+
   // ============================================================
   // BUILD PRINCIPAL
   // ============================================================
@@ -327,10 +454,11 @@ class _LandingPageState extends State<LandingPage> {
     final languageProvider = Provider.of<LanguageProvider>(context);
     final isArabic = languageProvider.isArabic;
     final bool isMobile = MediaQuery.of(context).size.width < 850;
+    final landingAppearance = _appearanceManager.config;
 
     if (!_sectionsLoaded) {
       return Scaffold(
-        body: const Center(
+        body: Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
       );
@@ -340,7 +468,7 @@ class _LandingPageState extends State<LandingPage> {
       textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         key: _scaffoldKey,
-        backgroundColor: AppColors.surface,
+        backgroundColor: landingAppearance.pageBackgroundColor,
         drawer: isMobile
             ? Navbar(
                 isMobile: true,
@@ -360,17 +488,24 @@ class _LandingPageState extends State<LandingPage> {
                       physics: const BouncingScrollPhysics(),
                       child: Column(
                         children: [
-                          const SizedBox(height: 12),
+                          SizedBox(height: landingAppearance.compactMode ? 6 : 12),
 
                           // ✅ SECTIONS DYNAMIQUES (selon l'ordre défini dans l'admin)
                           ..._sections.map((section) {
                             return KeyedSubtree(
-                              key: _sectionKeys.putIfAbsent(section.id, () => GlobalKey()),
-                              child: _buildSection(section, isMobile, isArabic),
+                              key: _sectionKeys.putIfAbsent(
+                                section.id,
+                                () => GlobalKey(),
+                              ),
+                              child: _buildStyledSection(
+                                section,
+                                isMobile,
+                                isArabic,
+                              ),
                             );
                           }).toList(),
 
-                          const SizedBox(height: 40),
+                          SizedBox(height: landingAppearance.compactMode ? 18 : 40),
                         ],
                       ),
                     ),
@@ -540,6 +675,7 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
+    final landingAppearance = LandingAppearanceManager().config;
     final isMobile = screenWidth < 600;
     final isTablet = screenWidth >= 600 && screenWidth < 900;
     final paddingHorizontal = isMobile ? 0.0 : (isTablet ? 32.0 : 50.0);
@@ -564,10 +700,12 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
                   widget.isArabic
                       ? "برامجنا التدريبية"
                       : "Nos Cycles de Formation",
-                  style: GoogleFonts.cairo(
-                    fontSize: isMobile ? 22 : 28,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryDark,
+                  style: landingAppearance.titleStyle(
+                    size: isMobile
+                        ? (landingAppearance.titleFontSize - 4)
+                            .clamp(18, 34)
+                            .toDouble()
+                        : landingAppearance.titleFontSize,
                   ),
                 ),
                 Row(
@@ -597,7 +735,7 @@ class _TrainingCyclesSectionState extends State<_TrainingCyclesSection> {
                         ),
                       ),
                     IconButton(
-                      icon: const Icon(Icons.refresh, color: AppColors.primary),
+                      icon: Icon(Icons.refresh, color: AppColors.primary),
                       onPressed: refreshTrainings,
                       tooltip: widget.isArabic ? 'تحديث' : 'Rafraîchir',
                     ),
@@ -1039,10 +1177,12 @@ class _FormateurSectionState extends State<_FormateurSection> {
         children: [
           Text(
             isArabic ? 'مكونونا' : 'Nos Formateurs',
-            style: GoogleFonts.cairo(
-              fontSize: isMobile ? 22 : 28,
-              fontWeight: FontWeight.bold,
-              color: AppColors.primaryDark,
+            style: LandingAppearanceManager().config.titleStyle(
+              size: isMobile
+                  ? (LandingAppearanceManager().config.titleFontSize - 4)
+                      .clamp(18, 34)
+                      .toDouble()
+                  : LandingAppearanceManager().config.titleFontSize,
             ),
           ),
           const SizedBox(height: 8),
@@ -1052,7 +1192,7 @@ class _FormateurSectionState extends State<_FormateurSection> {
                 : 'Des experts dans leurs domaines pour vous accompagner',
             style: GoogleFonts.cairo(
               fontSize: isMobile ? 14 : 16,
-              color: AppColors.textMuted,
+              color: LandingAppearanceManager().config.mutedTextColor,
             ),
           ),
           const SizedBox(height: 16),

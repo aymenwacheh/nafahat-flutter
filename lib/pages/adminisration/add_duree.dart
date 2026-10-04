@@ -1,5 +1,6 @@
 // lib/pages/adminisration/add_duree.dart
 import 'package:flutter/material.dart';
+import 'package:nafahat/theme/app_theme_tokens.dart';
 import 'package:http/http.dart' as http;
 import 'package:nafahat/pages/widgets/back_to_admin_button.dart';
 import 'dart:convert';
@@ -28,8 +29,8 @@ class _AddDureePageState extends State<AddDureePage> {
   bool _isArabic = false;
   bool _isEditing = false;
 
-  static const Color nafahatGreen = Color(0xff0D443E);
-  static const Color nafahatOrange = Color(0xffd57653);
+  static Color get nafahatGreen => AppThemeTokens.primary;
+  static Color get nafahatOrange => AppThemeTokens.accent;
 
   @override
   void initState() {
@@ -292,7 +293,7 @@ class _AddDureePageState extends State<AddDureePage> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: nafahatGreen, width: 2),
+              borderSide: BorderSide(color: nafahatGreen, width: 2),
             ),
           ),
           validator: (value) {

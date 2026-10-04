@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'dart:convert';
 import 'dart:html' as html;
 import 'package:flutter/material.dart';
+import 'package:nafahat/theme/app_theme_tokens.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:nafahat/models/cible_model.dart';
@@ -52,6 +53,8 @@ class _EditFormationPageState extends State<EditFormationPage> {
   final TextEditingController _nbrHeurController = TextEditingController();
   final TextEditingController _nbrSeanceController = TextEditingController();
   final TextEditingController _nbrJourController = TextEditingController();
+  final TextEditingController _nombreTranchesController = TextEditingController(text: '2');
+  List<Map<String, dynamic>> _echeancierTranches = [];
 
   // États
   bool _hasDiscount = false;
@@ -83,6 +86,7 @@ class _EditFormationPageState extends State<EditFormationPage> {
     'annee': false,
     'seance': false,
     'heure': false,
+    'tranche': false,
   };
 
   // Jours de la semaine
@@ -106,9 +110,9 @@ class _EditFormationPageState extends State<EditFormationPage> {
   List<CibleModel> _cibles = [];
 
   // Couleurs
-  static const Color nafahatGreen = Color(0xff0D443E);
-  static const Color nafahatOrange = Color(0xffd57653);
-  static const Color nafahatGold = Color(0xffC4A46C);
+  static Color get nafahatGreen => AppThemeTokens.primary;
+  static Color get nafahatOrange => AppThemeTokens.accent;
+  static Color get nafahatGold => AppThemeTokens.accent;
 
   static const Color grey50 = Color(0xFFFAFAFA);
   static const Color grey100 = Color(0xFFF5F5F5);
@@ -336,6 +340,19 @@ class _EditFormationPageState extends State<EditFormationPage> {
     if (!_typesPaiementAutorises.values.any((v) => v)) {
       _typesPaiementAutorises['formation'] = true;
     }
+
+    final nbTranches = int.tryParse((formation['paiement_tranches_nombre'] ?? '2').toString()) ?? 2;
+    _nombreTranchesController.text = nbTranches.toString();
+    final rawEcheancier = formation['paiement_tranches_json'];
+    try {
+      final decoded = rawEcheancier is String ? jsonDecode(rawEcheancier) : rawEcheancier;
+      if (decoded is List) {
+        _echeancierTranches = decoded.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      }
+    } catch (_) {
+      _echeancierTranches = [];
+    }
+
   }
 
   List<String> _getTypesPaiementSelectionnes() {
@@ -367,6 +384,7 @@ class _EditFormationPageState extends State<EditFormationPage> {
     _nbrHeurController.dispose();
     _nbrSeanceController.dispose();
     _nbrJourController.dispose();
+    _nombreTranchesController.dispose();
     super.dispose();
   }
 
@@ -607,7 +625,7 @@ class _EditFormationPageState extends State<EditFormationPage> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
+            colorScheme: ColorScheme.light(
               primary: nafahatGreen,
               onPrimary: Colors.white,
               surface: Colors.white,
@@ -631,6 +649,98 @@ class _EditFormationPageState extends State<EditFormationPage> {
     return jsonEncode(selected);
   }
 
+  void _syncTranchesCount() {
+    final count = int.tryParse(_nombreTranchesController.text) ?? 0;
+    if (count < 1) return;
+    final total = double.tryParse(_priceDtController.text) ?? 0;
+    while (_echeancierTranches.length < count) {
+      final i = _echeancierTranches.length;
+      final d = DateTime.now().add(Duration(days: 30 * i));
+      _echeancierTranches.add({
+        'numero': i + 1,
+        'date': d.toIso8601String().split('T').first,
+        'montant': count > 0 ? double.parse((total / count).toStringAsFixed(2)) : 0.0,
+      });
+    }
+    if (_echeancierTranches.length > count) {
+      _echeancierTranches = _echeancierTranches.take(count).toList();
+    }
+    for (var i = 0; i < _echeancierTranches.length; i++) {
+      _echeancierTranches[i]['numero'] = i + 1;
+    }
+  }
+
+  bool _validateEcheancier() {
+    if (!(_typesPaiementAutorises['tranche'] ?? false)) return true;
+    _syncTranchesCount();
+    final count = int.tryParse(_nombreTranchesController.text) ?? 0;
+    if (count < 1 || _echeancierTranches.length != count) return false;
+    for (final t in _echeancierTranches) {
+      if (DateTime.tryParse((t['date'] ?? '').toString()) == null) return false;
+      final m = double.tryParse((t['montant'] ?? '').toString()) ?? 0;
+      if (m <= 0) return false;
+    }
+    return true;
+  }
+
+  Widget _buildTrancheConfigSection() {
+    if (!(_typesPaiementAutorises['tranche'] ?? false)) return const SizedBox.shrink();
+    _syncTranchesCount();
+    return Container(
+      margin: const EdgeInsets.only(top: 14),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: nafahatGreen.withOpacity(.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: nafahatGreen.withOpacity(.25)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(_isArabic ? 'إعداد الدفع بالأقساط' : 'Configuration du paiement par tranche',
+          style: GoogleFonts.cairo(fontWeight: FontWeight.w700, color: nafahatGreen)),
+        const SizedBox(height: 12),
+        TextFormField(
+          controller: _nombreTranchesController,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            labelText: _isArabic ? 'عدد الأقساط' : 'Nombre de tranches',
+            prefixIcon: const Icon(Icons.format_list_numbered),
+            border: const OutlineInputBorder(),
+          ),
+          onChanged: (_) => setState(_syncTranchesCount),
+          validator: (v) {
+            if (!(_typesPaiementAutorises['tranche'] ?? false)) return null;
+            final n = int.tryParse(v ?? '') ?? 0;
+            return n < 1 ? (_isArabic ? 'عدد غير صالح' : 'Nombre invalide') : null;
+          },
+        ),
+        const SizedBox(height: 12),
+        ...List.generate(_echeancierTranches.length, (i) {
+          final t = _echeancierTranches[i];
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: LayoutBuilder(builder: (context, c) {
+              final compact = c.maxWidth < 650;
+              final dateField = TextFormField(
+                key: ValueKey('edit-tranche-date-$i-${t['date']}'),
+                initialValue: (t['date'] ?? '').toString(),
+                decoration: InputDecoration(labelText: '${_isArabic ? 'تاريخ القسط' : 'Date tranche'} ${i + 1}', border: const OutlineInputBorder()),
+                onChanged: (v) => t['date'] = v,
+              );
+              final amountField = TextFormField(
+                key: ValueKey('edit-tranche-amount-$i-${t['montant']}'),
+                initialValue: (t['montant'] ?? '').toString(),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(labelText: '${_isArabic ? 'مبلغ القسط' : 'Montant tranche'} ${i + 1} (DT)', border: const OutlineInputBorder()),
+                onChanged: (v) => t['montant'] = double.tryParse(v) ?? 0,
+              );
+              return compact ? Column(children:[dateField,const SizedBox(height:8),amountField]) : Row(children:[Expanded(child:dateField),const SizedBox(width:10),Expanded(child:amountField)]);
+            }),
+          );
+        }),
+      ]),
+    );
+  }
+
   Future<void> _saveTraining() async {
     if (_formKey.currentState!.validate()) {
       final typesSelectionnes = _getTypesPaiementSelectionnes();
@@ -645,6 +755,11 @@ class _EditFormationPageState extends State<EditFormationPage> {
             backgroundColor: Colors.orange,
           ),
         );
+        return;
+      }
+
+      if (!_validateEcheancier()) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_isArabic ? 'تحقق من تواريخ ومبالغ الأقساط' : 'Vérifiez le nombre, les dates et les montants des tranches'), backgroundColor: Colors.orange));
         return;
       }
 
@@ -693,6 +808,8 @@ class _EditFormationPageState extends State<EditFormationPage> {
         'jour_semaine': _isRepetitive ? _getSelectedJours() : null,
         'actif': _currentActif,
         'types_paiement_autorises': typesSelectionnes,
+        'paiement_tranches_nombre': (_typesPaiementAutorises['tranche'] ?? false) ? (int.tryParse(_nombreTranchesController.text) ?? 0) : null,
+        'paiement_tranches_json': (_typesPaiementAutorises['tranche'] ?? false) ? _echeancierTranches : null,
         // ✅ NOUVEAU : Lien
         'lien': _lienController.text.isNotEmpty
             ? _lienController.text.trim()
@@ -788,6 +905,11 @@ class _EditFormationPageState extends State<EditFormationPage> {
     );
 
     if (confirm == true) {
+      if (!_validateEcheancier()) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_isArabic ? 'تحقق من تواريخ ومبالغ الأقساط' : 'Vérifiez le nombre, les dates et les montants des tranches'), backgroundColor: Colors.orange));
+        return;
+      }
+
       setState(() => _isSaving = true);
       try {
         final response = await http.delete(
@@ -879,6 +1001,13 @@ class _EditFormationPageState extends State<EditFormationPage> {
         'labelAr': 'دفع بالساعة',
         'descFr': 'Prix total ÷ nombre d\'heures',
         'descAr': 'السعر الإجمالي ÷ عدد الساعات',
+      },
+      'tranche': {
+        'icon': '🧾',
+        'labelFr': 'Paiement par tranche',
+        'labelAr': 'الدفع بالأقساط',
+        'descFr': 'Dates et montants définis par l’administrateur',
+        'descAr': 'تواريخ ومبالغ يحددها المسؤول',
       },
     };
 
@@ -1102,7 +1231,7 @@ class _EditFormationPageState extends State<EditFormationPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [nafahatGreen, nafahatGreen],
@@ -2346,7 +2475,7 @@ class _EditFormationPageState extends State<EditFormationPage> {
                               title: _isArabic
                                   ? 'أنواع الدفع المسموحة'
                                   : 'Types de paiement autorisés',
-                              children: [_buildTypesPaiementSection()],
+                              children: [_buildTypesPaiementSection(), _buildTrancheConfigSection()],
                             ),
 
                             const Divider(height: 32, color: grey200),

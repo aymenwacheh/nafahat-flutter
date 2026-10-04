@@ -40,7 +40,7 @@ class AboutPage extends StatelessWidget {
 
     return Scaffold(
       key: scaffoldKey,
-      backgroundColor: const Color(0xfffcfbfa),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       // ============================================================
       // DRAWER MOBILE - POUR QUE LE MENU FONCTIONNE
       // ============================================================

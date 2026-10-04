@@ -1,6 +1,7 @@
 import 'package:nafahat/pages/widgets/shared_navigation_shell.dart';
 // lib/pages/users/auth_page.dart
 import 'package:flutter/material.dart';
+import 'package:nafahat/theme/app_theme_tokens.dart';
 import 'package:nafahat/pages/users/reset_password_page.dart';
 import 'package:nafahat/pages/widgets/mobile_bottom_nav_bar.dart';
 import 'package:provider/provider.dart';
@@ -35,9 +36,9 @@ class _AuthPageState extends State<AuthPage> {
   final _formKey = GlobalKey<FormState>();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  static const Color nafahatGreenDark = Color(0xff092E2A);
-  static const Color nafahatGreen = Color(0xff0D443E);
-  static const Color nafahatGold = Color(0xffC4A46C);
+  static Color get nafahatGreenDark => AppThemeTokens.title;
+  static Color get nafahatGreen => AppThemeTokens.primary;
+  static Color get nafahatGold => AppThemeTokens.accent;
 
   // ---- AUTHENTIFICATION ----
   Future<void> _login() async {
@@ -233,7 +234,7 @@ class _AuthPageState extends State<AuthPage> {
                         Expanded(
                           flex: 5,
                           child: Container(
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [nafahatGreenDark, nafahatGreen],
                                 begin: Alignment.topLeft,
@@ -587,7 +588,7 @@ class _AuthPageState extends State<AuthPage> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: nafahatGreen, width: 1.5),
+          borderSide: BorderSide(color: nafahatGreen, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -654,7 +655,7 @@ class _AuthPageState extends State<AuthPage> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: nafahatGreen, width: 1.5),
+              borderSide: BorderSide(color: nafahatGreen, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -673,9 +674,9 @@ class _AuthPageState extends State<AuthPage> {
 
 // 👈 AppColors
 class AppColors {
-  static const Color surface = Color(0xfffcfbfa);
-  static const Color primary = Color(0xffd57653);
-  static const Color textDark = Color(0xff2c221e);
-  static const Color textMuted = Color(0xff7c6e68);
-  static const Color primaryDark = Color(0xff994a2b);
+  static Color get surface => AppThemeTokens.background;
+  static Color get primary => AppThemeTokens.accent;
+  static Color get textDark => AppThemeTokens.text;
+  static Color get textMuted => AppThemeTokens.muted;
+  static Color get primaryDark => AppThemeTokens.title;
 }

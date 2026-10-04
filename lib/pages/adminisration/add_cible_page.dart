@@ -1,5 +1,6 @@
 // lib/pages/adminisration/add_cible_page.dart
 import 'package:flutter/material.dart';
+import 'package:nafahat/theme/app_theme_tokens.dart';
 import 'package:nafahat/pages/widgets/back_to_admin_button.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -26,8 +27,8 @@ class _AddCiblePageState extends State<AddCiblePage> {
   bool _isLoading = false;
   bool _isEditMode = false;
 
-  static const Color nafahatGreen = Color(0xff0D443E);
-  static const Color nafahatOrange = Color(0xffd57653);
+  static Color get nafahatGreen => AppThemeTokens.primary;
+  static Color get nafahatOrange => AppThemeTokens.accent;
   static const Color grey200 = Color(0xFFEEEEEE);
   static const Color grey300 = Color(0xFFE0E0E0);
   static const Color grey400 = Color(0xFFBDBDBD);
@@ -125,7 +126,7 @@ class _AddCiblePageState extends State<AddCiblePage> {
     final isArabic = context.watch<LanguageProvider>().isArabic;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           _isEditMode
